@@ -1,0 +1,27 @@
+security:
+    access_decision_manager:
+        strategy: unanimous
+    firewalls:
+        main:
+            pattern: ^%web_backend_prefix%
+            organization-http-basic:
+                realm: "Secured REST Area"
+            provider: oro_user
+            entry_point: organization_http_basic
+            http-basic: false
+            organization-form-login: false
+            logout: false
+            organization-remember-me: false
+
+        frontend:
+            pattern: ^/
+            entry_point: organization_http_basic
+            organization-http-basic:
+                realm: "AccountUser REST Area"
+            provider: commerce_customer_user
+            context: customer_identity
+            http-basic: false
+            organization-form-login: false
+            logout: false
+            organization-remember-me: false
+            anonymous_customer_user: true

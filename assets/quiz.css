@@ -1,0 +1,96 @@
+/* Componente quiz + richiamo attivo. Richiede lesson.css per le variabili colore. */
+
+.quiz {
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  padding: 1rem 1.15rem 1.15rem;
+  margin: 1.6rem 0;
+}
+.quiz .q { font-weight: 600; margin: 0 0 0.9rem; }
+.quiz .options { display: flex; flex-direction: column; gap: 0.5rem; }
+.quiz button.opt {
+  font-family: var(--font-text);
+  font-size: 0.95rem;
+  text-align: left;
+  padding: 0.55rem 0.75rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  cursor: pointer;
+  line-height: 1.4;
+}
+.quiz button.opt:hover:not([disabled]) { border-color: var(--accent); }
+.quiz button.opt[disabled] { cursor: default; }
+.quiz button.opt.correct { border-color: var(--ok); box-shadow: inset 3px 0 0 var(--ok); }
+.quiz button.opt.wrong   { border-color: var(--accent); box-shadow: inset 3px 0 0 var(--accent); opacity: 0.75; }
+.quiz .explain {
+  margin: 0.9rem 0 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  border-top: 1px dashed var(--rule);
+  padding-top: 0.7rem;
+}
+.quiz .verdict {
+  font-family: var(--font-code);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin: 0.8rem 0 0;
+}
+.quiz .verdict.ok { color: var(--ok); }
+.quiz .verdict.ko { color: var(--accent); }
+
+/* Richiamo attivo: prova a rispondere a memoria, poi scopri la risposta. */
+.recall {
+  border: 1px solid var(--rule);
+  padding: 1rem 1.15rem;
+  margin: 1.6rem 0;
+}
+.recall .q { font-weight: 600; margin: 0 0 0.7rem; }
+.recall textarea {
+  width: 100%;
+  min-height: 4.5rem;
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  padding: 0.6rem;
+  background: var(--code-bg);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  resize: vertical;
+}
+.recall button.reveal {
+  font-family: var(--font-code);
+  font-size: 0.74rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-top: 0.7rem;
+  padding: 0.45rem 0.8rem;
+  background: var(--paper);
+  color: var(--ink);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  cursor: pointer;
+}
+.recall .answer {
+  margin-top: 0.9rem;
+  font-size: 0.92rem;
+  border-top: 1px dashed var(--rule);
+  padding-top: 0.7rem;
+}
+
+.score {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.6rem;
+  margin-top: 1.5rem;
+}
+
+@media print {
+  .quiz button.opt { border-color: #999; }
+  .recall .answer, .quiz .explain { display: block !important; }
+}

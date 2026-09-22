@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 9 — Storefront API</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 09</p>
+  <h1>Storefront API</h1>
+  <p class="subtitle">La seconda API di Oro: stesso motore, pubblico diverso, e un modello di sicurezza che non perdona distrazioni.</p>
+  <p class="meta">
+    <span>Durata: ~50 min</span>
+    <span>Prerequisiti: <a href="0008-api-rest-admin.html">Lezione 8</a></span>
+    <span>Obiettivo: capire quando e come esporre dati al frontend</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché esistono due API</h2>
+
+<p>Non è una duplicazione: sono due pubblici con due modelli di sicurezza diversi.</p>
+
+<table>
+  <thead><tr><th></th><th>Admin API</th><th>Storefront API</th></tr></thead>
+  <tbody>
+    <tr><td>Chi la usa</td><td>ERP, PIM, middleware, strumenti interni</td><td>Applicazioni per i clienti: PWA, app mobile, portali</td></tr>
+    <tr><td>Chi si autentica</td><td><code>User</code> del back-office</td><td><code>CustomerUser</code>, oppure visitatore ospite</td></tr>
+    <tr><td>Configurazione</td><td><code>Resources/config/oro/api.yml</code></td><td><code>Resources/config/oro/api_frontend.yml</code></td></tr>
+    <tr><td>Prefisso URL (configurazione standard)</td><td><code>/admin/api/</code></td><td><code>/api/</code></td></tr>
+    <tr><td>Sandbox</td><td><code>/admin/api/doc</code></td><td><code>/api/doc</code></td></tr>
+    <tr><td>Risorse disponibili</td><td>Quasi tutte le entità di gestione</td><td>Un insieme ristretto e curato</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Regola di sicurezza, non di stile</p>
+  <p>Una risorsa esposta sulla storefront API è raggiungibile da un cliente del negozio — e, se
+  l'accesso ospite è attivo, potenzialmente da chiunque. Le mappature ERP della lezione 3
+  <strong>non vanno mai lì</strong>. Prima di aggiungere una riga a
+  <code>api_frontend.yml</code> la domanda è: «un cliente del mio cliente ha diritto di vedere
+  questo dato?»</p>
+</div>
+
+<h2>Il request type: un motore, due configurazioni</h2>
+
+<p>Oro non ha due implementazioni di API. Ha un unico motore a processori, che lavora in un
+<strong>request type</strong> diverso: le richieste dello storefront portano il tipo
+<code>frontend</code>, e il sistema carica <code>api_frontend.yml</code> invece di
+<code>api.yml</code>, attivando e disattivando processori di conseguenza.</p>
+
+<p class="sidenote">Verificabile nel codice del customer portal:
+<code>vendor/oro/customer-portal/src/Oro/Bundle/FrontendBundle/Api/FrontendApiDependencyInjectionUtil.php</code>,
+che abilita e disabilita processori per il tipo <code>'frontend'</code>. Esempi di configurazione
+reali:
+<code>vendor/oro/customer-portal/src/Oro/Bundle/CustomerBundle/Resources/config/oro/api_frontend.yml</code>.</p>
+
+<p>La conseguenza pratica: la sintassi che hai imparato nella lezione 8 vale identica. Cambia il
+file, cambia il pubblico, cambia il buon senso su cosa esporre.</p>
+
+<h2>Come si restringe una risorsa storefront</h2>
+
+<p>Il pattern che trovi in tutto il customer portal: risorsa in sola lettura, campi interni
+esclusi.</p>
+
+<pre><code>api:
+    entities:
+        Oro\Bundle\CustomerBundle\Entity\Customer:
+            documentation_resource: '@OroCustomerBundle/Resources/doc/api_frontend/customer.md'
+            actions:
+                create: false
+                update: false
+                delete: false
+                delete_list: false</code></pre>
+
+<p>E l'esclusione esplicita dei campi che non devono uscire:</p>
+
+<pre><code>            fields:
+                public:
+                    exclude: true
+                selfManaged:
+                    exclude: true</code></pre>
+
+<div class="box">
+  <p class="box-title">Il criterio giusto è l'elenco bianco</p>
+  <p>Sull'admin API puoi permetterti di esporre e poi restringere. Sulla storefront API si fa il
+  contrario: si parte da nulla, si espone una risorsa alla volta, e per ciascuna si escludono
+  esplicitamente i campi. Il costo di un errore è una fuga di dati, non un bug.</p>
+</div>
+
+<h2>Autenticazione</h2>
+
+<p>Stesso server OAuth 2.0 della lezione 8, ma i client sono <strong>di tipo storefront</strong> e
+si creano in una sezione separata del back-office: la rotta è <code>/admin/oauth2/frontend</code>
+(<code>oro_oauth2_frontend_index</code> in <code>debug:router</code>). Un client storefront è legato
+a un <code>CustomerUser</code>, non a un utente del back-office.</p>
+
+<p>Il flusso più usato qui è <strong>password</strong> o <strong>authorization code</strong>,
+perché c'è una persona che fa login — a differenza dell'integrazione ERP, dove usi
+<em>client credentials</em>. Il token endpoint resta <code>POST /oauth2-token</code>.</p>
+
+<p>Esiste anche un accesso <strong>ospite</strong>, controllato dalla configurazione di sistema del
+customer portal: se attivo, alcune risorse (tipicamente catalogo e contenuti) rispondono senza
+token. Vale la pena verificarlo sempre su un progetto nuovo, prima di dare per scontato che l'API
+sia chiusa.</p>
+
+<h2>Pratica: esplorare invece di esporre</h2>
+
+<p>Questa lezione non aggiunge risorse tue: l'esercizio giusto è imparare a <em>leggere</em> quello
+che c'è, perché è così che lavorerai su un progetto reale.</p>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Elenca le risorse storefront.</strong></p>
+<pre><code>orobox console oro:api:dump --request-type=frontend | head -40</code></pre>
+    <p>Confronta il numero di risorse con quelle dell'admin API (<code>oro:api:dump</code> senza
+    opzioni). La differenza è il punto della lezione.</p>
+  </li>
+  <li>
+    <p><strong>Apri la sandbox storefront.</strong> <code>https://&lt;dominio&gt;:&lt;porta&gt;/api/doc</code>.
+    Cerca <code>products</code>: guarda quali campi ci sono e quali no rispetto all'entità
+    <code>Product</code> che vedi nel back-office.</p>
+  </li>
+  <li>
+    <p><strong>Leggi una configurazione reale.</strong></p>
+<pre><code>cat vendor/oro/customer-portal/src/Oro/Bundle/CustomerBundle/Resources/config/oro/api_frontend.yml</code></pre>
+    <p>Domande da tenere in mente mentre leggi: quali azioni sono disabilitate? Quali campi sono
+    esclusi, e perché proprio quelli?</p>
+  </li>
+  <li>
+    <p><strong>Confronta la stessa entità sulle due API.</strong></p>
+<pre><code>orobox console oro:api:config:dump 'Oro\Bundle\CustomerBundle\Entity\Customer'
+orobox console oro:api:config:dump 'Oro\Bundle\CustomerBundle\Entity\Customer' --request-type=frontend</code></pre>
+    <p>Stessa entità, due configurazioni risolte diverse. È la dimostrazione concreta del request
+    type.</p>
+  </li>
+  <li>
+    <p><strong>Chiamata da ospite.</strong> Prova senza token:</p>
+<pre><code>BASE=https://&lt;dominio&gt;:&lt;porta&gt;      # l'URL stampato da `orobox up`
+
+curl -sk -i "$BASE/api/products?page[size]=1" \
+  -H 'Accept: application/vnd.api+json' | head -20</code></pre>
+    <p>Se risponde <code>401</code>, l'accesso ospite è disattivato su quell'installazione; se
+    risponde <code>200</code>, è attivo. In entrambi i casi hai imparato qualcosa che su un progetto
+    reale devi sapere prima di andare in produzione.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Sai che le API di Oro sono due, sai distinguerle in dieci secondi guardando il file di
+  configurazione, e sai porti la domanda giusta prima di esporre qualcosa. Nelle revisioni di
+  sicurezza questa è la differenza fra un progetto che passa e uno che torna indietro.</p>
+</div>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Quale file configura le risorse della storefront API?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il file Resources/config/oro/api_frontend.yml</button>
+    <button class="opt">Il file Resources/config/oro/api_storefront.yml</button>
+    <button class="opt">Il file Resources/views/layouts/config/api.yml</button>
+    <button class="opt">Il file Resources/config/oro/api.yml, con un flag</button>
+  </div>
+  <p class="explain" hidden><code>api_frontend.yml</code>, stessa cartella di <code>api.yml</code>.
+  Il motore è lo stesso: cambia il <em>request type</em> della richiesta, e con esso il file di
+  configurazione caricato.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Chi si autentica sulla storefront API?</p>
+  <div class="options">
+    <button class="opt" data-correct>Un CustomerUser, oppure un visitatore ospite</button>
+    <button class="opt">Un User del back-office con ruolo dedicato</button>
+    <button class="opt">Un client OAuth con le sole credenziali cliente</button>
+    <button class="opt">Un utente qualsiasi con la sessione del browser</button>
+  </div>
+  <p class="explain" hidden>Il pubblico sono i clienti del negozio: <code>CustomerUser</code>, e in
+  alcune configurazioni gli ospiti. I client OAuth storefront si creano in una sezione separata,
+  <code>/admin/oauth2/frontend</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale criterio si usa per esporre risorse sullo storefront?</p>
+  <div class="options">
+    <button class="opt" data-correct>Elenco bianco: si espone il minimo necessario</button>
+    <button class="opt">Elenco nero: si espone tutto e si escludono</button>
+    <button class="opt">Lo stesso elenco usato per l'API amministrativa</button>
+    <button class="opt">Nessuno: le risorse sono decise dalla piattaforma</button>
+  </div>
+  <p class="explain" hidden>Elenco bianco, risorsa per risorsa, con esclusione esplicita dei campi
+  interni. Il costo di un errore qui non è un bug: è un dato riservato pubblicato.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Come confronti la configurazione di un'entità fra le due API?</p>
+  <div class="options">
+    <button class="opt" data-correct>Con oro:api:config:dump e l'opzione request-type</button>
+    <button class="opt">Con oro:api:dump ripetuto sulle due sandbox</button>
+    <button class="opt">Con debug:container filtrando sui processori API</button>
+    <button class="opt">Con oro:api:metadata:dump e l'opzione frontend</button>
+  </div>
+  <p class="explain" hidden><code>oro:api:config:dump &lt;classe&gt;</code> e lo stesso comando con
+  <code>--request-type=frontend</code>: due configurazioni risolte a confronto, ed è il modo più
+  rapido per capire cosa esce davvero.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: due differenze sostanziali (non di URL) fra admin API e storefront API.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Il soggetto autenticato (<code>User</code> del back-office contro <code>CustomerUser</code> o
+    ospite) e il criterio di esposizione (restringere il molto contro esporre il minimo). Segue da
+    entrambe una terza differenza: l'insieme di risorse disponibili è molto più piccolo sullo
+    storefront.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 8 (spaziatura): quali due cache vanno svuotate dopo una
+  modifica alla configurazione dell'API?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>orobox console cache:clear</code> (framework) e
+    <code>orobox console oro:api:cache:clear</code> (configurazione API). Per la sandbox, anche
+    <code>oro:api:doc:cache:clear</code>.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/api/storefront/">Oro — Storefront API</a> e
+  <a href="https://doc.oroinc.com/backend/api/storefront-routes/">Storefront API Routes</a>.
+  Venti minuti, e leggile con in mente il progetto del cliente: la domanda utile è «cosa di
+  <em>questo</em> progetto passerà da qui?».</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Crea un client OAuth storefront per un customer user di prova (i dati demo ne contengono) e
+  ottieni un token. Poi chiama <code>/api/customerusers/…</code> e osserva quali campi ricevi.</li>
+  <li>Prendi una risorsa storefront a tua scelta e scrivi, in cinque righe, cosa
+  <strong>non</strong> espone rispetto all'entità completa. Portami l'elenco: ragionare su cosa il
+  core ha deciso di nascondere è il modo più rapido per imparare il criterio.</li>
+  <li>Domanda di architettura, da discutere insieme: l'ERP del cliente deve leggere i prezzi.
+  Passa dall'admin API o dalla storefront API? Perché? Non c'è una risposta sola, ci sono ragioni
+  migliori e peggiori.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 10: import ed export.</strong> Il canale che nei progetti ERP muove i volumi
+grandi: processori, data converter, strategie, il comando <code>oro:import:file</code> e il job
+batch che ci sta sotto.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0008-api-rest-admin.html">Lezione 8</a> ·
+    <a href="0010-import-export.html">Lezione 10</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+  </p>
+  <p>Prima di esporre qualcosa sullo storefront, chiedimelo. È l'unica lezione di questo percorso in
+  cui un errore si paga fuori dall'ambiente di sviluppo.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

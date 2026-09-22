@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — API, code, import/export</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>API, code, import/export</h1>
+  <p class="subtitle">I quattro canali di integrazione di Oro su una pagina: configurazione, comandi, errori tipici.</p>
+  <p class="meta">
+    <span>Oro 7.0</span>
+    <span>Nasce dalle lezioni <a href="../lessons/0008-api-rest-admin.html">8</a>–<a href="../lessons/0012-integrazione-erp.html">12</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Scegliere il canale</h2>
+
+<table>
+  <thead><tr><th>Chi inizia</th><th>Volume</th><th>Canale</th><th>File di configurazione</th></tr></thead>
+  <tbody>
+    <tr><td>Sistema esterno → Oro</td><td>Piccolo, tempo reale</td><td>Admin API</td><td><code>Resources/config/oro/api.yml</code></td></tr>
+    <tr><td>Cliente del negozio → Oro</td><td>Piccolo</td><td>Storefront API</td><td><code>Resources/config/oro/api_frontend.yml</code></td></tr>
+    <tr><td>Sistema esterno → Oro</td><td>Grande, a lotti</td><td>Import/export</td><td><code>Resources/config/importexport.yml</code></td></tr>
+    <tr><td>Oro → lavoro differito</td><td>Qualsiasi</td><td>Message queue</td><td><code>mq_topics.yml</code>, <code>mq_processors.yml</code></td></tr>
+    <tr><td>Oro → sistema esterno, periodico</td><td>Qualsiasi</td><td>Integration + cron</td><td>Servizi con tag <code>oro_integration.*</code></td></tr>
+  </tbody>
+</table>
+
+<h2>REST API</h2>
+
+<pre><code>api:
+    entity_aliases:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping:
+            alias: erpmapping
+            plural_alias: erpmappings
+    entities:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping:
+            documentation_resource: '@AlgoritmaTrainingBundle/Resources/doc/api/erp_mapping.md'
+            actions:
+                delete: false
+                delete_list: false
+            fields:
+                syncedAt:
+                    description: Data dell'ultima sincronizzazione
+                internalNote:
+                    exclude: true
+            filters:
+                fields:
+                    erpCode:
+                        data_type: string</code></pre>
+
+<table>
+  <thead><tr><th>Cosa</th><th>Come</th></tr></thead>
+  <tbody>
+    <tr><td>Elenco</td><td><code>GET /admin/api/&lt;alias-plurale&gt;</code></td></tr>
+    <tr><td>Filtro</td><td><code>?filter[erpCode]=ERP-1</code></td></tr>
+    <tr><td>Ordinamento</td><td><code>?sort=-syncedAt</code></td></tr>
+    <tr><td>Paginazione</td><td><code>?page[size]=20&amp;page[number]=2</code></td></tr>
+    <tr><td>Campi</td><td><code>?fields[erpmappings]=erpCode,oroSku</code></td></tr>
+    <tr><td>Relazioni incluse</td><td><code>?include=owner</code></td></tr>
+    <tr><td>Content type</td><td><code>application/vnd.api+json</code></td></tr>
+    <tr><td>Token</td><td><code>POST /oauth2-token</code>, poi <code>Authorization: Bearer …</code></td></tr>
+  </tbody>
+</table>
+
+<pre><code>orobox console oro:api:dump                          # risorse admin
+orobox console oro:api:dump --request-type=frontend  # risorse storefront
+orobox console oro:api:config:dump &lt;classe&gt;          # configurazione risolta
+orobox console oro:api:metadata:dump &lt;classe&gt;        # metadati
+orobox console oro:api:cache:clear                   # dopo ogni modifica ad api.yml
+orobox console oro:api:doc:cache:clear               # per la sandbox /api/doc
+orobox console oro:api:doc:open-api:dump             # specifica OpenAPI</code></pre>
+
+<h2>Import ed export</h2>
+
+<pre><code>services:
+    algoritma_training.importexport.data_converter:
+        parent: oro_importexport.data_converter.configurable
+
+    algoritma_training.importexport.strategy:
+        parent: oro_importexport.strategy.configurable_add_or_replace
+
+    algoritma_training.importexport.processor.import:
+        parent: oro_importexport.processor.import_abstract
+        calls:
+            - [setDataConverter, ['@algoritma_training.importexport.data_converter']]
+            - [setStrategy, ['@algoritma_training.importexport.strategy']]
+        tags:
+            - { name: oro_importexport.processor, type: import, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping.add_or_replace }
+            - { name: oro_importexport.processor, type: import_validation, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping.add_or_replace }
+
+    algoritma_training.importexport.processor.export:
+        parent: oro_importexport.processor.export_abstract
+        calls:
+            - [setDataConverter, ['@algoritma_training.importexport.data_converter']]
+        tags:
+            - { name: oro_importexport.processor, type: export, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping }</code></pre>
+
+<table>
+  <thead><tr><th>Tipo</th><th>Serve per</th></tr></thead>
+  <tbody>
+    <tr><td><code>import</code></td><td>L'import vero</td></tr>
+    <tr><td><code>import_validation</code></td><td>L'anteprima di validazione (dichiaralo sempre insieme a <code>import</code>)</td></tr>
+    <tr><td><code>export</code></td><td>L'esportazione dei dati</td></tr>
+    <tr><td><code>export_template</code></td><td>Il file di esempio scaricabile</td></tr>
+  </tbody>
+</table>
+
+<pre><code># idempotenza: il campo chiave si marca sull'entità
+#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]
+
+# il file deve stare DENTRO la cartella del progetto: il comando gira nel container
+# --email è obbligatorio; il job della validazione è diverso da quello dell'import
+
+orobox console oro:import:file var/data.csv \
+  --jobName=entity_import_validation_from_csv \
+  --processor=algoritma_erp_mapping.add_or_replace \
+  --email=admin@example.com --validation              # prima sempre in validazione
+
+orobox console oro:import:file var/data.csv \
+  --jobName=entity_import_from_csv \
+  --processor=algoritma_erp_mapping.add_or_replace \
+  --email=admin@example.com
+
+# il comando SCHEDULA: senza consumer attivo non succede nulla
+orobox console oro:message-queue:consume
+
+orobox console debug:container --tag=oro_importexport.processor   # cosa è registrato</code></pre>
+
+<p>Job batch generici del core: <code>entity_import_from_csv</code>,
+<code>entity_export_to_csv</code> (in
+<code>vendor/oro/platform/src/Oro/Bundle/ImportExportBundle/Resources/config/batch_jobs.yml</code>).</p>
+
+<h2>Message queue</h2>
+
+<pre><code># Topic: contratto del payload
+class SyncErpMappingTopic extends AbstractTopic
+{
+    public static function getName(): string { return 'algoritma.training.sync_erp_mapping'; }
+    public static function getDescription(): string { return '...'; }
+
+    public function configureMessageBody(OptionsResolver $resolver): void
+    {
+        $resolver-&gt;setRequired('mappingId')-&gt;setAllowedTypes('mappingId', 'int');
+        $resolver-&gt;setDefault('force', false)-&gt;setAllowedTypes('force', 'bool');
+    }
+}
+
+# Processor: MessageProcessorInterface + TopicSubscriberInterface
+public static function getSubscribedTopics(): array { return [SyncErpMappingTopic::getName()]; }
+public function process(MessageInterface $message, SessionInterface $session): string
+{
+    // self::ACK | self::REJECT | self::REQUEUE
+}
+
+# Producer
+$this-&gt;producer-&gt;send(SyncErpMappingTopic::getName(), ['mappingId' =&gt; 42]);
+# argomento nel services.yml: '@oro_message_queue.client.message_producer'</code></pre>
+
+<pre><code># mq_topics.yml
+services:
+    _defaults:
+        tags: [ { name: oro_message_queue.topic } ]
+    Algoritma\Bundle\TrainingBundle\Async\Topic\SyncErpMappingTopic: ~
+
+# mq_processors.yml
+services:
+    _instanceof:
+        Oro\Component\MessageQueue\Client\TopicSubscriberInterface:
+            tags: [ { name: oro_message_queue.client.message_processor } ]
+    Algoritma\Bundle\TrainingBundle\Async\SyncErpMappingProcessor:
+        arguments: [ '@doctrine', '@logger' ]</code></pre>
+
+<table>
+  <thead><tr><th>Esito</th><th>Quando</th></tr></thead>
+  <tbody>
+    <tr><td><code>ACK</code></td><td>Lavoro completato</td></tr>
+    <tr><td><code>REJECT</code></td><td>Riprovare non può funzionare (payload invalido, record inesistente)</td></tr>
+    <tr><td><code>REQUEUE</code></td><td>Problema temporaneo (sistema esterno giù, lock occupato)</td></tr>
+  </tbody>
+</table>
+
+<pre><code>orobox console oro:message-queue:consume -vv      # riavvialo dopo ogni modifica al codice
+orobox console oro:message-queue:topics
+orobox console oro:message-queue:destinations
+orobox console oro:message-queue:create-queues</code></pre>
+
+<p>In Community Edition il trasporto è DBAL (coda su PostgreSQL, con polling): qualche secondo di
+latenza è normale. In Enterprise è RabbitMQ; il codice non cambia.</p>
+
+<h2>Integration bundle</h2>
+
+<pre><code>    algoritma_training.provider.channel_type:
+        class: Algoritma\Bundle\TrainingBundle\Provider\ErpChannelType   # implements ChannelInterface
+        tags:
+            - { name: oro_integration.channel, type: algoritma_erp }
+
+    algoritma_training.transport.rest:
+        parent: oro_integration.transport.rest.abstract_transport
+        tags:
+            - { name: oro_integration.transport, type: algoritma_erp_rest, channel_type: algoritma_erp }
+
+    algoritma_training.connector.product:
+        class: Algoritma\Bundle\TrainingBundle\Provider\ProductConnector
+        tags:
+            - { name: oro_integration.connector, type: product, channel_type: algoritma_erp }</code></pre>
+
+<p>Modello completo: <code>vendor/oro/crm-zendesk/</code>
+(<code>Provider/ChannelType.php</code> e <code>Resources/config/importexport.yml</code>).
+Schedulazione: <code>oro:cron:integration:sync</code>, già fra i job cron del core.</p>
+
+<h2>Errori frequenti</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa</th></tr></thead>
+  <tbody>
+    <tr><td>Modifica ad <code>api.yml</code> senza effetto</td><td>Manca <code>oro:api:cache:clear</code></td></tr>
+    <tr><td>Risorsa API 404 con alias «ovvio»</td><td>L'alias reale lo dà <code>oro:api:dump</code>: non indovinarlo</td></tr>
+    <tr><td>API 403 con token valido</td><td>ACL o ownership dell'utente collegato al client OAuth</td></tr>
+    <tr><td>Import che duplica</td><td>Manca <code>importexport.identity</code> sul campo chiave</td></tr>
+    <tr><td>Import «non trova le colonne»</td><td>Intestazioni del CSV diverse da quelle attese: scarica il template</td></tr>
+    <tr><td><code>File not found</code> con un percorso valido</td><td>Il file è fuori dalla cartella del progetto: il comando gira nel container</td></tr>
+    <tr><td><code>The --email option is required</code></td><td><code>oro:import:file</code> vuole sempre <code>--email</code></td></tr>
+    <tr><td>Import «scheduled» ma nessun dato</td><td>Il consumer non sta girando: l'import passa dalla coda</td></tr>
+    <tr><td>Messaggio pubblicato ma mai eseguito</td><td>Consumer non in esecuzione, o processor senza tag</td></tr>
+    <tr><td>Il processor usa codice vecchio</td><td>Il consumer è un processo lungo: riavvialo</td></tr>
+    <tr><td>Ciclo infinito di riconsumo</td><td><code>REQUEUE</code> restituito su un errore permanente</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<footer>
+  <p>Collegamenti:
+    <a href="../lessons/0008-api-rest-admin.html">Lezione 8</a> ·
+    <a href="../lessons/0010-import-export.html">Lezione 10</a> ·
+    <a href="../lessons/0011-message-queue.html">Lezione 11</a> ·
+    <a href="../lessons/0012-integrazione-erp.html">Lezione 12</a> ·
+    <a href="https://doc.oroinc.com/backend/api/">Oro — API</a> ·
+    <a href="https://doc.oroinc.com/backend/mq/">Oro — Message Queue</a> ·
+    <a href="https://doc.oroinc.com/backend/integrations/">Oro — Integrations</a>
+  </p>
+</footer>
+
+</body>
+</html>

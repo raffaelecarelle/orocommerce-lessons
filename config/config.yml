@@ -1,0 +1,156 @@
+imports:
+    - { resource: parameters.yml, ignore_errors: not_found }
+    - { resource: security.yml }
+    - { resource: doctrine.yml }
+
+parameters:
+    # Some parameter values are not set from environment variables because Symfony service container build
+    # depends on them. These parameter values cannot be changed in runtime without the application cache rebuild.
+
+    database_server_version: '13.7'
+    secret: '%env(ORO_SECRET)%'
+    database_dsn: '%env(ORO_DB_DSN)%'
+    mailer_dsn: '%env(ORO_MAILER_DSN)%'
+    websocket_server_dsn: '%env(ORO_WEBSOCKET_SERVER_DSN)%' # The websocket server will listen on this address and port.
+    websocket_frontend_dsn: '%env(ORO_WEBSOCKET_FRONTEND_DSN)%' # The host, port and path for the browser to connect to.
+    websocket_backend_dsn: '%env(ORO_WEBSOCKET_BACKEND_DSN)%' # The host, port and path for the server-side code to connect to.
+    search_engine_dsn: '%env(ORO_SEARCH_ENGINE_DSN)%'
+    website_search_engine_dsn: '%env(ORO_WEBSITE_SEARCH_ENGINE_DSN)%'
+    session_handler_dsn: '%env(ORO_SESSION_DSN)%'
+    message_queue_transport_dsn: '%env(ORO_MQ_DSN)%'
+    liip_imagine.jpegoptim.binary: '%env(ORO_JPEGOPTIM_BINARY)%'
+    liip_imagine.pngquant.binary: '%env(ORO_PNGQUANT_BINARY)%'
+    tracking_data_folder: '%env(ORO_TRACKING_DATA_FOLDER)%'
+    maintenance_lock_file_path: '%env(resolve:ORO_MAINTENANCE_LOCK_FILE_PATH)%'
+    oauth2_public_key: '%env(resolve:ORO_OAUTH_PUBLIC_KEY_PATH)%'
+    oauth2_private_key: '%env(resolve:ORO_OAUTH_PRIVATE_KEY_PATH)%'
+    log_path: '%env(resolve:ORO_LOG_PATH)%'
+    log_stacktrace_level: '%env(resolve:ORO_LOG_STACKTRACE_LEVEL)%' # The minimum log message level for which an exception stacktrace should be logged. To disable the stacktrace logging an empty string or "none" value can be used.
+    permitted_outbound_connections: '%env(ORO_PERMITTED_OUTBOUND_CONNECTIONS)%'
+    outbound_connection_check_duration: '%env(int:ORO_OUTBOUND_CONNECTION_CHECK_DURATION)%'
+
+    env(ORO_SECRET): ThisTokenIsNotSoSecretChangeIt
+    env(ORO_DB_URL): 'postgresql://root@127.0.0.1/b2b_crm_dev'
+    env(ORO_DB_DSN): '%env(ORO_DB_URL)%'
+    env(ORO_MAILER_DSN): 'native://default'
+    env(ORO_SEARCH_URL): 'orm:'
+    env(ORO_SEARCH_ENGINE_DSN): '%env(ORO_SEARCH_URL)%?prefix=oro_search'
+    env(ORO_WEBSITE_SEARCH_ENGINE_DSN): '%env(ORO_SEARCH_URL)%?prefix=oro_website_search'
+    env(ORO_SESSION_DSN): 'native:'
+    env(ORO_WEBSOCKET_SERVER_DSN): '//0.0.0.0:8080'
+    env(ORO_WEBSOCKET_FRONTEND_DSN): '//*:8080/ws'
+    env(ORO_WEBSOCKET_BACKEND_DSN): 'tcp://127.0.0.1:8080'
+    env(ORO_MQ_DSN): 'dbal:'
+    env(ORO_JPEGOPTIM_BINARY): ''
+    env(ORO_PNGQUANT_BINARY): ''
+    env(ORO_REDIS_URL): 'redis://127.0.0.1:6379'
+    env(ORO_REDIS_SESSION_DSN): '%env(ORO_REDIS_URL)%/0'
+    env(ORO_REDIS_CACHE_DSN): '%env(ORO_REDIS_URL)%/1'
+    env(ORO_REDIS_DOCTRINE_DSN): '%env(ORO_REDIS_URL)%/2'
+    env(ORO_REDIS_LAYOUT_DSN): '%env(ORO_REDIS_URL)%/3'
+    env(ORO_TRACKING_DATA_FOLDER): null
+    env(ORO_MAINTENANCE_LOCK_FILE_PATH): '%kernel.project_dir%/var/maintenance/maintenance_lock'
+    env(ORO_OAUTH_PUBLIC_KEY_PATH): '%kernel.project_dir%/var/oauth_public.key'
+    env(ORO_OAUTH_PRIVATE_KEY_PATH): '%kernel.project_dir%/var/oauth_private.key'
+    env(ORO_LOG_PATH): "%kernel.logs_dir%/%kernel.environment%.log"
+    env(ORO_LOG_STACKTRACE_LEVEL): 'error'
+    env(ORO_PERMITTED_OUTBOUND_CONNECTIONS): ''
+    env(ORO_OUTBOUND_CONNECTION_CHECK_DURATION): '5' # 5 seconds
+
+framework:
+    #esi:             ~
+    translator:
+        paths:
+            - '%kernel.project_dir%/translations'
+        fallback: en
+    secret:          "%secret%"
+    router:
+        resource: "%kernel.project_dir%/config/routing.yml"
+        strict_requirements: "%kernel.debug%"
+    csrf_protection: true
+    validation:      { enable_attributes: true }
+    assets:
+        version_strategy: 'Oro\Bundle\AssetBundle\VersionStrategy\BuildVersionStrategy'
+    default_locale: en
+    session:
+        # More info about session cookie configuration can be found at
+        # https://doc.oroinc.com/backend/setup/post-install/cookies-configuration/#back-office-session-cookie
+        name:                 BAPID
+        handler_id:           '%session_handler%'
+        save_path:            '%kernel.project_dir%/var/sessions/%kernel.environment%'
+        gc_maxlifetime:       7200 #120 minutes
+        cookie_httponly:      true
+        cookie_secure:        'auto'
+    fragments:
+        enabled:              false
+        path:                 /_fragment # used for controller action in template
+    serializer:
+        enabled:              true
+    mailer:
+        transports:
+            main: 'oro://system-config?fallback=%mailer_dsn%'
+            oro_user_email_origin: 'oro://user-email-origin'
+
+# Twig Configuration
+twig:
+    debug:                    "%kernel.debug%"
+    strict_variables:         "%kernel.debug%"
+    globals:
+        bap:
+            layout:           base.html.twig  # default layout across all Oro bundles
+
+fos_js_routing:
+    routes_to_expose: ['oro_.*']
+
+oro_frontend:
+    routes_to_expose: ['oro_.*']
+
+stof_doctrine_extensions:
+    default_locale: en
+    translation_fallback: true
+    orm:
+        default:
+            translatable:     true
+            tree:             true
+
+oro_translation:
+    locales: [en, fr]
+    templating: "@OroUI/Form/translatable.html.twig"
+
+oro_maintenance:
+    authorized:
+        path:                 'maintenance|.*\.js'             # "maintenance" is only for demo purposes, remove in production!
+#        ips:                  ["127.0.0.1"]                   # Optional. Authorized ip addresses
+    driver:
+        options:
+            file_path:        '%maintenance_lock_file_path%'
+
+#
+# ORO Bundles config
+#
+oro_theme:
+    active_theme: oro
+
+oro_layout:
+    enabled_themes:
+        - default
+
+oro_locale:
+    formatting_code: en
+    language: en
+
+oro_attachment:
+    upload_file_mime_types:
+        - application/msword
+        - application/vnd.ms-excel
+        - application/pdf
+        - application/zip
+        - image/gif
+        - image/jpeg
+        - image/png
+        - image/webp
+    upload_image_mime_types:
+        - image/gif
+        - image/jpeg
+        - image/png
+        - image/webp

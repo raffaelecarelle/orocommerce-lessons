@@ -1,0 +1,204 @@
+/* Formazione OroCommerce — foglio di stile condiviso per lezioni e reference.
+   Ispirazione: Tufte CSS. Ottimizzato per lettura a schermo e per la stampa. */
+
+:root {
+  --ink: #111111;
+  --ink-soft: #4a4a4a;
+  --paper: #fffef9;
+  --rule: #d9d5c8;
+  --accent: #8a3324;      /* rosso mattone, per richiami e link */
+  --accent-soft: #f3e9e6;
+  --code-bg: #f4f2ec;
+  --ok: #1f6f43;
+  --warn: #8a5a00;
+  --font-text: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --font-code: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+  --measure: 42rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ink: #eae6dc;
+    --ink-soft: #b3aea1;
+    --paper: #17171a;
+    --rule: #3a3a40;
+    --accent: #e28b7a;
+    --accent-soft: #2a2022;
+    --code-bg: #212127;
+    --ok: #6fbf8e;
+    --warn: #d9a441;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 3rem 1rem 6rem;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-text);
+  font-size: 1.0625rem;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+main, header, footer { max-width: var(--measure); margin: 0 auto; }
+
+/* --- Intestazione della lezione --- */
+.kicker {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 0.6rem;
+}
+h1 {
+  font-size: 2.1rem;
+  line-height: 1.15;
+  font-weight: 400;
+  margin: 0 0 0.4rem;
+}
+.subtitle {
+  font-style: italic;
+  color: var(--ink-soft);
+  margin: 0 0 1.4rem;
+}
+.meta {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  color: var(--ink-soft);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.55rem 0;
+  margin-bottom: 2.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1.2rem;
+}
+
+h2 {
+  font-size: 1.32rem;
+  font-weight: 600;
+  margin: 3rem 0 0.8rem;
+  line-height: 1.25;
+}
+h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  margin: 2rem 0 0.5rem;
+}
+p { margin: 0 0 1.1rem; }
+
+a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--rule); }
+a:hover { border-bottom-color: var(--accent); }
+
+/* --- Codice --- */
+code {
+  font-family: var(--font-code);
+  font-size: 0.86em;
+  background: var(--code-bg);
+  padding: 0.1em 0.32em;
+  border-radius: 3px;
+}
+pre {
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  line-height: 1.55;
+  background: var(--code-bg);
+  border-left: 3px solid var(--accent);
+  padding: 0.9rem 1rem;
+  overflow-x: auto;
+  margin: 0 0 1.2rem;
+}
+pre code { background: none; padding: 0; font-size: inherit; }
+
+/* --- Note a margine (stile Tufte, in linea su schermi stretti) --- */
+.sidenote {
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--rule);
+  padding-left: 0.9rem;
+  margin: 1.2rem 0;
+}
+
+/* --- Riquadri --- */
+.box {
+  border: 1px solid var(--rule);
+  padding: 1rem 1.15rem;
+  margin: 1.6rem 0;
+  background: color-mix(in srgb, var(--paper) 90%, var(--rule));
+}
+.box > :last-child { margin-bottom: 0; }
+.box-title {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin: 0 0 0.6rem;
+}
+.box.warn { border-left: 3px solid var(--warn); }
+.box.win  { border-left: 3px solid var(--ok); }
+.box.source { border-left: 3px solid var(--accent); background: var(--accent-soft); }
+
+/* --- Tabelle --- */
+table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.92rem;
+  margin: 0 0 1.4rem;
+}
+th, td {
+  text-align: left;
+  padding: 0.45rem 0.6rem 0.45rem 0;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+}
+th {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+ul, ol { margin: 0 0 1.1rem; padding-left: 1.3rem; }
+li { margin-bottom: 0.35rem; }
+
+/* --- Checklist pratica --- */
+.checklist { list-style: none; padding-left: 0; }
+.checklist li {
+  padding-left: 1.9rem;
+  position: relative;
+  margin-bottom: 0.7rem;
+}
+.checklist li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0.35em;
+  width: 1rem; height: 1rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 2px;
+}
+
+/* --- Piè di pagina / navigazione --- */
+footer {
+  margin-top: 4rem;
+  border-top: 1px solid var(--rule);
+  padding-top: 1.2rem;
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+}
+footer a { color: var(--accent); }
+
+@media print {
+  body { padding: 0; font-size: 11pt; background: #fff; color: #000; }
+  .quiz { break-inside: avoid; }
+  pre, .box { break-inside: avoid; }
+  a { border-bottom: none; }
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
+}

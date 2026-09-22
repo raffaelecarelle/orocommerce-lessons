@@ -1,0 +1,2 @@
+bundles:
+    - { name: Algoritma\Bundle\TrainingBundle\AlgoritmaTrainingBundle, priority: 30 }

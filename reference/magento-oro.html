@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Da Magento 2 a OroCommerce</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Da Magento 2 a OroCommerce</h1>
+  <p class="subtitle">Mappa di traduzione fra due piattaforme che risolvono gli stessi problemi con strumenti diversi. Serve a orientarsi in fretta, non a pensare in Magento per sempre.</p>
+  <p class="meta">
+    <span>Stato: bozza di lavoro</span>
+    <span>Le righe marcate <em>da verificare</em> vanno confermate sul codice</span>
+  </p>
+</header>
+
+<main>
+
+<div class="box warn">
+  <p class="box-title">Come usare questa pagina</p>
+  <p>Questa non è una fonte: è un ponte. Ogni analogia regge per i primi dieci minuti e poi si rompe.
+  Quando si rompe, la piattaforma giusta a cui dare retta è Oro. Le righe segnate <em>da verificare</em>
+  sono mie ipotesi da confermare insieme sul codice reale prima di fidarsene.</p>
+</div>
+
+<h2>Fondamenta</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>OroCommerce</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Framework proprietario Magento, con qualche componente Symfony ai margini</td>
+      <td>Symfony 7.4, usato come applicazione a tutti gli effetti</td>
+      <td>Container, router, eventi, console e sicurezza sono di Symfony. Imparare Symfony <em>è</em> imparare Oro.</td>
+    </tr>
+    <tr>
+      <td>Moduli in <code>app/code/Vendor/Modulo</code></td>
+      <td>Bundle in <code>src/Acme/Bundle/FooBundle</code></td>
+      <td>Stessa idea di unità di codice riusabile, nome diverso. Il bundle è un concetto Symfony.</td>
+    </tr>
+    <tr>
+      <td><code>registration.php</code> + <code>etc/module.xml</code></td>
+      <td>Classe del bundle + <code>Resources/config/oro/bundles.yml</code></td>
+      <td>In Oro non registri il bundle nel kernel: basta il file <code>bundles.yml</code> e viene scoperto da solo.</td>
+    </tr>
+    <tr>
+      <td><code>bin/magento</code></td>
+      <td><code>bin/console</code> (in locale: <code>orobox console</code>)</td>
+      <td>È la console di Symfony. I comandi Oro sono prefissati <code>oro:</code>.</td>
+    </tr>
+    <tr>
+      <td><code>vendor/magento</code> intoccabile</td>
+      <td><code>vendor/oro</code> intoccabile</td>
+      <td>Regola identica. Cambiano gli strumenti per estendere senza modificare.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Estendere il comportamento</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>OroCommerce</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><code>etc/di.xml</code></td>
+      <td><code>Resources/config/services.yml</code></td>
+      <td>Stesso ruolo: dichiarare come si costruiscono i servizi. Sintassi YAML invece che XML, più autowiring.</td>
+    </tr>
+    <tr>
+      <td>Preference (rewrite di classe)</td>
+      <td>Alias o decorazione del servizio nel container</td>
+      <td>In Symfony si sostituisce o si avvolge un <em>servizio</em>, non una classe globale.</td>
+    </tr>
+    <tr>
+      <td>Plugin: <code>before</code>, <code>around</code>, <code>after</code></td>
+      <td><strong>Nessun equivalente diretto.</strong> Si usa la decorazione dei servizi</td>
+      <td>È la differenza che costa di più a chi arriva da Magento: niente interceptor generati, niente intercettazione trasparente di metodi arbitrari.</td>
+    </tr>
+    <tr>
+      <td>Observer su <code>events.xml</code></td>
+      <td>Event listener / subscriber sull'EventDispatcher di Symfony</td>
+      <td>Concetto quasi sovrapponibile. Cambia come li dichiari (tag di servizio) e i nomi degli eventi.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Dati e persistenza</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>OroCommerce</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>Model / ResourceModel / Collection</td>
+      <td>Entità Doctrine + Repository</td>
+      <td>Doctrine è un ORM vero, con unit of work e identity map. Il modello mentale è diverso: <em>da verificare insieme con codice alla mano</em>.</td>
+    </tr>
+    <tr>
+      <td><code>etc/db_schema.xml</code> (schema dichiarativo)</td>
+      <td>Migration Doctrine nel bundle</td>
+      <td>Oro applica le migration dei bundle con i propri comandi <code>oro:migration:*</code>. <em>Da verificare</em>: nomi esatti dei comandi.</td>
+    </tr>
+    <tr>
+      <td>MySQL</td>
+      <td>PostgreSQL (Oro 7.0: <code>&gt;= 17.6</code>, CE ed EE)</td>
+      <td>Cambio reale di dialetto SQL. Attenzione alle query native che porti con te.</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Configurazione dichiarativa</h2>
+
+<p>Oro auto-registra i file YAML che rispettano una convenzione di nome dentro
+<code>Resources/config/oro/</code> del bundle. Non devi importarli da nessuna parte.
+Fonte: <a href="https://doc.oroinc.com/backend/configuration/yaml/bundles-config/">Bundles' Configuration</a>.</p>
+
+<table>
+  <thead><tr><th>File</th><th>Definisce</th><th>Analogia Magento</th></tr></thead>
+  <tbody>
+    <tr><td><code>bundles.yml</code></td><td>Registrazione del bundle</td><td><code>module.xml</code></td></tr>
+    <tr><td><code>routing.yml</code></td><td>Rotte del bundle</td><td><code>etc/frontend/routes.xml</code></td></tr>
+    <tr><td><code>datagrids.yml</code></td><td>Griglie di back-office</td><td>UI Component listing</td></tr>
+    <tr><td><code>acls.yml</code></td><td>Permessi ACL</td><td><code>etc/acl.xml</code></td></tr>
+    <tr><td><code>navigation.yml</code></td><td>Voci di menu</td><td><code>etc/adminhtml/menu.xml</code></td></tr>
+    <tr><td><code>system_configuration.yml</code></td><td>Sezioni della configurazione di sistema</td><td><code>etc/adminhtml/system.xml</code></td></tr>
+    <tr><td><code>api.yml</code></td><td>Esposizione delle entità nella REST API</td><td><code>etc/webapi.xml</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Cosa non ha analogia</h2>
+
+<ul>
+  <li><strong>Due applicazioni in una.</strong> Oro è CRM + commerce: account, customer user, organizzazioni,
+  business unit e un modello di permessi multi-livello che in Magento non esiste.</li>
+  <li><strong>Entità estendibili a runtime.</strong> Un amministratore può aggiungere campi alle entità
+  dall'interfaccia. Il codice generato da quel meccanismo va capito prima di stupirsene.</li>
+  <li><strong>Workflow e process.</strong> Macchine a stati configurabili in YAML, usate per il ciclo di vita
+  di ordini, richieste di preventivo e altro. Non c'è niente di simile nel core Magento.</li>
+  <li><strong>Datagrid come componente di prima classe.</strong> Le griglie sono configurazione dichiarativa
+  con filtri, ordinamenti, azioni di massa ed export, non una lista da montare a mano.</li>
+</ul>
+
+</main>
+
+<footer>
+  <p><a href="../lessons/0001-ambiente-oro-7.html">Lezione 1 — Un Oro 7.0 che gira</a> ·
+     <a href="orobox.html">Reference: comandi orobox</a> ·
+     <a href="../RESOURCES.md">Risorse</a></p>
+  <p>Trovi un'analogia che non regge? Segnalamela: correggere questa pagina insieme vale più che rileggerla.</p>
+</footer>
+
+</body>
+</html>

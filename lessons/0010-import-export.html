@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 10 — Import ed export</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 10</p>
+  <h1>Import ed export</h1>
+  <p class="subtitle">Il canale dei volumi grandi: processori, data converter, strategie — e un CSV che diventa righe nel database.</p>
+  <p class="meta">
+    <span>Durata: ~75 min</span>
+    <span>Prerequisiti: <a href="0009-storefront-api.html">Lezione 9</a></span>
+    <span>Obiettivo: importare un CSV nella tua entità</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>L'API va bene per gli aggiornamenti puntuali. Quando l'ERP ti manda 80.000 righe di anagrafica
+ogni notte, serve un canale progettato per i lotti: transazioni a blocchi, validazione separata dal
+salvataggio, log degli errori riga per riga, esecuzione in background. In Oro questo canale è
+l'import/export, ed è costruito sopra un motore di <em>job batch</em>.</p>
+
+<h2>I quattro pezzi, e cosa fa ciascuno</h2>
+
+<table>
+  <thead><tr><th>Pezzo</th><th>Responsabilità</th><th>Lo scrivi tu?</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Reader</strong></td><td>Legge il file riga per riga (CSV in genere)</td><td>Quasi mai</td></tr>
+    <tr><td><strong>Data converter</strong></td><td>Traduce le intestazioni del file nei campi dell'entità</td><td>Spesso: di solito configurando, non programmando</td></tr>
+    <tr><td><strong>Processor</strong></td><td>Trasforma la riga in un oggetto e lo passa alla strategia</td><td>A volte</td></tr>
+    <tr><td><strong>Strategy</strong></td><td>Decide se creare o aggiornare, valida, gestisce le relazioni</td><td>Quando la logica è tua</td></tr>
+  </tbody>
+</table>
+
+<p>Tutti e quattro si dichiarano in <code>Resources/config/importexport.yml</code> — un file
+separato da <code>services.yml</code>, caricato dall'Extension del bundle — e si registrano con il
+tag <code>oro_importexport.processor</code>.</p>
+
+<pre><code>    oro_product.importexport.processor.import.product:
+        parent: oro_importexport.processor.import_abstract
+        calls:
+            - [setDataConverter, ['@oro_product.importexport.data_converter.product']]
+            - [setStrategy, ['@oro_product.importexport.strategy.product']]
+        tags:
+            - { name: oro_importexport.processor, type: import, entity: 'Oro\Bundle\ProductBundle\Entity\Product', alias: oro_product_product.add_or_replace }
+            - { name: oro_importexport.processor, type: import_validation, entity: 'Oro\Bundle\ProductBundle\Entity\Product', alias: oro_product_product.add_or_replace }</code></pre>
+
+<p class="sidenote">Sorgente:
+<code>vendor/oro/commerce/src/Oro/Bundle/ProductBundle/Resources/config/importexport.yml</code>.
+Nota i quattro valori possibili di <code>type</code>: <code>import</code>,
+<code>import_validation</code>, <code>export</code>, <code>export_template</code>. Il secondo è
+l'anteprima che l'utente vede prima di confermare: <strong>si dichiara sempre insieme al primo</strong>.</p>
+
+<h2>La scorciatoia che userai quasi sempre</h2>
+
+<p>Per un'entità semplice non serve scrivere PHP: bastano i servizi «configurabili» del core più la
+configurazione dei campi sull'entità.</p>
+
+<pre><code>    # data converter generico: usa la configurazione dell'entità
+    algoritma_training.importexport.data_converter:
+        parent: oro_importexport.data_converter.configurable
+
+    # strategia generica: crea o aggiorna in base ai campi "identity"
+    algoritma_training.importexport.strategy:
+        parent: oro_importexport.strategy.configurable_add_or_replace</code></pre>
+
+<p>Il pezzo che manca è dire a Oro <strong>quale campo identifica una riga</strong>: si fa con
+l'attributo <code>#[ConfigField]</code> sull'entità.</p>
+
+<pre><code>#[ORM\Column(name: 'erp_code', type: Types::STRING, length: 64)]
+#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]
+protected ?string $erpCode = null;
+
+#[ORM\Column(name: 'synced_at', type: Types::DATETIME_MUTABLE, nullable: true)]
+#[ConfigField(defaultValues: ['importexport' =&gt; ['excluded' =&gt; true]])]
+protected ?\DateTime $syncedAt = null;</code></pre>
+
+<p>Tre opzioni da ricordare: <code>identity</code> (per riconoscere un record esistente),
+<code>excluded</code> (campo che non entra e non esce), <code>order</code> (posizione della colonna
+nel file). Esempio reale:
+<code>vendor/oro/platform/src/Oro/Bundle/UserBundle/Entity/User.php</code>, proprietà
+<code>username</code> e <code>usernameLowercase</code>.</p>
+
+<h2>Pratica: importare le mappature da CSV</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Marca i campi sull'entità.</strong> Aggiungi
+    <code>use Oro\Bundle\EntityConfigBundle\Metadata\Attribute\ConfigField;</code> e gli attributi
+    come sopra: <code>erpCode</code> come <code>identity</code>, <code>syncedAt</code> come
+    <code>excluded</code>.</p>
+  </li>
+  <li>
+    <p><strong>Dichiara i servizi.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Resources/config/importexport.yml</code>:</p>
+<pre><code>services:
+    algoritma_training.importexport.data_converter:
+        parent: oro_importexport.data_converter.configurable
+
+    algoritma_training.importexport.strategy:
+        parent: oro_importexport.strategy.configurable_add_or_replace
+
+    algoritma_training.importexport.processor.import:
+        parent: oro_importexport.processor.import_abstract
+        calls:
+            - [setDataConverter, ['@algoritma_training.importexport.data_converter']]
+            - [setStrategy, ['@algoritma_training.importexport.strategy']]
+        tags:
+            - { name: oro_importexport.processor, type: import, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping.add_or_replace }
+            - { name: oro_importexport.processor, type: import_validation, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping.add_or_replace }
+
+    algoritma_training.importexport.processor.export:
+        parent: oro_importexport.processor.export_abstract
+        calls:
+            - [setDataConverter, ['@algoritma_training.importexport.data_converter']]
+        tags:
+            - { name: oro_importexport.processor, type: export, entity: 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping', alias: algoritma_erp_mapping }</code></pre>
+  </li>
+  <li>
+    <p><strong>Carica il file dall'Extension.</strong> In
+    <code>DependencyInjection/AlgoritmaTrainingExtension.php</code>:</p>
+<pre><code>$loader-&gt;load('importexport.yml');</code></pre>
+  </li>
+  <li>
+    <p><strong>Prepara il CSV.</strong> Le intestazioni corrispondono ai nomi delle proprietà
+    dell'entità. <strong>Il file deve stare dentro la cartella del progetto</strong>: il comando gira
+    nel container, e <code>/tmp</code> del tuo portatile lì non esiste.</p>
+<pre><code>cat &gt; var/mappings.csv &lt;&lt;'CSV'
+erpCode,oroSku
+ERP-2001,SKU-201
+ERP-2002,SKU-202
+CSV</code></pre>
+  </li>
+  <li>
+    <p><strong>Valida prima di importare.</strong> Sempre, anche in produzione: è gratis e ti
+    risparmia i rollback.</p>
+<pre><code>orobox console cache:clear
+orobox console oro:import:file var/mappings.csv \
+  --jobName=entity_import_validation_from_csv \
+  --processor=algoritma_erp_mapping.add_or_replace \
+  --email=admin@example.com \
+  --validation</code></pre>
+    <p>Due dettagli che fanno perdere tempo se non li sai, verificati eseguendo il comando su
+    un'installazione 7.0 CE: <code>--email</code> è <strong>obbligatorio</strong> (è l'indirizzo a cui arriva il
+    report), e il job della validazione è <code>entity_import_validation_from_csv</code>, diverso da
+    quello dell'import. Se sbagli job, il comando ti mostra l'elenco di quelli disponibili.</p>
+  </li>
+  <li>
+    <p><strong>Importa.</strong> Job diverso, niente <code>--validation</code>:</p>
+<pre><code>orobox console oro:import:file var/mappings.csv \
+  --jobName=entity_import_from_csv \
+  --processor=algoritma_erp_mapping.add_or_replace \
+  --email=admin@example.com</code></pre>
+    <p>Risposta attesa: <code>Scheduled successfully. The result will be sent to the email</code>.</p>
+  </li>
+  <li>
+    <p><strong>Fai girare il consumer.</strong> Ed è la cosa più importante di questa lezione:
+    <strong>l'import non viene eseguito dal comando</strong>. Il comando mette un messaggio in coda;
+    il lavoro lo fa il consumer. Senza consumer attivo non succede niente, e non è un errore.</p>
+<pre><code>orobox console oro:message-queue:consume</code></pre>
+    <p>Lascialo girare qualche secondo, poi fermalo con Ctrl+C e verifica:</p>
+<pre><code>orobox console doctrine:query:sql "SELECT id, erp_code, oro_sku FROM algoritma_erp_mapping ORDER BY id"</code></pre>
+    <p>Le due righe del CSV devono esserci. È la lezione 11 che arriva in anticipo: import, export e
+    metà della piattaforma girano sulla message queue.</p>
+  </li>
+  <li>
+    <p><strong>Prova l'idempotenza.</strong> Cambia <code>SKU-201</code> in
+    <code>SKU-999</code> nel CSV, reimporta e fai girare di nuovo il consumer. Grazie a
+    <code>identity</code> su <code>erpCode</code>, la riga deve essere
+    <strong>aggiornata</strong>, non duplicata: stesso <code>id</code>, <code>oro_sku</code> nuovo.
+    Se ti ritrovi due righe, l'attributo <code>#[ConfigField]</code> non è stato applicato: serve
+    <code>cache:clear</code> e, in alcuni casi,
+    <code>orobox console oro:entity-extend:update-config</code>.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Hai un canale di caricamento massivo idempotente, con validazione separata, senza aver scritto
+  una riga di PHP oltre a due attributi sull'entità. Nei progetti ERP questo è il canale che regge
+  il grosso del traffico notturno.</p>
+</div>
+
+<h2>Quando serve scrivere codice davvero</h2>
+
+<table>
+  <thead><tr><th>Esigenza</th><th>Dove metti le mani</th></tr></thead>
+  <tbody>
+    <tr><td>Le intestazioni del file non corrispondono ai campi</td><td>Data converter proprio, che estende quello configurabile</td></tr>
+    <tr><td>Servono valori derivati o normalizzati (date, valute)</td><td>Processor proprio, o un normalizer dedicato</td></tr>
+    <tr><td>«Se il record esiste ed è in stato X, non aggiornarlo»</td><td>Strategy propria, che estende <code>configurable_add_or_replace</code></td></tr>
+    <tr><td>Relazioni verso altre entità da risolvere per codice</td><td>Strategy: è lì che si cercano gli oggetti collegati</td></tr>
+  </tbody>
+</table>
+
+<p>Modello completo da imitare quando arriverai a questo punto:
+<code>Oro\Bundle\ProductBundle\ImportExport\Processor\ProductImportProcessor</code> e le sue
+strategie, nel commerce.</p>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Cosa fa la strategy in un import Oro?</p>
+  <div class="options">
+    <button class="opt" data-correct>Decide se creare o aggiornare, e valida</button>
+    <button class="opt">Legge il file e produce le righe grezze</button>
+    <button class="opt">Traduce le intestazioni nei campi entità</button>
+    <button class="opt">Programma il job nella coda dei messaggi</button>
+  </div>
+  <p class="explain" hidden>Reader legge, data converter traduce le intestazioni, processor
+  costruisce l'oggetto, strategy decide creazione o aggiornamento (in base ai campi
+  <code>identity</code>), valida e risolve le relazioni.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Come dichiari il campo che identifica una riga?</p>
+  <div class="options">
+    <button class="opt" data-correct>Con ConfigField e importexport identity true</button>
+    <button class="opt">Con un indice unico dichiarato nella migration</button>
+    <button class="opt">Con il primo campo elencato nel file CSV</button>
+    <button class="opt">Con l'opzione identity nel tag del processore</button>
+  </div>
+  <p class="explain" hidden><code>#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]</code>.
+  L'indice unico è una buona idea in ogni caso, ma è il database: non è quello che guarda la
+  strategia.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Perché si dichiara anche il tipo import_validation?</p>
+  <div class="options">
+    <button class="opt" data-correct>Per l'anteprima di validazione prima dell'import</button>
+    <button class="opt">Per validare i dati anche durante l'export</button>
+    <button class="opt">Per registrare il processore nella coda batch</button>
+    <button class="opt">Per abilitare il template di esempio scaricabile</button>
+  </div>
+  <p class="explain" hidden>È il passaggio che l'interfaccia (e l'opzione <code>--validation</code>)
+  usa per dire all'utente cosa succederà, senza scrivere nulla. Il template di esempio è invece
+  <code>export_template</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale job name usa l'import generico da CSV?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il job chiamato entity_import_from_csv</button>
+    <button class="opt">Il job chiamato oro_import_from_csv_job</button>
+    <button class="opt">Il job chiamato import_entity_csv_batch</button>
+    <button class="opt">Il job chiamato oro_importexport_default</button>
+  </div>
+  <p class="explain" hidden><code>entity_import_from_csv</code> per l'import,
+  <code>entity_import_validation_from_csv</code> per la sola validazione,
+  <code>entity_export_to_csv</code> per l'export. Sono definiti in <code>batch_jobs.yml</code>
+  dell'ImportExportBundle: quando un progetto ha esigenze particolari, si definiscono job propri lì.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro pezzi della catena di import, in ordine, con una riga ciascuno.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Reader (legge il file) → data converter (intestazioni → campi) → processor (riga → oggetto) →
+    strategy (crea o aggiorna, valida, risolve relazioni).
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 9 (spaziatura): perché non esporresti mai le mappature ERP
+  sulla storefront API?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Perché quel canale è per i clienti del negozio (customer user ed eventualmente ospiti): sono
+    dati interni di integrazione, e l'errore si paga come fuga di dati, non come bug.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/integrations/">Oro — Integrations</a>, sezione
+  <em>Import and Export</em>. Poi, più utile della documentazione:
+  <code>vendor/oro/platform/src/Oro/Bundle/UserBundle/Resources/config/importexport.yml</code>,
+  che è l'esempio completo più corto del core.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi <code>export_template</code> (un processore con
+  <code>oro_importexport.data_converter.template_fixture.configurable</code>, come fa
+  <code>UserBundle</code>) e scarica il template: è il modo giusto per scoprire le intestazioni
+  attese invece di indovinarle.</li>
+  <li>Registra un <code>oro_importexport.configuration</code> provider per la tua entità (sempre
+  modello <code>UserBundle</code>) così che i pulsanti di import ed export compaiano sopra la
+  griglia della lezione 5.</li>
+  <li>Prova un CSV sporco: una riga senza <code>oroSku</code>, una con un codice ERP duplicato.
+  Lancia con <code>--validation</code> e leggi il report. Poi dimmi cosa faresti, in un progetto
+  reale, con le righe scartate — è una decisione di progetto, non tecnica.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 11: message queue.</strong> Topic, processori, producer e consumer: come si
+esegue lavoro in background in Oro, perché l'import ci gira sopra, e cosa cambia fra Community
+Edition (coda su database) ed Enterprise (RabbitMQ).</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0009-storefront-api.html">Lezione 9</a> ·
+    <a href="0011-message-queue.html">Lezione 11</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+  </p>
+  <p>Se l'import duplica invece di aggiornare, è quasi sempre <code>identity</code>: mandami
+  l'entità e il CSV e lo vediamo in due minuti.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

@@ -1,0 +1,73 @@
+imports:
+    - { resource: config.yml }
+    - { resource: security_test.yml }
+
+parameters:
+    doctrine.dbal.connection_factory.class: 'Oro\Component\Testing\Doctrine\PersistentConnectionFactory'
+    message_queue_transport_dsn: 'dbal:'
+    main_log_channels: []
+
+framework:
+    test: ~
+    session:
+        storage_factory_id: session.storage.factory.mock_file
+        handler_id: null
+        save_path: null
+    csrf_protection: true
+    profiler:
+        enabled: false
+    mailer:
+        transports:
+            main: 'null://null'
+            oro_user_email_origin: 'null://null'
+
+monolog:
+    handlers:
+        fingers_crossed:
+            type: fingers_crossed
+            action_level: error
+            handler: nested
+            excluded_http_codes: [ 404, 405 ]
+            channels: [ "!event" ]
+        nested:
+            type: stream
+            path: "%log_path%"
+            level: debug
+            channels: '%main_log_channels%'
+
+# configure loose default password requirements for auto-generated test users
+oro_user:
+    settings:
+        password_min_length:
+            value: 2
+        password_lower_case:
+            value: false
+        password_upper_case:
+            value: false
+        password_numbers:
+            value: false
+        password_special_chars:
+            value: false
+
+twig:
+    strict_variables: true
+    debug: false
+
+oro_search:
+    engine_parameters:
+        force_refresh: true
+
+oro_api:
+    settings:
+        web_api:
+            value: true
+
+oro_frontend:
+    settings:
+        web_api:
+            value: true
+
+oro_message_queue:
+    client:
+        redelivery:
+            delay_time: 1

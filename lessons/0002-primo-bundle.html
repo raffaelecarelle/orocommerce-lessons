@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 2 — Il tuo primo bundle</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 02</p>
+  <h1>Il tuo primo bundle</h1>
+  <p class="subtitle">Un contenitore di codice tuo, scoperto da Oro senza toccare il kernel — e il primo servizio registrato nel container Symfony.</p>
+  <p class="meta">
+    <span>Durata: ~60 min</span>
+    <span>Prerequisiti: <a href="0001-ambiente-oro-7.html">Lezione 1</a> (ambiente su)</span>
+    <span>Obiettivo: bundle + servizio + comando che gira</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Uno degli obiettivi del percorso è saper creare un bundle proprio, con entità, migration, ACL e
+datagrid, senza copiare a caso da un altro progetto. Tutte quelle cose vivono <em>dentro</em> un bundle. Prima di poterle
+imparare serve il contenitore, e serve capire due meccanismi che in Oro tornano ogni giorno:
+come l'applicazione <strong>scopre</strong> il tuo codice, e come <strong>costruisce</strong> i tuoi oggetti.</p>
+
+<p>Alla fine di questa lezione avrai un comando tuo che gira nel container e stampa una stringa
+prodotta da un servizio tuo. Sembra poco. È l'ossatura di qualunque cosa scriverai dopo:
+import/export, consumer di coda, endpoint API sono tutti servizi registrati allo stesso modo.</p>
+
+<h2>Cos'è un bundle</h2>
+
+<p>Un bundle è l'unità di modularità di Symfony: una cartella con una classe che estende
+<code>Symfony\Component\HttpKernel\Bundle\Bundle</code>, più le sue risorse (configurazione,
+template, traduzioni, migration). Non è un pacchetto Composer per forza: nel tuo progetto vivrà
+dentro <code>src/</code>, già in autoload PSR-4 grazie al <code>composer.json</code> dello
+skeleton (<code>"autoload": {"psr-4": {"": "src/"}}</code>).</p>
+
+<p>Il parallelo con Magento regge bene, ma su un punto si rompe — ed è proprio il punto della
+scoperta automatica:</p>
+
+<table>
+  <thead><tr><th>Concetto</th><th>Magento 2</th><th>Oro 7.0</th></tr></thead>
+  <tbody>
+    <tr><td>Unità di codice</td><td>Modulo</td><td>Bundle</td></tr>
+    <tr><td>Dichiarazione</td><td><code>etc/module.xml</code> + <code>registration.php</code></td><td><code>Resources/config/oro/bundles.yml</code> + classe <code>*Bundle</code></td></tr>
+    <tr><td>Abilitazione</td><td><code>app/etc/config.php</code> (generato da <code>module:enable</code>)</td><td>Nessun file da editare: la presenza di <code>bundles.yml</code> <em>è</em> l'abilitazione</td></tr>
+    <tr><td>Ordine di caricamento</td><td><code>&lt;sequence&gt;</code> in <code>module.xml</code></td><td><code>priority</code> in <code>bundles.yml</code> (numero più basso = prima)</td></tr>
+    <tr><td>Dipendenze / DI</td><td><code>etc/di.xml</code></td><td><code>Resources/config/services.yml</code></td></tr>
+    <tr><td>Rendere effettivo</td><td><code>bin/magento setup:upgrade</code></td><td><code>orobox console cache:clear</code></td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Dove l'analogia si rompe</p>
+  <p>In Symfony <em>puro</em> i bundle si registrano a mano in <code>config/bundles.php</code>.
+  Oro non fa così: il suo kernel scandisce <code>src/</code> e <code>vendor/</code> alla ricerca di
+  file <code>Resources/config/oro/bundles.yml</code> e registra quello che trova. Quindi molti
+  esempi Symfony che leggerai online ti diranno di modificare <code>config/bundles.php</code>:
+  in un'applicazione Oro non serve, e quel file non è il posto giusto.</p>
+</div>
+
+<h3>La prova nel codice</h3>
+
+<p>Non fidarti: è verificabile in trenta secondi nel sorgente che hai già su disco.</p>
+
+<pre><code>grep -n "bundles.yml" vendor/oro/platform/src/Oro/Bundle/DistributionBundle/OroKernel.php</code></pre>
+
+<p>Il metodo <code>collectBundles()</code> definisce le due radici della scansione
+(<code>src/</code> e <code>vendor/</code>), <code>findBundles()</code> raccoglie i
+<code>bundles.yml</code>, e <code>compareBundles()</code> li ordina: priorità crescente, e a
+parità di priorità ordine alfabetico. Ecco perché i bundle del core usano numeri negativi —
+per esempio <code>OroUIBundle</code> ha <code>priority: -120</code> — mentre il tuo parte da un
+numero positivo e viene quindi caricato <em>dopo</em>: la posizione giusta per chi deve
+sovrascrivere risorse del core, non subirle.</p>
+
+<p class="sidenote">Fonti: <code>vendor/oro/platform/src/Oro/Bundle/DistributionBundle/OroKernel.php</code>
+(righe ~100–135 per la scansione, ~273–284 per l'ordinamento) e
+<a href="https://doc.oroinc.com/backend/extension/create-bundle/">Create a Bundle</a> nella documentazione Oro.
+Attenzione: la pagina ufficiale usa <code>priority: 255</code> nell'esempio, mentre <code>orobox</code>
+scaffolda <code>priority: 30</code>. Entrambi funzionano — sono solo posizioni diverse nella coda,
+entrambe dopo il core.</p>
+
+<h2>Anatomia dello skeleton</h2>
+
+<p><code>orobox create bundle</code> genera cinque file. Vale la pena sapere cosa fa ognuno,
+perché sono gli stessi cinque che troverai in qualunque bundle di <code>vendor/oro</code>.</p>
+
+<table>
+  <thead><tr><th>File</th><th>Ruolo</th></tr></thead>
+  <tbody>
+    <tr><td><code>AcmeDemoBundle.php</code></td><td>La classe del bundle. Estende <code>Bundle</code> e di solito resta vuota. Serve a Symfony come punto di aggancio (nome, percorso, compiler pass).</td></tr>
+    <tr><td><code>DependencyInjection/AcmeDemoExtension.php</code></td><td>L'<em>Extension</em>: viene eseguita quando il container si compila, e carica i file di configurazione dei servizi. Symfony la trova per convenzione di nome (bundle <code>AcmeDemoBundle</code> → extension <code>AcmeDemoExtension</code>).</td></tr>
+    <tr><td><code>DependencyInjection/Configuration.php</code></td><td>Definisce l'albero di configurazione semantica del bundle (la chiave <code>acme_demo</code> in un file YAML di configurazione). Ignorala finché non ti servirà davvero.</td></tr>
+    <tr><td><code>Resources/config/services.yml</code></td><td>Le definizioni dei servizi. È il tuo <code>di.xml</code>.</td></tr>
+    <tr><td><code>Resources/config/oro/bundles.yml</code></td><td>La dichiarazione che rende il bundle visibile al kernel Oro.</td></tr>
+  </tbody>
+</table>
+
+<p>Il <code>services.yml</code> generato contiene solo questo:</p>
+
+<pre><code>services:
+    _defaults:
+        autowire: false
+        autoconfigure: false
+        public: false</code></pre>
+
+<p>Tre scelte deliberate, ed è la convenzione che segue tutto il codice Oro: <strong>niente
+autowiring</strong> (ogni argomento si dichiara), <strong>niente autoconfigure</strong> (ogni tag
+si scrive), <strong>servizi privati</strong> (si ottengono per injection, non chiedendoli al
+container). Se vieni da Magento questa è un'ottima notizia: è esattamente la disciplina esplicita
+di <code>di.xml</code>, non la magia implicita che trovi nei tutorial Symfony.</p>
+
+<h2>Symfony just-in-time: il service container</h2>
+
+<p>È il primo concetto Symfony che ti serve davvero, e ne serve poco.</p>
+
+<p>Il <strong>container</strong> è l'oggetto che sa costruire tutti gli altri oggetti
+dell'applicazione. Un <strong>servizio</strong> è un oggetto che il container costruisce una volta
+sola e riusa (è <em>shared</em> per default). Il container non viene interpretato a runtime: viene
+<strong>compilato in PHP</strong> dentro <code>var/cache/</code>. Da qui la regola che ti
+accompagnerà per sempre: <em>cambio in un file di configurazione → <code>cache:clear</code></em>.</p>
+
+<div class="compare">
+  <figure>
+    <figcaption>Magento 2 — di.xml</figcaption>
+<pre><code>&lt;type name="Acme\Demo\Provider\Greeting"&gt;
+  &lt;arguments&gt;
+    &lt;argument name="appName"
+              xsi:type="string"&gt;dev&lt;/argument&gt;
+  &lt;/arguments&gt;
+&lt;/type&gt;</code></pre>
+  </figure>
+  <figure>
+    <figcaption>Oro 7.0 — services.yml</figcaption>
+<pre><code>services:
+    Acme\Bundle\DemoBundle\Provider\Greeting:
+        arguments:
+            - '%kernel.environment%'</code></pre>
+  </figure>
+</div>
+
+<p>La sintassi dei riferimenti è tutta qui:</p>
+
+<ul>
+  <li><code>'@nome.del.servizio'</code> — inietta un altro servizio.</li>
+  <li><code>'%nome_parametro%'</code> — inietta un parametro (es. <code>%kernel.environment%</code>, <code>%kernel.project_dir%</code>).</li>
+  <li>una stringa qualsiasi — valore letterale.</li>
+  <li><code>tags:</code> — dichiara «questo servizio partecipa a un meccanismo»: comando di console, event listener, processore di import, e così via.</li>
+</ul>
+
+<p>Come <strong>id</strong> del servizio, Oro 7.0 usa quasi sempre il nome completo della classe
+(FQCN). Trovi ancora molti id vecchio stile tipo <code>oro_cron.cron_helper</code> in
+<code>vendor/oro</code>: sono legacy, non imitarli nel codice nuovo.</p>
+
+<div class="box">
+  <p class="box-title">Il tag è la vera differenza con Magento</p>
+  <p>In Magento aggiungi comportamento con i <em>plugin</em> (intercettori attorno a un metodo).
+  In Symfony/Oro quel meccanismo non esiste. Il modo per agganciarsi è: registrare un servizio e
+  <strong>taggarlo</strong>, oppure ascoltare un <strong>evento</strong>, oppure
+  <strong>decorare</strong> un servizio esistente. Oggi usi il primo dei tre; gli altri due
+  arrivano nelle prossime lezioni.</p>
+</div>
+
+<h2>Pratica: bundle, servizio, comando</h2>
+
+<p>Ogni passo si verifica da solo. Se un comando non risponde quello che c'è scritto qui,
+fermati lì: il codice di questa lezione è stato eseguito su un'installazione OroCommerce 7.0
+Community Edition prima di finire nella pagina.</p>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Genera il bundle.</strong> Dalla radice del progetto:</p>
+<pre><code>orobox create bundle 'Algoritma\Bundle\TrainingBundle'</code></pre>
+    <p>Gli apici singoli servono: senza, la shell si mangia i backslash. Il comando ti dice dove
+    ha scritto (<code>src/Algoritma/Bundle/TrainingBundle</code>) e ti ricorda di svuotare la cache.</p>
+  </li>
+  <li>
+    <p><strong>Fallo scoprire da Oro.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console debug:container --parameter=kernel.bundles --format=json | grep Training</code></pre>
+    <p>Atteso: una riga con <code>"AlgoritmaTrainingBundle"</code>. Se non c'è, il bundle non è
+    stato registrato: controlla <code>Resources/config/oro/bundles.yml</code>.</p>
+  </li>
+  <li>
+    <p><strong>Scrivi un servizio.</strong> In
+    <code>src/Algoritma/Bundle/TrainingBundle/Provider/GreetingProvider.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Provider;
+
+class GreetingProvider
+{
+    public function __construct(private string $appName)
+    {
+    }
+
+    public function greet(string $who): string
+    {
+        return sprintf('Ciao %s, qui %s.', $who, $this-&gt;appName);
+    }
+}</code></pre>
+  </li>
+  <li>
+    <p><strong>Scrivi il comando.</strong> In
+    <code>src/Algoritma/Bundle/TrainingBundle/Command/HelloCommand.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Command;
+
+use Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(name: 'algoritma:training:hello', description: 'Primo comando del percorso.')]
+class HelloCommand extends Command
+{
+    public function __construct(private GreetingProvider $greetingProvider)
+    {
+        parent::__construct();
+    }
+
+    protected function configure(): void
+    {
+        $this-&gt;addArgument('who', InputArgument::OPTIONAL, 'Chi salutare', 'mondo');
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $output-&gt;writeln($this-&gt;greetingProvider-&gt;greet((string) $input-&gt;getArgument('who')));
+
+        return Command::SUCCESS;
+    }
+}</code></pre>
+    <p>L'attributo <code>#[AsCommand]</code> dà nome e descrizione al comando. Da solo però non
+    basta a registrarlo, perché nel bundle <code>autoconfigure</code> è <code>false</code>: serve
+    il tag. È la stessa coppia attributo + tag che usa il core — vedi
+    <code>vendor/oro/platform/src/Oro/Bundle/CronBundle/Command/CronCommand.php</code> e il suo
+    <code>Resources/config/commands.yml</code>.</p>
+  </li>
+  <li>
+    <p><strong>Registra i due servizi.</strong> In
+    <code>Resources/config/services.yml</code>, sotto il blocco <code>_defaults</code> già presente:</p>
+<pre><code>    Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider:
+        arguments:
+            - '%kernel.environment%'
+
+    Algoritma\Bundle\TrainingBundle\Command\HelloCommand:
+        arguments:
+            - '@Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'
+        tags:
+            - { name: console.command }</code></pre>
+    <p>L'indentazione conta: le due definizioni stanno allo stesso livello di <code>_defaults</code>,
+    dentro <code>services:</code>.</p>
+  </li>
+  <li>
+    <p><strong>Esegui.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console algoritma:training:hello Mario</code></pre>
+    <p>Atteso: <code>Ciao Mario, qui dev.</code></p>
+  </li>
+  <li>
+    <p><strong>Guarda il container dall'interno.</strong> Questo comando diventerà il tuo strumento
+    di diagnosi numero uno:</p>
+<pre><code>orobox console debug:container 'Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'</code></pre>
+    <p>Leggi la tabella: <code>Public: no</code>, <code>Autowired: no</code>,
+    <code>Shared: yes</code>, <code>Arguments: dev</code> e — la riga più interessante —
+    <code>Usages</code>, che ti dice chi dipende da questo servizio.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Hai un bundle scoperto dal kernel Oro, un servizio costruito dal container con un parametro
+  iniettato, e un comando che li usa entrambi. Da qui in poi «aggiungere una funzionalità a Oro»
+  vuol dire quasi sempre: scrivi una classe, la registri in <code>services.yml</code>, le metti il
+  tag giusto.</p>
+</div>
+
+<h2>Quando qualcosa non gira</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa quasi certa</th></tr></thead>
+  <tbody>
+    <tr><td>Il comando non compare in <code>orobox console list</code></td><td>Manca il tag <code>console.command</code>, oppure la cache non è stata svuotata.</td></tr>
+    <tr><td><code>You have requested a non-existent service</code></td><td>Typo nell'id: l'id è il FQCN, backslash compresi.</td></tr>
+    <tr><td><code>Class ... not found</code></td><td>Namespace del file diverso dal percorso su disco (PSR-4), oppure classe in una cartella sbagliata.</td></tr>
+    <tr><td>Il bundle non compare in <code>kernel.bundles</code></td><td><code>bundles.yml</code> mancante, nel percorso sbagliato, o con il nome classe errato.</td></tr>
+    <tr><td>Modifiche a YAML senza effetto</td><td>Il container è compilato: <code>cache:clear</code>.</td></tr>
+    <tr><td>Dopo aver <em>cancellato</em> un bundle: <code>Class "...Bundle" not found</code></td><td>L'elenco dei bundle è in cache e <code>cache:clear</code> deve caricare il kernel per svuotarla — quindi fallisce. Si esce con <code>rm -rf var/cache/dev</code> seguito da <code>orobox console cache:warmup</code>.</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Quest'ultima riga è successa davvero mentre preparavo la lezione: ho creato un
+bundle di prova, l'ho cancellato, e <code>cache:clear</code> è andato in errore perché il kernel
+cercava ancora una classe che non esisteva più. Vale la pena saperlo prima di incontrarlo.</p>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<p>Chiudi la pagina della pratica e rispondi senza rileggere. Sbagliare qui è utile.</p>
+
+<div class="quiz">
+  <p class="q">Come fa Oro a sapere che il tuo bundle esiste?</p>
+  <div class="options">
+    <button class="opt" data-correct>Trova il file Resources/config/oro/bundles.yml</button>
+    <button class="opt">Legge la voce dentro il file config/bundles.php</button>
+    <button class="opt">Rileva la classe che estende la classe Bundle</button>
+    <button class="opt">Scansiona il file composer.json del tuo progetto</button>
+  </div>
+  <p class="explain" hidden>Il kernel Oro (<code>OroKernel::collectBundles()</code>) scandisce
+  <code>src/</code> e <code>vendor/</code> cercando <code>Resources/config/oro/bundles.yml</code>.
+  <code>config/bundles.php</code> è il meccanismo di Symfony puro, non usato qui.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un bundle con priority 30 rispetto a uno con priority -120:</p>
+  <div class="options">
+    <button class="opt" data-correct>Viene caricato dopo quello con -120</button>
+    <button class="opt">Viene caricato prima di quello con -120</button>
+    <button class="opt">Viene caricato solo se il primo fallisce</button>
+    <button class="opt">Viene caricato in ordine alfabetico puro</button>
+  </div>
+  <p class="explain" hidden>L'ordinamento è per priorità crescente
+  (<code>OroKernel::compareBundles()</code>): -120 prima, 30 dopo. L'ordine alfabetico si applica
+  solo fra bundle con la stessa priorità. Il tuo codice arriva dopo il core: è la posizione giusta
+  per sovrascriverlo.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Perché il comando ha bisogno del tag console.command?</p>
+  <div class="options">
+    <button class="opt" data-correct>Perché autoconfigure è false nel bundle</button>
+    <button class="opt">Perché l'attributo AsCommand è deprecato</button>
+    <button class="opt">Perché i comandi devono essere sempre public</button>
+    <button class="opt">Perché il costruttore riceve un altro servizio</button>
+  </div>
+  <p class="explain" hidden>Con <code>autoconfigure: true</code> Symfony taggherebbe da solo le
+  classi che estendono <code>Command</code>. Lo skeleton Oro mette
+  <code>autoconfigure: false</code>, quindi ogni tag va scritto a mano.
+  <code>#[AsCommand]</code> fornisce nome e descrizione, non la registrazione.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Cosa scrivi in services.yml per iniettare l'ambiente corrente?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il valore '%kernel.environment%' fra virgolette</button>
+    <button class="opt">Il valore '@kernel.environment' fra virgolette</button>
+    <button class="opt">Il valore '$kernel.environment' fra virgolette</button>
+    <button class="opt">Il valore 'kernel.environment()' fra virgolette</button>
+  </div>
+  <p class="explain" hidden>Le percentuali indicano un <em>parametro</em> del container; la
+  chiocciola indica un <em>servizio</em>. Confonderli è l'errore YAML più comune dei primi mesi.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: elenca i cinque file dello skeleton di un bundle e, in tre parole ciascuno,
+  cosa fanno.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>NomeBundle.php</code> punto di aggancio ·
+    <code>DependencyInjection/NomeExtension.php</code> carica i servizi ·
+    <code>DependencyInjection/Configuration.php</code> configurazione semantica ·
+    <code>Resources/config/services.yml</code> definizioni dei servizi ·
+    <code>Resources/config/oro/bundles.yml</code> dichiarazione al kernel.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 1 (spaziatura): quali sono le due cartelle che leggi
+  continuamente ma non modifichi mai, e perché?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>vendor/oro/</code> — è il prodotto, riscritto a ogni <code>composer update</code>:
+    qualunque modifica sparisce all'upgrade. <code>var/logs/</code> — sono i log: si leggono
+    (è il primo posto dove guardare quando qualcosa non va), non si editano.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://symfony.com/doc/current/service_container.html">Symfony — Service Container</a>.
+  Leggi fino alla sezione «Injecting Services/Config into a Service» e fermati lì. Salta tutto il
+  discorso su autowiring e autoconfigure: nei bundle Oro sono disattivati, e studiarli adesso ti
+  riempirebbe la memoria di lavoro con regole che nel codice che scriverai non vedrai mai.</p>
+</div>
+
+<p>Secondo, breve: <a href="https://doc.oroinc.com/backend/extension/create-bundle/">Create a Bundle</a>
+nella documentazione Oro. Serve soprattutto per riconoscere lo stesso schema raccontato con parole
+diverse — e per notare che l'esempio ufficiale usa <code>priority: 255</code> dove
+<code>orobox</code> usa <code>30</code>.</p>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<p>Dieci minuti, fatto a memoria il più possibile: aggiungi al <code>GreetingProvider</code> una
+dipendenza verso il logger (<code>'@logger'</code>) e scrivi una riga di log dentro
+<code>greet()</code>. Poi trova quella riga in <code>var/logs/dev.log</code>. È il ciclo completo
+che userai per debuggare tutto il resto: inietta, esegui, leggi il log.</p>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 3: la tua prima entità.</strong> Doctrine ORM, la classe entità con gli attributi
+di mapping, la migration Oro (<code>oro:migration:load</code>) e perché in Oro non esiste
+l'equivalente del <code>Model</code>/<code>ResourceModel</code>/<code>Collection</code> di Magento.
+È il passo che trasforma il bundle vuoto in qualcosa che tiene dati.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0001-ambiente-oro-7.html">Lezione 1</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a> ·
+    <a href="../reference/orobox.html">Reference: comandi orobox</a> ·
+    <a href="../reference/magento-oro.html">Reference: da Magento a Oro</a> ·
+    <a href="../RESOURCES.md">Risorse</a>
+  </p>
+  <p>Sono il tuo tutor, non un libro. Se il container si lamenta, se un id non si risolve, o se ti
+  stai chiedendo «in Magento questo era un plugin, qui cosa uso?», chiedimelo subito in chat.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

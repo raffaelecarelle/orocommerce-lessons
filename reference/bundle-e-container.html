@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Bundle e service container</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Bundle e service container</h1>
+  <p class="subtitle">Scheda di consultazione rapida: struttura di un bundle, sintassi di services.yml, comandi di diagnosi.</p>
+  <p class="meta">
+    <span>Oro 7.0 · Symfony 7.4</span>
+    <span>Verificato su Oro 7.0 CE</span>
+    <span>Nasce dalla <a href="../lessons/0002-primo-bundle.html">Lezione 2</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Creare un bundle</h2>
+
+<pre><code>orobox create bundle 'Algoritma\Bundle\TrainingBundle'
+orobox console cache:clear</code></pre>
+
+<p>Gli apici singoli sono obbligatori: proteggono i backslash dalla shell. Il bundle finisce in
+<code>src/&lt;Namespace&gt;/</code>, già in autoload PSR-4
+(<code>composer.json</code>: <code>"psr-4": {"": "src/"}</code>).</p>
+
+<h2>I cinque file dello skeleton</h2>
+
+<pre><code>src/Algoritma/Bundle/TrainingBundle/
+├── AlgoritmaTrainingBundle.php              classe del bundle (estende Bundle)
+├── DependencyInjection/
+│   ├── AlgoritmaTrainingExtension.php       carica i file di config dei servizi
+│   └── Configuration.php                    albero di configurazione semantica
+└── Resources/config/
+    ├── services.yml                         definizioni dei servizi
+    └── oro/bundles.yml                      dichiarazione al kernel Oro</code></pre>
+
+<table>
+  <thead><tr><th>Cartella aggiuntiva</th><th>Contenuto</th><th>Da quale lezione</th></tr></thead>
+  <tbody>
+    <tr><td><code>Command/</code></td><td>Comandi di console</td><td>Lezione 2</td></tr>
+    <tr><td><code>Entity/</code></td><td>Entità Doctrine</td><td>Lezione 3</td></tr>
+    <tr><td><code>Migrations/Schema/</code></td><td>Migration di schema Oro</td><td>Lezione 3</td></tr>
+    <tr><td><code>Controller/</code></td><td>Controller (back-office e storefront)</td><td>—</td></tr>
+    <tr><td><code>EventListener/</code></td><td>Listener e subscriber</td><td>—</td></tr>
+    <tr><td><code>Resources/views/</code></td><td>Template Twig</td><td>—</td></tr>
+    <tr><td><code>Resources/translations/</code></td><td>Traduzioni</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h2>bundles.yml: la dichiarazione al kernel</h2>
+
+<pre><code>bundles:
+    - { name: Algoritma\Bundle\TrainingBundle\AlgoritmaTrainingBundle, priority: 30 }</code></pre>
+
+<ul>
+  <li>Il kernel Oro scandisce <code>src/</code> e <code>vendor/</code> e registra ogni bundle che
+  dichiara questo file. Non esiste un elenco centrale da editare.</li>
+  <li><strong>Ordinamento per priorità crescente</strong>; a parità di priorità, alfabetico.
+  Numero più basso = caricato prima.</li>
+  <li>Il core usa priorità negative (<code>OroUIBundle</code>: <code>-120</code>). Il codice di
+  progetto sta dopo, ed è ciò che permette di sovrascrivere risorse del core.</li>
+  <li>Sorgente della verità: <code>vendor/oro/platform/src/Oro/Bundle/DistributionBundle/OroKernel.php</code>
+  (<code>collectBundles</code>, <code>findBundles</code>, <code>compareBundles</code>).</li>
+</ul>
+
+<h2>services.yml: sintassi essenziale</h2>
+
+<pre><code>services:
+    _defaults:
+        autowire: false         # ogni argomento va dichiarato
+        autoconfigure: false    # ogni tag va scritto a mano
+        public: false           # i servizi si ottengono per injection
+
+    Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider:
+        arguments:
+            - '%kernel.environment%'        # parametro del container
+            - '@logger'                     # altro servizio
+            - 'valore letterale'            # stringa
+
+    Algoritma\Bundle\TrainingBundle\Command\HelloCommand:
+        arguments:
+            - '@Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'
+        tags:
+            - { name: console.command }
+
+    # alias: un secondo nome per lo stesso servizio
+    Algoritma\Bundle\TrainingBundle\Provider\GreetingProviderInterface:
+        alias: Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider</code></pre>
+
+<table>
+  <thead><tr><th>Sintassi</th><th>Significato</th></tr></thead>
+  <tbody>
+    <tr><td><code>'@servizio'</code></td><td>Riferimento a un altro servizio</td></tr>
+    <tr><td><code>'@?servizio'</code></td><td>Riferimento opzionale: <code>null</code> se il servizio non esiste</td></tr>
+    <tr><td><code>'%parametro%'</code></td><td>Valore di un parametro del container</td></tr>
+    <tr><td><code>'%%'</code></td><td>Percentuale letterale (escape)</td></tr>
+    <tr><td><code>tags:</code></td><td>Iscrive il servizio a un meccanismo del framework</td></tr>
+    <tr><td><code>alias:</code></td><td>Secondo id per lo stesso servizio</td></tr>
+    <tr><td><code>decorates:</code></td><td>Sostituisce un servizio esistente incapsulandolo</td></tr>
+    <tr><td><code>calls:</code></td><td>Setter chiamati dopo la costruzione</td></tr>
+    <tr><td><code>lazy: true</code></td><td>Istanzia il servizio solo al primo uso reale</td></tr>
+  </tbody>
+</table>
+
+<p><strong>Id dei servizi:</strong> nel codice nuovo si usa il FQCN della classe. Gli id a punti
+(<code>oro_cron.cron_helper</code>) sono legacy di <code>vendor/oro</code>: vanno riconosciuti,
+non imitati.</p>
+
+<h2>Tag che incontrerai più spesso</h2>
+
+<table>
+  <thead><tr><th>Tag</th><th>A cosa serve</th></tr></thead>
+  <tbody>
+    <tr><td><code>console.command</code></td><td>Registra un comando di console</td></tr>
+    <tr><td><code>kernel.event_listener</code></td><td>Ascolta un evento (richiede <code>event</code> e <code>method</code>)</td></tr>
+    <tr><td><code>kernel.event_subscriber</code></td><td>La classe dichiara da sé gli eventi che ascolta</td></tr>
+    <tr><td><code>doctrine.event_listener</code></td><td>Aggancia gli eventi del ciclo di vita Doctrine</td></tr>
+    <tr><td><code>twig.extension</code></td><td>Aggiunge funzioni e filtri Twig</td></tr>
+    <tr><td><code>oro_message_queue.client.message_processor</code></td><td>Processore di coda (message queue)</td></tr>
+    <tr><td><code>oro_importexport.processor</code></td><td>Processore di import/export</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Per scoprire i tag disponibili e chi li usa:
+<code>orobox console debug:container --tags</code>, oppure
+<code>orobox console debug:container --tag=console.command</code>.</p>
+
+<h2>Comandi di diagnosi</h2>
+
+<pre><code># bundle registrati
+orobox console debug:container --parameter=kernel.bundles --format=json | grep Training
+
+# scheda di un servizio: argomenti, tag, chi lo usa
+orobox console debug:container 'Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'
+
+# cercare per frammento di id
+orobox console debug:container greeting
+
+# tutti i servizi con un certo tag
+orobox console debug:container --tag=console.command
+
+# tutti i parametri del container
+orobox console debug:container --parameters
+
+# eventi e listener registrati
+orobox console debug:event-dispatcher
+
+# rotte
+orobox console debug:router
+
+# dopo ogni modifica a YAML, attributi di mapping o configurazione
+orobox console cache:clear</code></pre>
+
+<h2>Dal vocabolario Magento a quello Oro</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>Oro 7.0 / Symfony</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td>Modulo</td><td>Bundle</td><td>Stessa idea, nomi diversi</td></tr>
+    <tr><td><code>registration.php</code> + <code>module.xml</code></td><td><code>oro/bundles.yml</code> + classe Bundle</td><td>Nessun file centrale da editare in Oro</td></tr>
+    <tr><td><code>&lt;sequence&gt;</code></td><td><code>priority</code></td><td>Numero più basso = prima</td></tr>
+    <tr><td><code>di.xml</code></td><td><code>services.yml</code></td><td>Stessa disciplina esplicita</td></tr>
+    <tr><td><code>ObjectManager</code></td><td>Service container</td><td>In Oro è compilato in PHP, in <code>var/cache/</code></td></tr>
+    <tr><td><code>setup:upgrade</code></td><td><code>cache:clear</code></td><td>Per la registrazione del codice; le migration sono un comando a parte</td></tr>
+    <tr><td><code>bin/magento</code></td><td><code>bin/console</code> (<code>orobox console</code>)</td><td>Console Symfony più i comandi <code>oro:*</code></td></tr>
+    <tr><td><strong>Plugin / interceptor</strong></td><td><strong>Nessun equivalente diretto</strong></td><td>Si usano eventi, decorazione di servizi, compiler pass</td></tr>
+    <tr><td>Preference (rewrite di classe)</td><td><code>alias:</code> o <code>decorates:</code></td><td>Vedi anche <a href="magento-oro.html">reference dedicata</a></td></tr>
+  </tbody>
+</table>
+
+<h2>Errori frequenti</h2>
+
+<table>
+  <thead><tr><th>Messaggio o sintomo</th><th>Causa</th></tr></thead>
+  <tbody>
+    <tr><td><code>You have requested a non-existent service "..."</code></td><td>Id sbagliato: deve essere il FQCN, backslash compresi</td></tr>
+    <tr><td><code>Class "..." not found</code></td><td>Namespace e percorso su disco non coincidono (PSR-4)</td></tr>
+    <tr><td><code>Cannot autowire service</code></td><td>Argomento mancante: con <code>autowire: false</code> va dichiarato</td></tr>
+    <tr><td>Il comando non compare in <code>list</code></td><td>Manca il tag <code>console.command</code>, o manca <code>cache:clear</code></td></tr>
+    <tr><td>Il bundle non compare in <code>kernel.bundles</code></td><td><code>bundles.yml</code> assente o con nome classe errato</td></tr>
+    <tr><td>Modifica a YAML senza effetto</td><td>Container compilato: <code>cache:clear</code></td></tr>
+    <tr><td>Errore YAML incomprensibile</td><td>Indentazione: nel YAML i tab non sono ammessi, solo spazi</td></tr>
+    <tr><td><code>Class "...Bundle" not found</code> dopo aver cancellato un bundle</td><td>Elenco bundle in cache: <code>rm -rf var/cache/dev</code> poi <code>orobox console cache:warmup</code></td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<footer>
+  <p>Collegamenti:
+    <a href="../lessons/0002-primo-bundle.html">Lezione 2</a> ·
+    <a href="orobox.html">Comandi orobox</a> ·
+    <a href="magento-oro.html">Da Magento a Oro</a> ·
+    <a href="https://symfony.com/doc/current/service_container.html">Symfony Service Container</a> ·
+    <a href="https://doc.oroinc.com/backend/extension/create-bundle/">Oro — Create a Bundle</a>
+  </p>
+</footer>
+
+</body>
+</html>

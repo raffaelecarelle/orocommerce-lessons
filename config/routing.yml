@@ -1,0 +1,12 @@
+oro_default:
+    path:  '%web_backend_prefix%/'
+    defaults:
+        _controller: Oro\Bundle\DashboardBundle\Controller\DashboardController::viewAction
+
+oro_auto_routing:
+    resource: .
+    type:     oro_auto
+
+oro_expose:
+    resource: .
+    type:     oro_expose

@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 7 — Estendere il core senza toccarlo</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 07</p>
+  <h1>Estendere il core senza toccarlo</h1>
+  <p class="subtitle">Eventi, decorazione, compiler pass, override di template: i quattro sostituti dei plugin Magento, e quando usare ciascuno.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0006-acl-e-permessi.html">Lezione 6</a></span>
+    <span>Obiettivo: modificare un comportamento di <code>vendor/oro</code> dal tuo bundle</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Uno degli obiettivi del percorso è saper leggere il codice di <code>vendor/oro</code> e capire
+dove intervenire senza modificarlo. Finora hai aggiunto cose tue. Da qui in poi il lavoro vero è quasi sempre
+l'opposto: cambiare come si comporta qualcosa che esiste già — il calcolo di un prezzo, il payload
+di una API, cosa succede al salvataggio di un ordine.</p>
+
+<div class="box warn">
+  <p class="box-title">La risposta alla domanda che ti porti dietro</p>
+  <p>I <strong>plugin / interceptor</strong> di Magento non hanno un equivalente in Symfony. Non
+  puoi intercettare «il metodo X della classe Y» dichiarandolo in un file. Symfony ti dà quattro
+  strumenti diversi, e la competenza consiste nello scegliere quello giusto — <em>e nel capire che
+  a volte la risposta è: quel punto non è estendibile, serve un'altra strada</em>.</p>
+</div>
+
+<h2>I quattro strumenti, in ordine di preferenza</h2>
+
+<table>
+  <thead><tr><th>Strumento</th><th>Quando</th><th>Costo di manutenzione</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Evento</strong></td><td>Il core pubblica già un evento nel punto che ti interessa</td><td>Minimo: è un punto di estensione dichiarato</td></tr>
+    <tr><td><strong>Decorazione</strong></td><td>Devi cambiare il comportamento di un servizio esistente</td><td>Basso, ma ti leghi all'interfaccia del servizio</td></tr>
+    <tr><td><strong>Compiler pass</strong></td><td>Devi modificare la definizione dei servizi a compile time</td><td>Medio: agisci sul container, non sul codice</td></tr>
+    <tr><td><strong>Override di template</strong></td><td>Devi cambiare solo cosa si vede</td><td>Alto: il template del core cambia agli upgrade</td></tr>
+  </tbody>
+</table>
+
+<p>Prima di scegliere, la domanda giusta è sempre: <em>il core mi ha già lasciato una porta?</em>
+Si cerca così:</p>
+
+<pre><code>orobox console debug:event-dispatcher | grep -i order
+grep -rn "dispatch(" vendor/oro/commerce/src/Oro/Bundle/OrderBundle/ | head -20</code></pre>
+
+<h2>Uno: gli eventi</h2>
+
+<p>Un listener è un servizio con un tag. La forma, presa da
+<code>vendor/oro/platform/src/Oro/Bundle/UIBundle/Resources/config/services.yml</code>:</p>
+
+<pre><code>    Algoritma\Bundle\TrainingBundle\EventListener\MyListener:
+        arguments:
+            - '@logger'
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }</code></pre>
+
+<p>Oro pubblica centinaia di eventi propri, con nomi che sono stringhe. Due famiglie che userai
+spesso:</p>
+
+<table>
+  <thead><tr><th>Evento</th><th>Quando scatta</th></tr></thead>
+  <tbody>
+    <tr><td><code>oro_datagrid.datagrid.build.pre</code></td><td>Prima che la configurazione di una griglia sia costruita: puoi modificarla</td></tr>
+    <tr><td><code>oro_datagrid.datagrid.build.after</code></td><td>Dopo: hai in mano la griglia e la sua query</td></tr>
+    <tr><td><code>oro_datagrid.datagrid.build.after.&lt;nome-griglia&gt;</code></td><td>Come sopra, ma solo per una griglia specifica</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Le costanti stanno in
+<code>vendor/oro/platform/src/Oro/Bundle/DataGridBundle/Event/PreBuild.php</code> e
+<code>BuildAfter.php</code>. La variante con il nome della griglia in coda è quella che vedi usata
+in <code>AttachmentBundle</code>: è il modo per non eseguire il listener su tutte le griglie
+dell'applicazione.</p>
+
+<h3>Gli eventi di Doctrine</h3>
+
+<p>Per reagire al salvataggio di un'entità, due tag diversi:</p>
+
+<pre><code>        tags:
+            # su tutte le entità, a ogni flush
+            - { name: doctrine.event_listener, event: onFlush }
+            # solo su una entità, dopo la rimozione
+            - { name: doctrine.orm.entity_listener, entity: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping, event: postRemove }</code></pre>
+
+<p>Il secondo è quasi sempre la scelta giusta: più mirato, più veloce, più leggibile. Esempio reale
+di entrambi: <code>vendor/oro/platform/src/Oro/Bundle/AttachmentBundle/Resources/config/services.yml</code>
+(servizio <code>FileDeleteListener</code>).</p>
+
+<h2>Due: la decorazione</h2>
+
+<p>È il sostituto più diretto del plugin Magento «around». Dichiari un servizio che
+<strong>prende il posto</strong> di un altro e riceve l'originale come argomento
+<code>'@.inner'</code>:</p>
+
+<div class="compare">
+  <figure>
+    <figcaption>Magento 2 — plugin around</figcaption>
+<pre><code>public function aroundValidate(
+    Subject $subject,
+    callable $proceed,
+    $value
+) {
+    if ($this-&gt;isSpecial($value)) {
+        return true;
+    }
+    return $proceed($value);
+}</code></pre>
+  </figure>
+  <figure>
+    <figcaption>Oro/Symfony — decorazione</figcaption>
+<pre><code>class MyValidator implements ValidatorInterface
+{
+    public function __construct(
+        private ValidatorInterface $inner
+    ) {}
+
+    public function validate($value): bool
+    {
+        if ($this-&gt;isSpecial($value)) {
+            return true;
+        }
+        return $this-&gt;inner-&gt;validate($value);
+    }
+}</code></pre>
+  </figure>
+</div>
+
+<pre><code>    Algoritma\Bundle\TrainingBundle\Validator\MyValidator:
+        decorates: oro_attachment.protocol_validator
+        arguments:
+            - '@.inner'</code></pre>
+
+<p>Forma verificabile nel core:
+<code>vendor/oro/platform/src/Oro/Bundle/AttachmentBundle/Resources/config/services.yml</code>,
+servizio <code>oro_attachment.protocol_validator.gaufrette</code>.</p>
+
+<div class="box">
+  <p class="box-title">Le due differenze che contano rispetto ai plugin</p>
+  <ol>
+    <li>Decori un <strong>servizio</strong>, non una classe. Se il codice che vuoi cambiare non è
+    dietro un servizio (è un <code>new</code> dentro un metodo), la decorazione non ti serve a nulla.</li>
+    <li>Devi rispettare l'<strong>interfaccia</strong>. Non puoi intercettare «solo un metodo»:
+    la tua classe prende il posto dell'altra per intero, e delega quello che non cambia.</li>
+  </ol>
+</div>
+
+<h2>Tre: il compiler pass</h2>
+
+<p>Quando devi modificare la <em>definizione</em> di un servizio — cambiare un argomento, togliere
+un tag, sostituire una classe — e non basta la decorazione. Si aggancia dalla classe del bundle:</p>
+
+<pre><code>class AlgoritmaTrainingBundle extends Bundle
+{
+    #[\Override]
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+
+        $container-&gt;addCompilerPass(new MyPass());
+    }
+}</code></pre>
+
+<p>Struttura identica a
+<code>vendor/oro/platform/src/Oro/Bundle/DataGridBundle/OroDataGridBundle.php</code>. Il pass
+implementa <code>CompilerPassInterface</code> e nel metodo <code>process()</code> lavora su
+<code>$container-&gt;getDefinition('id.del.servizio')</code>. È potente e invasivo: usalo quando le
+prime due strade sono chiuse.</p>
+
+<h2>Quattro: l'override di un template</h2>
+
+<p>Per cambiare solo la resa grafica di una pagina del back-office, copia il template del core
+sotto <code>templates/bundles/</code> nella radice del progetto, mantenendo il percorso:</p>
+
+<pre><code>vendor/oro/platform/src/Oro/Bundle/UIBundle/Resources/views/actions/index.html.twig
+        ↓
+templates/bundles/OroUIBundle/actions/index.html.twig</code></pre>
+
+<p>Funziona, ed è il meccanismo standard di Symfony (nel progetto trovi già
+<code>templates/bundles/TwigBundle/</code>). Ma è l'opzione più costosa da mantenere: hai
+<em>copiato</em> codice del core, e all'upgrade la tua copia resta indietro in silenzio. Prima di
+farlo, verifica sempre se il template ha un <code>{% block %}</code> che puoi sovrascrivere
+estendendolo, o un placeholder Oro in cui inserirti.</p>
+
+<h2>Pratica: intercetta una griglia del core</h2>
+
+<p>Obiettivo concreto: quando qualcuno apre la griglia degli utenti nel back-office, il tuo codice
+deve scriverlo nei log. Piccolo, ma è esattamente la meccanica con cui poi aggiungerai una colonna
+o un filtro a una griglia che non è tua.</p>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Trova il nome della griglia.</strong> Aprila nel back-office
+    (<em>Sistema → Utenti</em>) e cerca nel core:</p>
+<pre><code>grep -rn "users-grid:" vendor/oro/platform/src/Oro/Bundle/UserBundle/Resources/config/oro/datagrids.yml | head -3</code></pre>
+  </li>
+  <li>
+    <p><strong>Scrivi il listener.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/EventListener/UsersGridListener.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\EventListener;
+
+use Oro\Bundle\DataGridBundle\Event\BuildAfter;
+use Psr\Log\LoggerInterface;
+
+class UsersGridListener
+{
+    public function __construct(private LoggerInterface $logger)
+    {
+    }
+
+    public function onBuildAfter(BuildAfter $event): void
+    {
+        $this-&gt;logger-&gt;info('Griglia costruita: {name}', [
+            'name' =&gt; $event-&gt;getDatagrid()-&gt;getName(),
+        ]);
+    }
+}</code></pre>
+  </li>
+  <li>
+    <p><strong>Registralo solo su quella griglia.</strong> In <code>services.yml</code>:</p>
+<pre><code>    Algoritma\Bundle\TrainingBundle\EventListener\UsersGridListener:
+        arguments:
+            - '@logger'
+        tags:
+            - { name: kernel.event_listener, event: oro_datagrid.datagrid.build.after.users-grid, method: onBuildAfter }</code></pre>
+  </li>
+  <li>
+    <p><strong>Verifica.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console debug:event-dispatcher oro_datagrid.datagrid.build.after.users-grid</code></pre>
+    <p>Atteso: il tuo listener nell'elenco. Poi apri la griglia degli utenti nel back-office e
+    guarda il log:</p>
+<pre><code>tail -n 200 var/logs/dev.log | grep "Griglia costruita"</code></pre>
+    <p>(<code>tail</code>, non <code>cat</code>: in dev quel file diventa enorme in fretta.)</p>
+  </li>
+  <li>
+    <p><strong>Ora la decorazione.</strong> Prendi il servizio della lezione 2,
+    <code>GreetingProvider</code>, e decoralo per mettere il testo in maiuscolo — serve a vedere il
+    meccanismo su qualcosa che controlli tu:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Provider;
+
+class ShoutingGreetingProvider
+{
+    public function __construct(private GreetingProvider $inner)
+    {
+    }
+
+    public function greet(string $who): string
+    {
+        return strtoupper($this-&gt;inner-&gt;greet($who));
+    }
+}</code></pre>
+<pre><code>    Algoritma\Bundle\TrainingBundle\Provider\ShoutingGreetingProvider:
+        decorates: Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider
+        arguments:
+            - '@.inner'</code></pre>
+<pre><code>orobox console cache:clear
+orobox console algoritma:training:hello Mario</code></pre>
+    <p>Atteso: <code>CIAO MARIO, QUI DEV.</code> — e nota che <strong>non hai toccato né il
+    comando né il provider originale</strong>. Questo è il punto.</p>
+  </li>
+  <li>
+    <p><strong>Guarda cosa è successo nel container.</strong></p>
+<pre><code>orobox console debug:container 'Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'</code></pre>
+    <p>Il servizio originale ora ha un id interno diverso e il tuo ha preso il suo posto: è la
+    decorazione vista dall'interno.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Hai cambiato il comportamento di codice che non è tuo, in due modi diversi, senza modificare
+  un solo file in <code>vendor/oro</code>. Da adesso, davanti a una richiesta del cliente, la prima
+  domanda non è più «dove metto le mani» ma «quale punto di estensione esiste già».</p>
+</div>
+
+<h2>Come si cerca un punto di estensione</h2>
+
+<table>
+  <thead><tr><th>Domanda</th><th>Comando</th></tr></thead>
+  <tbody>
+    <tr><td>Quali eventi esistono?</td><td><code>orobox console debug:event-dispatcher</code></td></tr>
+    <tr><td>Chi ascolta questo evento?</td><td><code>orobox console debug:event-dispatcher &lt;nome.evento&gt;</code></td></tr>
+    <tr><td>Come si chiama il servizio?</td><td><code>orobox console debug:container &lt;frammento&gt;</code></td></tr>
+    <tr><td>Chi usa questo servizio?</td><td><code>orobox console debug:container &lt;id&gt;</code>, riga <code>Usages</code></td></tr>
+    <tr><td>Il core dispaccia qualcosa qui?</td><td><code>grep -rn "dispatch(" vendor/oro/…/&lt;Bundle&gt;/</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Qual è l'equivalente Symfony di un plugin around di Magento?</p>
+  <div class="options">
+    <button class="opt" data-correct>La decorazione di un servizio esistente</button>
+    <button class="opt">La sovrascrittura del template del modulo</button>
+    <button class="opt">La modifica della classe dentro la cartella vendor</button>
+    <button class="opt">La registrazione di un secondo servizio uguale</button>
+  </div>
+  <p class="explain" hidden>La decorazione: il tuo servizio prende il posto dell'altro e riceve
+  l'originale come <code>'@.inner'</code>. Con due differenze importanti: decori un servizio, non
+  una classe, e devi implementarne l'intera interfaccia.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale tag registra un listener su una singola entità Doctrine?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il tag doctrine.orm.entity_listener con entity</button>
+    <button class="opt">Il tag doctrine.event_listener con l'evento</button>
+    <button class="opt">Il tag kernel.event_listener con il metodo</button>
+    <button class="opt">Il tag doctrine.orm.entity_manager con classe</button>
+  </div>
+  <p class="explain" hidden><code>doctrine.orm.entity_listener</code> con le chiavi
+  <code>entity</code> ed <code>event</code>. <code>doctrine.event_listener</code> scatta invece su
+  <em>tutte</em> le entità: più comodo da scrivere, più costoso da eseguire.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Perché l'override di un template è l'ultima scelta?</p>
+  <div class="options">
+    <button class="opt" data-correct>Copi codice del core che cambierà agli upgrade</button>
+    <button class="opt">Richiede di modificare i file dentro vendor</button>
+    <button class="opt">Non funziona con i template del back-office</button>
+    <button class="opt">Richiede sempre un compiler pass dedicato</button>
+  </div>
+  <p class="explain" hidden>La copia resta indietro in silenzio: nessun errore, solo una pagina che
+  a poco a poco diverge dal core. Prima si cerca un blocco Twig da sovrascrivere o un placeholder.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Come limiti un listener a una sola griglia?</p>
+  <div class="options">
+    <button class="opt" data-correct>Aggiungi il nome griglia in coda all'evento</button>
+    <button class="opt">Aggiungi la chiave grid nel tag del servizio</button>
+    <button class="opt">Controlli il nome dentro il metodo del listener</button>
+    <button class="opt">Dichiari il listener dentro il file datagrids.yml</button>
+  </div>
+  <p class="explain" hidden><code>oro_datagrid.datagrid.build.after.&lt;nome-griglia&gt;</code>.
+  Controllare il nome dentro il metodo funziona ma fa eseguire il listener su ogni griglia
+  dell'applicazione: è lo spreco che questo meccanismo evita.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro strumenti per estendere il core, in ordine di preferenza, con
+  una riga di motivazione per l'ordine.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    1) Evento — è una porta che il core ha dichiarato apposta. 2) Decorazione — cambi un servizio
+    rispettandone l'interfaccia. 3) Compiler pass — riscrivi la definizione nel container, potente
+    e invasivo. 4) Override di template — copi codice del core, e la copia invecchia.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 6 (spaziatura): differenza fra <code>#[Acl]</code> e
+  <code>#[AclAncestor]</code>.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>#[Acl]</code> dichiara la risorsa (id, tipo, classe, permesso); <code>#[AclAncestor]</code>
+    riusa una risorsa già dichiarata. Un id va dichiarato una volta sola.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://symfony.com/doc/current/service_container/service_decoration.html">Symfony — Service Decoration</a>
+  e <a href="https://symfony.com/doc/current/event_dispatcher.html">Event Dispatcher</a>. Insieme
+  sono meno di quaranta minuti, e coprono l'80% di quello che farai su progetti Oro maturi.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Usa <code>oro_datagrid.datagrid.build.after.users-grid</code> per <em>modificare davvero</em>
+  la griglia: aggiungi un ordinamento predefinito diverso agendo sulla configurazione
+  (<code>$event-&gt;getDatagrid()-&gt;getConfig()</code>). Prima esplora l'oggetto con un
+  <code>dump()</code> nei log.</li>
+  <li>Scrivi un <code>doctrine.orm.entity_listener</code> su <code>ErpMapping</code>, evento
+  <code>prePersist</code>, che imposti <code>syncedAt</code> a <code>null</code> e scriva una riga
+  di log. Verifica creando una mappatura dal back-office.</li>
+  <li>Esercizio di lettura, il più importante: scegli un comportamento di OroCommerce che il
+  cliente tipo chiede di cambiare (per esempio come viene calcolato il totale di un ordine), e
+  <strong>senza scrivere codice</strong> trova i punti di estensione disponibili. Portami l'elenco:
+  ne discutiamo come si discute un'architettura, che è la competenza vera di questa lezione.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 8: REST API amministrativa.</strong> JSON:API, <code>api.yml</code>, esporre la
+tua entità in lettura e scrittura, filtri, e autenticazione OAuth 2.0. È il primo pezzo
+dell'integrazione ERP vera.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0006-acl-e-permessi.html">Lezione 6</a> ·
+    <a href="0008-api-rest-admin.html">Lezione 8</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/estendere-il-core.html">Reference: estendere il core</a> ·
+    <a href="../reference/magento-oro.html">Reference: da Magento a Oro</a>
+  </p>
+  <p>Quando non trovi il punto di estensione, chiedimelo prima di forzare: metà del mestiere su Oro
+  è sapere dove il core ti ha lasciato una porta.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

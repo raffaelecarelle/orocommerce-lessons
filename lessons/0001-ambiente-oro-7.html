@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 1 — Un Oro 7.0 che gira</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 01</p>
+  <h1>Un Oro 7.0 che gira</h1>
+  <p class="subtitle">Dal codice fermo su disco a un back-office raggiungibile dal browser — e la mappa di dove finirà il tuo codice.</p>
+  <p class="meta">
+    <span>Durata: ~40 min (di cui 25 di attesa del container)</span>
+    <span>Prerequisiti: nessuno</span>
+    <span>Obiettivo: ambiente + orientamento</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>L'obiettivo del percorso è avviare un progetto B2B nuovo su Oro 7.0 e collegarlo all'ERP del cliente.
+Tutto quello che verrà dopo — bundle, entità, API, code — si verifica in un solo modo: lanciando
+un comando e guardando cosa succede nell'applicazione. Senza ambiente non c'è feedback, e senza
+feedback non si impara niente di duraturo.</p>
+
+<p>Questa lezione ti dà due cose: un'installazione 7.0 funzionante, e la mappa mentale di dove
+vive ogni cosa. Nient'altro. La prima riga di codice tuo è la lezione 2.</p>
+
+<h2>Cosa c'è sotto Oro 7.0</h2>
+
+<p>Oro non è un framework: è un'applicazione Symfony di grandi dimensioni, distribuita come
+insieme di pacchetti Composer. Questo è il punto in cui la tua esperienza Magento smette di
+aiutarti: Magento ha un suo framework proprietario (con qualche componente Symfony usato ai
+margini, ad esempio nella console). In Oro, Symfony <em>è</em> l'applicazione: il service
+container, il router, il sistema di eventi, la console e la sicurezza sono quelli di Symfony,
+non una reimplementazione.</p>
+
+<table>
+  <thead><tr><th>Componente</th><th>Versione richiesta da Oro 7.0</th></tr></thead>
+  <tbody>
+    <tr><td>PHP</td><td><code>&gt;= 8.5</code> (lo skeleton dichiara <code>~8.5.0</code>)</td></tr>
+    <tr><td>Framework</td><td>Symfony 7.4</td></tr>
+    <tr><td>ORM</td><td>Doctrine ORM / DBAL</td></tr>
+    <tr><td>Database</td><td>PostgreSQL <code>&gt;= 17.6</code> (CE ed EE)</td></tr>
+    <tr><td>Node.js</td><td><code>&gt;= 24.11 &lt; 25</code>, con PNPM <code>&gt;= 10.7</code></td></tr>
+    <tr><td>Ricerca</td><td>full-text su DB in CE; Elasticsearch <code>&gt;= 9.2</code> solo in EE</td></tr>
+    <tr><td>Message queue</td><td>MQ su DB in CE; RabbitMQ <code>&gt;= 4.2</code> solo in EE</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Fonti: <a href="https://doc.oroinc.com/backend/setup/system-requirements/">System Requirements</a>
+e <a href="https://doc.oroinc.com/backend/architecture/tech-stack/">Technology Stack</a>. La versione di
+Symfony è verificabile anche dal <code>composer.json</code> del ramo 7.0 di
+<a href="https://github.com/oroinc/orocommerce-application/blob/7.0/composer.json">orocommerce-application</a>.</p>
+
+<div class="box">
+  <p class="box-title">Nota sul Community Edition</p>
+  <p>Lavorerai in CE: niente Elasticsearch, niente RabbitMQ. Ricerca e code girano su PostgreSQL.
+  Funziona benissimo per imparare, ma ricordatelo quando leggerai di indici o consumer: in EE quei
+  pezzi sono componenti separati.</p>
+</div>
+
+<h2>Prima regola: verifica sempre la versione del checkout</h2>
+
+<p>Il primo controllo da fare su qualunque cartella Oro che ti ritrovi fra le mani — la tua, quella
+di un collega, quella di un cliente — è: <em>di che versione è davvero questo codice?</em>
+La configurazione di <code>orobox</code> può dichiarare una versione, e il codice esserne un'altra.
+È un disallineamento che costa mezza giornata quando lo scopri tardi.</p>
+
+<pre><code>grep -m2 '"oro/commerce"\|"php"' composer.json
+grep -n 'oro_version' .orobox.yaml</code></pre>
+
+<p>Per un progetto 7.0 ti aspetti <code>"oro/commerce": "7.0.*"</code> e
+<code>"php": "~8.5.0"</code>. Se leggi <code>6.1.*</code> e <code>~8.4.0</code>, quel checkout è
+una 6.1: gli esempi di questo percorso non ti torneranno, e la differenza si vede soprattutto sul
+layer di sicurezza e sui datagrid.</p>
+
+<h2>Pratica: installa un Oro 7.0 pulito</h2>
+
+<p>Nei comandi che seguono, <code>&lt;progetto&gt;</code> è il nome della cartella che vuoi creare
+(per esempio <code>oro-training</code>). Se tieni i materiali di formazione in una cartella a
+parte, crea l'applicazione in una sottocartella dedicata, così i due mondi non si mescolano.</p>
+
+<div class="box">
+  <p class="box-title">Convenzione usata in tutto il percorso</p>
+  <ul>
+    <li>I comandi <code>orobox</code> si lanciano <strong>dalla radice del progetto</strong>, cioè
+    dalla cartella che contiene <code>composer.json</code> e <code>.orobox.yaml</code>.</li>
+    <li>Gli URL negli esempi sono scritti come <code>https://&lt;dominio&gt;:&lt;porta&gt;</code>.
+    Il valore vero lo stampa <code>orobox up</code> alla fine dell'avvio, e il dominio è quello
+    dichiarato in <code>.orobox.yaml</code>. Con la configurazione di default esce qualcosa come
+    <code>https://oro.demo:8443/admin</code>: <strong>attenzione alla porta, non è la 443</strong>.
+    Fidati sempre dell'output del comando, non di questa pagina.</li>
+  </ul>
+</div>
+
+<ol class="checklist">
+  <li><strong>Scaffolding del progetto 7.0.</strong> Dalla cartella in cui vuoi creare il progetto:
+    <pre><code>orobox create project &lt;progetto&gt; -v 7.0</code></pre>
+    Il comando clona solo l'albero dei sorgenti: non tocca Docker, non installa niente.
+    Verifica: <code>grep -m1 '"oro/commerce"' &lt;progetto&gt;/composer.json</code> deve dire <code>7.0.*</code>.</li>
+
+  <li><strong>Provisioning e installazione.</strong> Entra nella cartella e lancia l'init:
+    <pre><code>cd &lt;progetto&gt;
+orobox init -t project -v 7.0</code></pre>
+    Qui succede tutto: genera la configurazione e i file Docker Compose, scarica i vendor e
+    lancia l'installazione di OroCommerce. È la parte lenta — vendor Oro e build degli asset
+    non sono veloci. Lascialo finire e leggi l'output: l'installer stampa l'esito e le
+    credenziali dell'utente amministratore.</li>
+
+  <li><strong>Ambiente su.</strong>
+    <pre><code>orobox up</code></pre>
+    Il comando stampa gli URL di back-office e storefront: apri quello del back-office
+    (<code>https://&lt;dominio&gt;:&lt;porta&gt;/admin</code>) e fai login con le credenziali
+    dell'amministratore, che hai visto nell'output dell'installer — con i valori di default
+    <code>admin</code> / <code>admin</code>.</li>
+
+  <li><strong>Primo contatto con la console.</strong> Questo è il comando che userai mille volte:
+    <pre><code>orobox console list | head -40
+orobox console cache:clear</code></pre>
+    <code>orobox console</code> esegue <code>bin/console</code> dentro il container. <code>bin/console</code>
+    è la console di Symfony: Oro ci aggiunge le proprie centinaia di comandi, tutti prefissati <code>oro:</code>.</li>
+
+  <li><strong>Guarda quanti bundle stai usando.</strong>
+    <pre><code>orobox console debug:container --parameter=kernel.bundles | head -30</code></pre>
+    Aspettati un elenco lunghissimo. Un'applicazione OroCommerce è fatta di qualche centinaio di bundle.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Back-office raggiungibile, login fatto, <code>orobox console</code> che risponde. Da qui in poi
+  ogni cosa che impari la puoi provare in trenta secondi.</p>
+</div>
+
+<div class="box warn">
+  <p class="box-title">Se qualcosa si rompe</p>
+  <p>Non combattere da solo: copiami l'ultima riga significativa dell'errore e ripartiamo da lì.
+  Gli errori di installazione Oro sono quasi sempre versioni (PHP, Node, Postgres) o permessi su
+  <code>var/</code>. Per ripartire davvero da zero: <code>orobox down</code>, poi
+  <code>orobox clear</code> (rimuove container e volumi), poi di nuovo <code>orobox init</code>.</p>
+</div>
+
+<h2>La mappa: dove vive cosa</h2>
+
+<table>
+  <thead><tr><th>Percorso</th><th>Cosa contiene</th><th>Ci metti mano?</th></tr></thead>
+  <tbody>
+    <tr><td><code>src/</code></td><td>Il codice dell'applicazione. Qui nasceranno i tuoi bundle.</td><td>Sempre</td></tr>
+    <tr><td><code>config/</code></td><td>Configurazione applicativa: parametri, bundle abilitati, ambienti.</td><td>Spesso</td></tr>
+    <tr><td><code>templates/</code></td><td>Template Twig di override a livello di applicazione.</td><td>A volte</td></tr>
+    <tr><td><code>vendor/oro/</code></td><td>Platform, Commerce, CRM: il prodotto. Riscritto a ogni upgrade.</td><td><strong>Mai in scrittura</strong>, sempre in lettura</td></tr>
+    <tr><td><code>public/</code></td><td>Document root: <code>index.php</code>, asset compilati, <code>uploads/</code>.</td><td>Raramente</td></tr>
+    <tr><td><code>var/cache/</code></td><td>Cache del framework e dell'applicazione.</td><td>Solo per svuotarla</td></tr>
+    <tr><td><code>var/logs/</code></td><td>Log applicativi. Il primo posto dove guardare.</td><td>In lettura</td></tr>
+    <tr><td><code>var/data/</code></td><td>Allegati, file di import/export.</td><td>In lettura</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Fonte: <a href="https://doc.oroinc.com/backend/architecture/structure/">Application Structure</a>.
+Nota il parallelo con Magento: <code>vendor/oro</code> sta a Oro come <code>vendor/magento</code> sta a
+Magento 2. La regola "non si modifica il core" è identica; cambiano gli strumenti per aggirarlo, e li
+vedremo fra qualche lezione.</p>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<p>Rispondi senza tornare indietro a rileggere. Sbagliare qui è utile: lo sforzo di recupero è
+quello che fissa la conoscenza.</p>
+
+<div class="quiz">
+  <p class="q">Su quale framework è costruito OroCommerce 7.0?</p>
+  <div class="options">
+    <button class="opt" data-correct>Symfony, versione 7.4</button>
+    <button class="opt">Laravel, versione 11.2</button>
+    <button class="opt">Laminas, versione 3.7</button>
+    <button class="opt">Zend, versione 2.4</button>
+  </div>
+  <p class="explain" hidden>Oro 7.0 gira su Symfony 7.4 e richiede PHP 8.5. Non è "ispirato a" Symfony:
+  è un'applicazione Symfony, con il suo service container, il suo router e il suo sistema di eventi.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Dove scrivi il codice di una personalizzazione di progetto?</p>
+  <div class="options">
+    <button class="opt" data-correct>Dentro la cartella <code>src</code></button>
+    <button class="opt">Dentro la cartella <code>vendor</code></button>
+    <button class="opt">Dentro la cartella <code>public</code></button>
+    <button class="opt">Dentro la cartella <code>config</code></button>
+  </div>
+  <p class="explain" hidden><code>src/</code> è la cartella del codice applicativo ed è già mappata in
+  autoload PSR-4 dal <code>composer.json</code> dello skeleton. <code>vendor/</code> viene riscritto a ogni
+  <code>composer update</code>: qualunque modifica lì dentro sparisce al primo upgrade.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale comando esegue <code>bin/console</code> nel container?</p>
+  <div class="options">
+    <button class="opt" data-correct><code>orobox console &lt;comando&gt;</code></button>
+    <button class="opt"><code>orobox shell &lt;comando&gt;</code></button>
+    <button class="opt"><code>orobox run &lt;comando&gt;</code></button>
+    <button class="opt"><code>orobox init &lt;comando&gt;</code></button>
+  </div>
+  <p class="explain" hidden><code>orobox console</code> inoltra tutto a <code>bin/console</code> dentro il
+  container dell'applicazione. <code>shell</code> ti dà una shell interattiva, <code>run</code> esegue un
+  comando personalizzato definito in <code>.orobox.yaml</code>, <code>init</code> provisiona l'ambiente.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">In Community Edition, dove gira la coda dei messaggi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Sul database, senza RabbitMQ</button>
+    <button class="opt">Su RabbitMQ, sempre incluso</button>
+    <button class="opt">Su Elasticsearch, come indice</button>
+    <button class="opt">In memoria, dentro PHP</button>
+  </div>
+  <p class="explain" hidden>In CE sia la coda sia l'indice di ricerca vivono su PostgreSQL. RabbitMQ ed
+  Elasticsearch sono opzioni della sola Enterprise Edition. Il codice che scriverai è lo stesso: cambia
+  l'infrastruttura sotto.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: elenca le quattro cartelle di primo livello che toccherai più spesso e cosa contengono.</p>
+  <textarea placeholder="Scrivi qui prima di scoprire la risposta..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p><code>src/</code> il tuo codice · <code>config/</code> la configurazione applicativa ·
+    <code>var/logs/</code> i log da leggere quando qualcosa non va · <code>vendor/oro/</code> il prodotto,
+    da leggere continuamente e non modificare mai.</p>
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/architecture/">Oro Application Architecture</a> — leggi
+  <em>solo</em> le pagine <a href="https://doc.oroinc.com/backend/architecture/tech-stack/">Technology Stack</a> e
+  <a href="https://doc.oroinc.com/backend/architecture/structure/">Application Structure</a>. Venti minuti.
+  Non aprire ancora le sezioni su entità, datagrid e workflow: ci arriviamo, e adesso occuperebbero solo
+  memoria di lavoro.</p>
+</div>
+
+<p>Se vuoi anticipare la parte Symfony, il capitolo giusto — e uno solo — è
+<a href="https://symfony.com/doc/current/service_container.html">Service Container</a>. È il concetto che
+in Oro ritorna ogni singolo giorno, ed è anche il ponte più diretto dalla tua esperienza Magento: entrambi
+i sistemi risolvono le dipendenze da una configurazione dichiarativa, solo che Symfony usa YAML al posto
+di <code>di.xml</code>.</p>
+
+<h2>Prossima lezione</h2>
+
+<p>Lezione 2: il tuo primo bundle. Lo scaffolding con <code>orobox create bundle</code>, come Oro lo scopre
+senza che tu tocchi il kernel (<code>Resources/config/oro/bundles.yml</code>), e il primo servizio registrato
+nel container — cioè il primo pezzo di Symfony che ti serve davvero.</p>
+
+</main>
+
+<footer>
+  <p><strong>Materiale collegato:</strong>
+    <a href="index.html">Indice del corso</a> ·
+    <a href="0002-primo-bundle.html">Lezione 2: il tuo primo bundle</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a> ·
+    <a href="../reference/orobox.html">Reference: comandi orobox</a> ·
+    <a href="../reference/magento-oro.html">Reference: da Magento a Oro</a> ·
+    <a href="../RESOURCES.md">Risorse</a>
+  </p>
+  <p><strong>Sono il tuo tutor, non un libro.</strong> Se un passaggio non torna, se un comando esplode,
+  o se ti stai chiedendo "sì, ma in Magento come si faceva?", chiedimelo subito in chat: quella domanda
+  vale più della lezione successiva.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

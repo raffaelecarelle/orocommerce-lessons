@@ -1,0 +1,36 @@
+imports:
+    - { resource: config.yml }
+    - { resource: security_dev.yml }
+
+parameters:
+    main_log_channels: []
+
+framework:
+    router:   { resource: "%kernel.project_dir%/config/routing_dev.yml" }
+    profiler: { only_exceptions: false }
+    ide: phpstorm
+#    mailer:
+#        envelope:
+#            recipients: ['me@example.com']
+
+web_profiler:
+    toolbar: true
+    excluded_ajax_paths: '^/((index(_[\w]+)|app(_[\w]+)?)\.php/)?(_wdt|bundles)'
+    intercept_redirects: false
+
+monolog:
+    handlers:
+        main:
+            type:      stream
+            path:      "%log_path%"
+            level:     debug
+            channels:  '%main_log_channels%' # The channels configuration only works for top-level handlers
+
+oro_message_queue:
+    client:
+        traceable_producer: true
+
+oro_asset:
+    settings:
+        subresource_integrity_enabled:
+            value: false

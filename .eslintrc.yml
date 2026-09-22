@@ -1,0 +1,102 @@
+extends:
+  - google
+  - "plugin:oro/recommended"
+  - "plugin:no-jquery/deprecated"
+parserOptions:
+  sourceType: module
+env:
+  es2024: true
+  browser: true
+  jasmine: true
+globals:
+  Promise: true
+  module: 'readonly'
+plugins:
+  - 'no-jquery'
+  - 'import'
+rules:
+  # turn off ES6 code style check
+  arrow-parens: ['error', 'as-needed']
+  oro/named-constructor: 'error'
+
+  # customization
+  indent: ['error', 4, {'SwitchCase': 1}]
+  max-len:
+    - 'error'
+    - code: 120
+      comments: 160
+      tabWidth: 4
+      ignoreComments: true
+      ignoreTrailingComments: true
+      ignoreRegExpLiterals: true
+      ignorePattern: '^\s*const\s.+=\s*require\s*\(|\.extend\(\/\*\*\s+@lends\s.+\*\/\{$'
+  comma-dangle: ['error', 'never']
+  eqeqeq: ['error', 'smart']
+  no-useless-call: 'error'
+  no-useless-concat: 'error'
+  no-loop-func: 'error'
+  no-eval: 'error'
+  no-undef: 'error'
+  no-unused-vars:
+    - 'error'
+    - ignoreRestSiblings: true
+      args: 'none'
+  operator-linebreak:
+    - 'error'
+    - 'after'
+    - overrides:
+        "?": 'before'
+        ":": 'before'
+  new-cap:
+    - 'error'
+    - newIsCap: true
+      properties: false
+  quote-props:
+    - 'error'
+    - 'consistent-as-needed'
+    - keywords: true
+      numbers: true
+  valid-jsdoc: 'off' # has to be turned on in a future
+  no-useless-escape: 'off' # has to be turned on in a future
+  require-jsdoc: 'off' # has to be turned on in a future
+  no-invalid-this: 'off' # has to be turned on in a future
+  space-infix-ops:
+    - 'error'
+  'no-jquery/no-event-shorthand': 'error'
+  'no-jquery/no-trim': 'error'
+  'no-jquery/no-sizzle':
+    - 'error'
+    - allowPositional: false
+      allowOther: true
+  'no-jquery/no-camel-case': 'error'
+  'no-jquery/no-is-function': 'error'
+  'no-jquery/no-is-numeric': 'error'
+  'no-jquery/no-is-window': 'error'
+  'no-jquery/no-now': 'error'
+  'no-jquery/no-proxy': 'error'
+  'no-jquery/no-type': 'error'
+  'no-jquery/no-hold-ready': 'error'
+  'no-jquery/no-is-array': 'error'
+  'no-jquery/no-node-name': 'error'
+  'no-jquery/no-bind': 'error'
+  'no-jquery/no-delegate': 'error'
+  'no-jquery/no-fx-interval': 'error'
+  'no-jquery/no-parse-json': 'error'
+  'no-jquery/no-ready-shorthand': 'error'
+  'no-jquery/no-unique': 'error'
+  'no-jquery/no-context-prop': 'error'
+  'no-jquery/no-support': 'error'
+  'no-jquery/no-and-self': 'error'
+  'no-jquery/no-error-shorthand': 'error'
+  'no-jquery/no-load-shorthand': 'error'
+  'no-jquery/no-on-ready': 'error'
+  'no-jquery/no-size': 'error'
+  'no-jquery/no-unload-shorthand': 'error'
+  'no-jquery/no-live': 'error'
+  'no-jquery/no-sub': 'error'
+  'no-jquery/no-selector-prop': 'error'
+  'no-jquery/no-box-model': 'error'
+  'no-jquery/no-browser': 'error'
+  'import/no-commonjs': 'error'
+  'import/no-amd': 'error'
+  'import/no-dynamic-require': 'error'

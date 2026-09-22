@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Doctrine e migration</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Doctrine e migration</h1>
+  <p class="subtitle">Entità, mapping, repository, schema: la scheda da tenere aperta mentre scrivi.</p>
+  <p class="meta">
+    <span>Oro 7.0 · Doctrine ORM</span>
+    <span>Nasce dalla <a href="../lessons/0003-entita-e-migration.html">Lezione 3</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Il modello mentale</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>Oro / Doctrine</th></tr></thead>
+  <tbody>
+    <tr><td>Model</td><td>Entità: oggetto PHP con dati e dominio, senza persistenza</td></tr>
+    <tr><td>ResourceModel</td><td><code>EntityManager</code>, unico per tutte le entità</td></tr>
+    <tr><td>Collection</td><td><code>EntityRepository</code> + <code>QueryBuilder</code> (DQL)</td></tr>
+    <tr><td><code>db_schema.xml</code></td><td>Classi di migration PHP</td></tr>
+    <tr><td><code>$model-&gt;save()</code></td><td><code>persist()</code> (solo per i nuovi) + <code>flush()</code></td></tr>
+  </tbody>
+</table>
+
+<p><strong>Unit of Work:</strong> un'entità caricata e poi modificata viene salvata al
+<code>flush()</code> anche senza <code>persist()</code>. <code>persist()</code> serve a far
+conoscere all'EntityManager un oggetto nuovo.</p>
+
+<h2>Attributi di mapping più usati</h2>
+
+<pre><code>use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+
+#[ORM\Entity(repositoryClass: MyRepository::class)]
+#[ORM\Table(name: 'algoritma_my_table')]
+#[ORM\UniqueConstraint(name: 'uniq_code', columns: ['code'])]
+#[ORM\Index(columns: ['created_at'], name: 'idx_created_at')]
+class MyEntity
+{
+    #[ORM\Column(name: 'id', type: Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    protected ?int $id = null;
+
+    #[ORM\Column(name: 'code', type: Types::STRING, length: 64)]
+    protected ?string $code = null;
+
+    #[ORM\Column(name: 'amount', type: Types::DECIMAL, precision: 19, scale: 4, nullable: true)]
+    protected $amount;
+
+    #[ORM\Column(name: 'payload', type: Types::JSON, nullable: true)]
+    protected ?array $payload = null;
+
+    #[ORM\Column(name: 'created_at', type: Types::DATETIME_MUTABLE)]
+    protected ?\DateTime $createdAt = null;
+
+    #[ORM\ManyToOne(targetEntity: OtherEntity::class, inversedBy: 'items')]
+    #[ORM\JoinColumn(name: 'other_id', referencedColumnName: 'id', nullable: true, onDelete: 'SET NULL')]
+    protected ?OtherEntity $other = null;
+
+    /** @var Collection&lt;int, ChildEntity&gt; */
+    #[ORM\OneToMany(mappedBy: 'parent', targetEntity: ChildEntity::class, cascade: ['persist'], orphanRemoval: true)]
+    protected Collection $children;
+}</code></pre>
+
+<h2>Attributi Oro sull'entità</h2>
+
+<pre><code>use Oro\Bundle\EntityConfigBundle\Metadata\Attribute\Config;
+use Oro\Bundle\EntityConfigBundle\Metadata\Attribute\ConfigField;
+
+#[Config(
+    routeName: 'algoritma_my_entity_index',
+    routeView: 'algoritma_my_entity_view',
+    defaultValues: [
+        'entity' =&gt; ['icon' =&gt; 'fa-exchange'],
+        'security' =&gt; ['type' =&gt; 'ACL', 'group_name' =&gt; ''],
+        'ownership' =&gt; [
+            'owner_type' =&gt; 'ORGANIZATION',
+            'owner_field_name' =&gt; 'organization',
+            'owner_column_name' =&gt; 'organization_id',
+        ],
+        'dataaudit' =&gt; ['auditable' =&gt; true],
+    ]
+)]</code></pre>
+
+<pre><code>#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]     // chiave per l'import
+#[ConfigField(defaultValues: ['importexport' =&gt; ['excluded' =&gt; true]])]     // fuori da import ed export
+#[ConfigField(defaultValues: ['dataaudit' =&gt; ['auditable' =&gt; true]])]       // tracciato nell'audit</code></pre>
+
+<table>
+  <thead><tr><th>Chiave</th><th>Effetto</th></tr></thead>
+  <tbody>
+    <tr><td><code>entity.icon</code></td><td>Icona nelle liste e nei menu</td></tr>
+    <tr><td><code>security.type: ACL</code></td><td>L'entità compare nella schermata dei ruoli</td></tr>
+    <tr><td><code>ownership</code></td><td>Livello di accesso ai record: <code>NONE</code>, <code>ORGANIZATION</code>, <code>BUSINESS_UNIT</code>, <code>USER</code></td></tr>
+    <tr><td><code>dataaudit.auditable</code></td><td>Storico delle modifiche</td></tr>
+  </tbody>
+</table>
+
+<h2>Repository e DQL</h2>
+
+<pre><code>class MyRepository extends EntityRepository
+{
+    public function findNeverSynced(int $limit = 50): array
+    {
+        return $this-&gt;createQueryBuilder('m')
+            -&gt;where('m.syncedAt IS NULL')
+            -&gt;andWhere('m.code LIKE :prefix')
+            -&gt;setParameter('prefix', 'ERP-%')
+            -&gt;orderBy('m.id', 'ASC')
+            -&gt;setMaxResults($limit)
+            -&gt;getQuery()
+            -&gt;getResult();
+    }
+
+    public function countByStatus(string $status): int
+    {
+        return (int) $this-&gt;createQueryBuilder('m')
+            -&gt;select('COUNT(m.id)')
+            -&gt;where('m.status = :status')
+            -&gt;setParameter('status', $status)
+            -&gt;getQuery()
+            -&gt;getSingleScalarResult();
+    }
+}</code></pre>
+
+<p><strong>Nel DQL si usano i nomi delle proprietà PHP</strong> (<code>m.syncedAt</code>), non i
+nomi di colonna (<code>synced_at</code>). I nomi di colonna servono nelle migration e nell'SQL
+nativo.</p>
+
+<h2>Ottenere manager e repository</h2>
+
+<pre><code>use Doctrine\Persistence\ManagerRegistry;
+
+// argomento nel services.yml: '@doctrine'
+$manager = $this-&gt;doctrine-&gt;getManagerForClass(MyEntity::class);
+$repository = $this-&gt;doctrine-&gt;getRepository(MyEntity::class);
+
+$manager-&gt;persist($entity);   // solo per oggetti nuovi
+$manager-&gt;flush();            // esegue le query
+$manager-&gt;remove($entity);
+$manager-&gt;refresh($entity);</code></pre>
+
+<h2>Migration</h2>
+
+<pre><code>// Migrations/Schema/AlgoritmaTrainingBundleInstaller.php — installazione da zero
+class AlgoritmaTrainingBundleInstaller implements Installation
+{
+    public function getMigrationVersion(): string { return 'v1_1'; }
+
+    public function up(Schema $schema, QueryBag $queries): void
+    {
+        $table = $schema-&gt;createTable('algoritma_erp_mapping');
+        $table-&gt;addColumn('id', 'integer', ['autoincrement' =&gt; true]);
+        $table-&gt;addColumn('erp_code', 'string', ['length' =&gt; 64]);
+        $table-&gt;addColumn('synced_at', 'datetime', ['notnull' =&gt; false]);
+        $table-&gt;setPrimaryKey(['id']);
+        $table-&gt;addUniqueIndex(['erp_code'], 'uniq_algoritma_erp_code');
+    }
+}
+
+// Migrations/Schema/v1_1/AddStatusColumn.php — modifica incrementale
+class AddStatusColumn implements Migration
+{
+    public function up(Schema $schema, QueryBag $queries): void
+    {
+        $table = $schema-&gt;getTable('algoritma_erp_mapping');
+        $table-&gt;addColumn('status', 'string', ['length' =&gt; 32, 'notnull' =&gt; false]);
+
+        $queries-&gt;addPostQuery("UPDATE algoritma_erp_mapping SET status = 'new' WHERE status IS NULL");
+    }
+}</code></pre>
+
+<table>
+  <thead><tr><th>Regola</th><th>Perché</th></tr></thead>
+  <tbody>
+    <tr><td>Mai <code>doctrine:schema:update</code></td><td>Allinea solo il database su cui gira: gli ambienti divergono</td></tr>
+    <tr><td>Installer e migration vanno tenuti allineati</td><td>Installazione pulita e upgrade devono arrivare allo stesso schema</td></tr>
+    <tr><td>Una migration già eseguita non si modifica</td><td>Oro ricorda cosa ha eseguito: la modifica non verrà mai applicata</td></tr>
+    <tr><td>Le query di dati vanno in <code>QueryBag</code></td><td>Eseguite nell'ordine giusto rispetto alle modifiche di schema</td></tr>
+  </tbody>
+</table>
+
+<h2>Comandi</h2>
+
+<pre><code># elenca le migration che verrebbero eseguite
+orobox console oro:migration:load --dry-run
+
+# esegue (senza --force non fa nulla: è una sicurezza)
+orobox console oro:migration:load --force
+
+# mostra l'SQL generato
+orobox console oro:migration:load --force --show-queries
+
+# limita a un bundle
+orobox console oro:migration:load --force --bundles=AlgoritmaTrainingBundle
+
+# carica le fixture di dati
+orobox console oro:migration:data:load
+
+# stampa lo schema esistente come codice di migration
+orobox console oro:migration:dump
+
+# query SQL diretta, utile per verificare
+orobox console doctrine:query:sql "SELECT * FROM algoritma_erp_mapping"
+
+# dopo aver cambiato attributi di entity config
+orobox console oro:entity-extend:update-config
+orobox console oro:entity-extend:update-schema</code></pre>
+
+<h2>Errori frequenti</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa</th></tr></thead>
+  <tbody>
+    <tr><td>Nessun errore, nessun dato salvato</td><td>Manca <code>flush()</code></td></tr>
+    <tr><td><code>[Semantical Error] ... has no field 'synced_at'</code></td><td>Nome di colonna usato nel DQL al posto della proprietà</td></tr>
+    <tr><td><code>Table ... does not exist</code></td><td>Migration non eseguita, o classe fuori da <code>Migrations/Schema/</code></td></tr>
+    <tr><td>La migration non viene raccolta</td><td>Percorso o namespace sbagliati; serve <code>cache:clear</code></td></tr>
+    <tr><td>Entità non visibile nei ruoli</td><td>Manca <code>'security' =&gt; ['type' =&gt; 'ACL']</code> nel <code>#[Config]</code></td></tr>
+    <tr><td>Import che duplica invece di aggiornare</td><td>Manca <code>importexport.identity</code> sul campo chiave</td></tr>
+    <tr><td>Dopo aver cancellato un bundle: <code>cache:clear</code> dice <code>Class "…\Entity\X" does not exist</code></td><td>L'entità con <code>#[Config]</code> è ancora registrata in <code>oro_entity_config</code>. Vanno rimosse le righe di quella entità in <code>oro_entity_config_index_value</code>, <code>oro_entity_config_field</code> e <code>oro_entity_config</code> — nell'ordine</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<footer>
+  <p>Collegamenti:
+    <a href="../lessons/0003-entita-e-migration.html">Lezione 3</a> ·
+    <a href="bundle-e-container.html">Bundle e container</a> ·
+    <a href="integrazioni.html">API, code, import/export</a> ·
+    <a href="https://www.doctrine-project.org/projects/doctrine-orm/en/current/index.html">Doctrine ORM</a> ·
+    <a href="https://doc.oroinc.com/backend/entities/">Oro — Entities</a>
+  </p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 5 — Datagrid</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 05</p>
+  <h1>Datagrid</h1>
+  <p class="subtitle">La griglia dichiarativa di Oro: una query, delle colonne, dei filtri — e una pagina di elenco completa senza scrivere JavaScript.</p>
+  <p class="meta">
+    <span>Durata: ~60 min</span>
+    <span>Prerequisiti: <a href="0004-crud-backoffice.html">Lezione 4</a></span>
+    <span>Obiettivo: elenco filtrabile con azioni di riga</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Nel back-office di Oro quasi ogni elenco è un datagrid. Quando integri un ERP, la griglia è lo
+strumento con cui l'operatore capisce cosa è andato storto: quali codici non sono mappati, quali
+record non si sincronizzano da tre giorni. Saperla scrivere bene vale più di dieci pagine custom.</p>
+
+<div class="compare">
+  <figure>
+    <figcaption>Magento 2</figcaption>
+<pre><code>Ui Component listing XML
++ DataProvider / Collection
++ colonne, filtri, azioni in XML</code></pre>
+  </figure>
+  <figure>
+    <figcaption>Oro 7.0</figcaption>
+<pre><code>Resources/config/oro/datagrids.yml
+  source (query DQL dichiarativa)
+  columns · sorters · filters · actions</code></pre>
+  </figure>
+</div>
+
+<p>L'idea è la stessa — una griglia descritta in configurazione — ma in Oro la query vive
+<em>dentro</em> la configurazione, in forma dichiarativa, invece di stare in una classe
+DataProvider.</p>
+
+<h2>Dove vive la configurazione</h2>
+
+<table>
+  <thead><tr><th>Contesto</th><th>Percorso del file</th></tr></thead>
+  <tbody>
+    <tr><td>Back-office (admin)</td><td><code>Resources/config/oro/datagrids.yml</code></td></tr>
+    <tr><td>Storefront (tema)</td><td><code>Resources/views/layouts/&lt;tema&gt;/config/datagrids.yml</code></td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Cambio della 7.0 da tenere a mente</p>
+  <p>Le griglie dello storefront sono definite <strong>a livello di tema</strong>, non in
+  <code>config/oro/</code>. Se cerchi un esempio storefront, guarda per esempio
+  <code>vendor/oro/commerce/src/Oro/Bundle/ProductBundle/Resources/views/layouts/default/config/datagrids.yml</code>.
+  Molti articoli scritti per le versioni precedenti mostrano ancora tutto in
+  <code>config/oro/datagrids.yml</code>: per lo storefront è la posizione sbagliata.</p>
+</div>
+
+<h2>Anatomia di un datagrid</h2>
+
+<p>Sei sezioni, e le userai sempre nello stesso ordine mentale.</p>
+
+<table>
+  <thead><tr><th>Sezione</th><th>Risponde alla domanda</th></tr></thead>
+  <tbody>
+    <tr><td><code>source</code></td><td>Da dove arrivano i dati? (tipo <code>orm</code> + query dichiarativa)</td></tr>
+    <tr><td><code>columns</code></td><td>Cosa vede l'utente, e come è formattato</td></tr>
+    <tr><td><code>sorters</code></td><td>Su cosa può ordinare, e qual è l'ordinamento iniziale</td></tr>
+    <tr><td><code>filters</code></td><td>Su cosa può filtrare, e con che tipo di controllo</td></tr>
+    <tr><td><code>properties</code></td><td>Valori non visibili usati dalle azioni (tipicamente URL)</td></tr>
+    <tr><td><code>actions</code></td><td>Cosa può fare su una riga, e con quale permesso</td></tr>
+  </tbody>
+</table>
+
+<p>Più due chiavi trasversali: <code>acl_resource</code>, che protegge l'intera griglia, e
+<code>options</code>, per il comportamento (paginazione, testo di aiuto).</p>
+
+<p class="sidenote">Modello reale completo e leggibile:
+<code>vendor/oro/platform/src/Oro/Bundle/TagBundle/Resources/config/oro/datagrids.yml</code>,
+griglia <code>tag-grid</code>. Ha query con join, colonna calcolata, filtri di tre tipi e tre azioni.</p>
+
+<h2>Pratica: la griglia delle mappature ERP</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>La configurazione.</strong>
+    <code>Resources/config/oro/datagrids.yml</code>:</p>
+<pre><code>datagrids:
+    algoritma-erp-mapping-grid:
+        options:
+            entityHint: mappature ERP
+        acl_resource: algoritma_erp_mapping_view
+        source:
+            type: orm
+            query:
+                select:
+                    - m.id
+                    - m.erpCode
+                    - m.oroSku
+                    - m.syncedAt
+                from:
+                    - { table: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping, alias: m }
+        columns:
+            erpCode:
+                label: Codice ERP
+                type: field
+                frontend_type: string
+            oroSku:
+                label: SKU Oro
+                type: field
+                frontend_type: string
+            syncedAt:
+                label: Ultima sincronizzazione
+                type: field
+                frontend_type: datetime
+        sorters:
+            columns:
+                erpCode:
+                    data_name: m.erpCode
+                syncedAt:
+                    data_name: m.syncedAt
+            default:
+                syncedAt: DESC
+        filters:
+            columns:
+                erpCode:
+                    type: string
+                    data_name: m.erpCode
+                syncedAt:
+                    type: datetime
+                    data_name: m.syncedAt
+        properties:
+            id: ~
+            update_link:
+                type: url
+                route: algoritma_erp_mapping_update
+                params:
+                    - id
+        actions:
+            update:
+                type: navigate
+                label: Modifica
+                link: update_link
+                icon: pencil-square-o
+                rowAction: true</code></pre>
+    <p>Nella query si usa <strong>DQL dichiarativo</strong>: entità e proprietà
+    (<code>m.erpCode</code>), non tabelle e colonne. È lo stesso linguaggio del QueryBuilder della
+    lezione 3, scritto in YAML.</p>
+  </li>
+  <li>
+    <p><strong>Il permesso.</strong> La griglia dichiara <code>acl_resource:
+    algoritma_erp_mapping_view</code>, che ancora non esiste: lo creiamo nella lezione 6. Per far
+    girare la griglia <em>adesso</em>, togli temporaneamente quella riga — e rimettila appena
+    avremo gli ACL. Lasciare griglie senza <code>acl_resource</code> in un progetto reale è un
+    errore di sicurezza, non una scorciatoia accettabile.</p>
+  </li>
+  <li>
+    <p><strong>La pagina di elenco.</strong> Aggiungi l'azione al controller della lezione 4:</p>
+<pre><code>#[Route(path: '/', name: 'algoritma_erp_mapping_index')]
+#[Template('@AlgoritmaTraining/ErpMapping/index.html.twig')]
+public function indexAction(): array
+{
+    return ['entity_class' =&gt; ErpMapping::class];
+}</code></pre>
+    <p>E il template <code>Resources/views/ErpMapping/index.html.twig</code>:</p>
+<pre><code>{% extends '@OroUI/actions/index.html.twig' %}
+{% import '@OroUI/macros.html.twig' as UI %}
+
+{% set gridName = 'algoritma-erp-mapping-grid' %}
+{% set pageTitle = 'Mappature ERP' %}
+
+{% block navButtons %}
+    {{ UI.addButton({
+        'path': path('algoritma_erp_mapping_create'),
+        'entity_label': 'mappatura ERP'
+    }) }}
+{% endblock %}</code></pre>
+    <p>Quattro righe utili: <code>gridName</code> è tutto quello che serve perché
+    <code>@OroUI/actions/index.html.twig</code> renderizzi la griglia, con paginazione, filtri e
+    ordinamenti già funzionanti.</p>
+  </li>
+  <li>
+    <p><strong>La voce di menu.</strong>
+    <code>Resources/config/oro/navigation.yml</code>:</p>
+<pre><code>navigation:
+    menu_config:
+        items:
+            algoritma_erp_mapping_list:
+                label: Mappature ERP
+                route: algoritma_erp_mapping_index
+                extras:
+                    routes: ['algoritma_erp_mapping_*']
+            tree:
+                application_menu:
+                    children:
+                        system_tab:
+                            children:
+                                algoritma_erp_mapping_list: ~</code></pre>
+    <p>La chiave <code>extras.routes</code> serve a tenere la voce evidenziata anche nelle pagine
+    di creazione e modifica.</p>
+  </li>
+  <li>
+    <p><strong>Prova.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console debug:router | grep algoritma_erp_mapping_index</code></pre>
+    <p>Poi apri <code>https://&lt;dominio&gt;:&lt;porta&gt;/admin/algoritma/erp-mapping/</code>. Crea due o tre
+    record dalla pagina della lezione 4 e verifica: ordinamento sulle colonne dichiarate, filtro
+    testuale sul codice ERP, click sulla riga che porta alla modifica.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Un elenco filtrabile, ordinabile, paginato, con azione di riga, scritto interamente in YAML.
+  È il motivo per cui in Oro conviene descrivere invece di programmare: la griglia che hai appena
+  fatto ha già l'esportazione, la scelta delle colonne visibili e la memoria dei filtri per utente.</p>
+</div>
+
+<h2>Le cose che si rompono</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa quasi certa</th></tr></thead>
+  <tbody>
+    <tr><td>Griglia vuota ma nessun errore</td><td>Alias della query sbagliato, o filtro con <code>data_name</code> che non corrisponde al <code>select</code>.</td></tr>
+    <tr><td><code>Grid "..." configuration not found</code></td><td>Nome della griglia diverso fra <code>datagrids.yml</code> e <code>gridName</code> nel template; oppure manca <code>cache:clear</code>.</td></tr>
+    <tr><td>Colonna che non si ordina</td><td>La colonna esiste in <code>columns</code> ma non in <code>sorters</code>: sono elenchi separati, di proposito.</td></tr>
+    <tr><td>Azione che non compare</td><td><code>acl_resource</code> dell'azione punta a un permesso che l'utente non ha, o che non esiste.</td></tr>
+    <tr><td>Colonna calcolata che non filtra</td><td>Serve <code>filter_by_having: true</code>, come nella colonna <code>usage</code> di <code>tag-grid</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Dove si definisce una griglia del back-office?</p>
+  <div class="options">
+    <button class="opt" data-correct>In Resources/config/oro/datagrids.yml del bundle</button>
+    <button class="opt">In Resources/views/layouts del tema del bundle</button>
+    <button class="opt">In Resources/config/services.yml come servizio</button>
+    <button class="opt">In Resources/config/oro/navigation.yml del bundle</button>
+  </div>
+  <p class="explain" hidden>Back-office: <code>config/oro/datagrids.yml</code>. Le griglie dello
+  storefront, dalla 7.0, stanno invece nel tema:
+  <code>Resources/views/layouts/&lt;tema&gt;/config/datagrids.yml</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Nella sezione source della griglia, come nomini i campi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Come in DQL, con alias e proprietà</button>
+    <button class="opt">Come in SQL, con tabella e colonna</button>
+    <button class="opt">Come in Twig, con la sintassi a punti</button>
+    <button class="opt">Come in YAML, con chiavi annidate</button>
+  </div>
+  <p class="explain" hidden>La query del datagrid è DQL dichiarativo: <code>m.erpCode</code>, con
+  <code>from</code> che nomina la classe entità. Stessa logica del QueryBuilder, sintassi YAML.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Cosa serve nel template perché la griglia compaia?</p>
+  <div class="options">
+    <button class="opt" data-correct>Impostare gridName ed estendere il layout index</button>
+    <button class="opt">Includere il file JavaScript della griglia</button>
+    <button class="opt">Iniettare il servizio manager nel controller</button>
+    <button class="opt">Passare le righe al template dal controller</button>
+  </div>
+  <p class="explain" hidden><code>{% set gridName = '...' %}</code> ed
+  <code>{% extends '@OroUI/actions/index.html.twig' %}</code>. Il caricamento dei dati avviene via
+  richieste proprie della griglia: il controller non passa le righe.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">A cosa serve la sezione properties di un datagrid?</p>
+  <div class="options">
+    <button class="opt" data-correct>A costruire valori usati dalle azioni, come URL</button>
+    <button class="opt">A definire le colonne nascoste per default</button>
+    <button class="opt">A impostare le opzioni globali della griglia</button>
+    <button class="opt">A dichiarare i permessi richiesti per riga</button>
+  </div>
+  <p class="explain" hidden>In <code>properties</code> stanno i valori calcolati per riga — tipicamente
+  <code>type: url</code> con rotta e parametri — che poi le <code>actions</code> usano tramite
+  <code>link:</code>.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: le sei sezioni di un datagrid e la domanda a cui risponde ciascuna.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>source</code> da dove vengono i dati · <code>columns</code> cosa si vede ·
+    <code>sorters</code> su cosa si ordina · <code>filters</code> su cosa si filtra ·
+    <code>properties</code> valori di servizio per le azioni · <code>actions</code> cosa si fa
+    su una riga. Più <code>acl_resource</code> per proteggere la griglia.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 4 (spaziatura): cosa fa
+  <code>UpdateHandlerFacade::update()</code> al posto tuo?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Intercetta il submit, valida, salva con <code>flush</code>, mette il messaggio flash e fa il
+    redirect giusto (anche per i form aperti in dialog). Restituisce l'array per il template quando
+    il form non è stato inviato.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p>Il file <code>vendor/oro/platform/src/Oro/Bundle/TagBundle/Resources/config/oro/datagrids.yml</code>,
+  letto riga per riga insieme alla pagina
+  <a href="https://doc.oroinc.com/backend/entities/">Entities → Data Grids</a> della documentazione.
+  Per i datagrid il core è più istruttivo della documentazione: contiene i casi veri (join, colonne
+  calcolate, azioni condizionali).</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi una colonna calcolata <code>synced</code> che mostri «Sì»/«No»: usa
+  <code>type: twig</code>, <code>frontend_type: html</code> e un piccolo template in
+  <code>Resources/views/ErpMapping/Datagrid/Property/synced.html.twig</code>. Modello: la colonna
+  <code>backgroundColor</code> di <code>tag-grid</code>.</li>
+  <li>Aggiungi un filtro <code>boolean</code> «solo mai sincronizzati». Suggerimento: serve una
+  colonna calcolata nel <code>select</code> — è il punto in cui capirai <code>filter_by_having</code>.</li>
+  <li>Aggiungi l'azione <code>delete</code>. Cercherà una rotta di cancellazione: prova prima a
+  capire dal core come la ottengono gli altri bundle, e portami la tua ipotesi.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 6: ACL e permessi.</strong> Il <code>acl_resource</code> che oggi abbiamo tolto:
+come si dichiara in <code>acls.yml</code>, come si aggancia alle azioni del controller con
+<code>#[Acl]</code> e <code>#[AclAncestor]</code>, cosa significa la ownership di un'entità e come
+si verifica un permesso in Twig e in PHP.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0004-crud-backoffice.html">Lezione 4</a> ·
+    <a href="0006-acl-e-permessi.html">Lezione 6</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a>
+  </p>
+  <p>Griglia vuota senza errori? È il caso più frustrante e il più comune: mandami la sezione
+  <code>source</code> e la risolviamo in due minuti.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

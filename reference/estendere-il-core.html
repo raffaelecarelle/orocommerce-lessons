@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Estendere il core</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Estendere il core</h1>
+  <p class="subtitle">Eventi, decorazione, compiler pass, override: cosa usare, come si scrive, come si trova il punto di aggancio.</p>
+  <p class="meta">
+    <span>Oro 7.0 · Symfony 7.4</span>
+    <span>Nasce dalla <a href="../lessons/0007-estendere-il-core.html">Lezione 7</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Albero delle decisioni</h2>
+
+<pre><code>Devo cambiare il comportamento di codice in vendor/oro
+│
+├─ Il core pubblica un evento nel punto giusto?      → EVENTO           (preferito)
+│
+├─ Il comportamento sta dentro un servizio?          → DECORAZIONE
+│
+├─ Devo cambiare la definizione di un servizio?      → COMPILER PASS
+│
+└─ Devo cambiare solo cosa si vede?
+   ├─ Esiste un blocco Twig da sovrascrivere?        → EXTENDS + BLOCK
+   └─ Altrimenti                                     → OVERRIDE DEL TEMPLATE (ultima scelta)</code></pre>
+
+<div class="box warn">
+  <p class="box-title">Non esiste l'equivalente dei plugin Magento</p>
+  <p>Non puoi intercettare «il metodo X della classe Y» dichiarandolo in un file. Decori un
+  <strong>servizio</strong>, e ne implementi l'intera interfaccia. Se il codice che vuoi cambiare
+  non è dietro un servizio, quella strada è chiusa.</p>
+</div>
+
+<h2>Eventi</h2>
+
+<pre><code>    Algoritma\Bundle\TrainingBundle\EventListener\MyListener:
+        arguments:
+            - '@logger'
+        tags:
+            # evento del kernel
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest }
+            # evento Oro, per una griglia specifica
+            - { name: kernel.event_listener, event: oro_datagrid.datagrid.build.after.users-grid, method: onBuildAfter }
+            # priorità: più alto = prima
+            - { name: kernel.event_listener, event: kernel.view, method: onKernelView, priority: 10 }</code></pre>
+
+<table>
+  <thead><tr><th>Tag</th><th>Uso</th></tr></thead>
+  <tbody>
+    <tr><td><code>kernel.event_listener</code></td><td>Un metodo su un evento specifico</td></tr>
+    <tr><td><code>kernel.event_subscriber</code></td><td>La classe dichiara da sé gli eventi (<code>getSubscribedEvents()</code>)</td></tr>
+    <tr><td><code>doctrine.event_listener</code></td><td>Eventi Doctrine su <strong>tutte</strong> le entità (<code>onFlush</code>, <code>postFlush</code>…)</td></tr>
+    <tr><td><code>doctrine.orm.entity_listener</code></td><td>Eventi su <strong>una</strong> entità: chiavi <code>entity</code> ed <code>event</code></td></tr>
+  </tbody>
+</table>
+
+<h3>Eventi Oro ricorrenti</h3>
+
+<table>
+  <thead><tr><th>Evento</th><th>Quando</th></tr></thead>
+  <tbody>
+    <tr><td><code>oro_datagrid.datagrid.build.pre</code></td><td>Prima della costruzione della griglia: modifichi la configurazione</td></tr>
+    <tr><td><code>oro_datagrid.datagrid.build.after</code></td><td>Dopo: hai griglia e query</td></tr>
+    <tr><td><code>oro_datagrid.datagrid.build.after.&lt;grid&gt;</code></td><td>Come sopra, solo per una griglia</td></tr>
+    <tr><td><code>oro_datagrid.orm_datasource.result.before.&lt;grid&gt;</code></td><td>Prima dell'esecuzione della query della griglia</td></tr>
+  </tbody>
+</table>
+
+<h3>Eventi Doctrine più usati</h3>
+
+<table>
+  <thead><tr><th>Evento</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td><code>prePersist</code></td><td>Prima dell'insert; l'id non esiste ancora</td></tr>
+    <tr><td><code>postPersist</code></td><td>Dopo l'insert; id disponibile. Niente <code>flush()</code> qui dentro</td></tr>
+    <tr><td><code>preUpdate</code></td><td>Solo campi già mappati; niente nuove entità</td></tr>
+    <tr><td><code>postRemove</code></td><td>Dopo la delete: tipico per ripulire file collegati</td></tr>
+    <tr><td><code>onFlush</code></td><td>Potente e pericoloso: sei dentro l'Unit of Work</td></tr>
+  </tbody>
+</table>
+
+<h2>Decorazione</h2>
+
+<pre><code>    Algoritma\Bundle\TrainingBundle\Provider\ShoutingGreetingProvider:
+        decorates: Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider
+        arguments:
+            - '@.inner'
+
+    # con priorità, quando più decoratori insistono sullo stesso servizio
+    Algoritma\Bundle\TrainingBundle\Provider\Other:
+        decorates: some.service
+        decoration_priority: 10
+        arguments: [ '@.inner' ]
+
+    # non fallire se il servizio decorato non esiste (es. bundle opzionale)
+    Algoritma\Bundle\TrainingBundle\Provider\Maybe:
+        decorates: optional.service
+        decoration_on_invalid: ignore
+        arguments: [ '@.inner' ]</code></pre>
+
+<p>Esempio nel core:
+<code>vendor/oro/platform/src/Oro/Bundle/AttachmentBundle/Resources/config/services.yml</code>,
+servizio <code>oro_attachment.protocol_validator.gaufrette</code>.</p>
+
+<h2>Compiler pass</h2>
+
+<pre><code>class AlgoritmaTrainingBundle extends Bundle
+{
+    #[\Override]
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        $container-&gt;addCompilerPass(new MyPass());
+    }
+}
+
+class MyPass implements CompilerPassInterface
+{
+    public function process(ContainerBuilder $container): void
+    {
+        if (!$container-&gt;hasDefinition('some.core.service')) {
+            return;                     // sempre: il bundle potrebbe non esserci
+        }
+
+        $definition = $container-&gt;getDefinition('some.core.service');
+        $definition-&gt;replaceArgument(0, new Reference('algoritma_training.my_replacement'));
+    }
+}</code></pre>
+
+<p>Struttura identica a
+<code>vendor/oro/platform/src/Oro/Bundle/DataGridBundle/OroDataGridBundle.php</code>.</p>
+
+<h2>Override di template</h2>
+
+<pre><code>vendor/oro/platform/src/Oro/Bundle/UIBundle/Resources/views/actions/index.html.twig
+        ↓ copia, mantenendo il percorso dopo Resources/views/
+templates/bundles/OroUIBundle/actions/index.html.twig</code></pre>
+
+<p>Costo alto: la copia non riceve le modifiche degli upgrade. Prima verifica se puoi estendere il
+template e sovrascrivere un solo <code>{% block %}</code>.</p>
+
+<h2>Come si cerca il punto di aggancio</h2>
+
+<pre><code># tutti gli eventi e i loro listener
+orobox console debug:event-dispatcher
+
+# un evento specifico
+orobox console debug:event-dispatcher oro_datagrid.datagrid.build.after.users-grid
+
+# trovare il servizio giusto
+orobox console debug:container greeting
+
+# scheda di un servizio: argomenti, tag, chi lo usa (riga Usages)
+orobox console debug:container 'Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'
+
+# tutti i servizi con un tag
+orobox console debug:container --tag=kernel.event_listener
+
+# dove il core lancia eventi
+grep -rn "dispatch(" vendor/oro/commerce/src/Oro/Bundle/OrderBundle/ | head -20</code></pre>
+
+<h2>Errori frequenti</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa</th></tr></thead>
+  <tbody>
+    <tr><td>Il listener non scatta</td><td>Nome evento errato, tag mancante, o manca <code>cache:clear</code></td></tr>
+    <tr><td>Il listener scatta su tutte le griglie</td><td>Manca il suffisso <code>.&lt;nome-griglia&gt;</code> nell'evento</td></tr>
+    <tr><td><code>Circular reference detected</code></td><td>Il decoratore inietta il servizio decorato con l'id originale invece di <code>'@.inner'</code></td></tr>
+    <tr><td>Metodo non trovato dopo la decorazione</td><td>La classe decoratrice non implementa l'intera interfaccia</td></tr>
+    <tr><td>Il compiler pass non fa nulla</td><td>Manca <code>build()</code> nella classe del bundle, o il pass gira prima che il servizio esista</td></tr>
+    <tr><td>Il template override viene ignorato</td><td>Percorso sbagliato sotto <code>templates/bundles/</code>, o nome bundle errato</td></tr>
+  </tbody>
+</table>
+
+</main>
+
+<footer>
+  <p>Collegamenti:
+    <a href="../lessons/0007-estendere-il-core.html">Lezione 7</a> ·
+    <a href="bundle-e-container.html">Bundle e container</a> ·
+    <a href="magento-oro.html">Da Magento a Oro</a> ·
+    <a href="https://symfony.com/doc/current/service_container/service_decoration.html">Symfony — Service Decoration</a> ·
+    <a href="https://symfony.com/doc/current/event_dispatcher.html">Symfony — Event Dispatcher</a>
+  </p>
+</footer>
+
+</body>
+</html>

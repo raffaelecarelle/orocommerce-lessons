@@ -1,0 +1,54 @@
+/* Componente "confronto affiancato": due blocchi di codice o di testo messi a fronte,
+   tipicamente Magento 2 a sinistra e Oro/Symfony a destra.
+   Richiede lesson.css per le variabili colore.
+
+   Markup atteso:
+
+   <div class="compare">
+     <figure>
+       <figcaption>Magento 2</figcaption>
+       <pre><code>...</code></pre>
+     </figure>
+     <figure>
+       <figcaption>Oro 7.0</figcaption>
+       <pre><code>...</code></pre>
+     </figure>
+   </div>
+*/
+
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin: 1.6rem 0;
+}
+
+.compare figure {
+  margin: 0;
+  min-width: 0; /* consente a <pre> di scrollare invece di allargare la griglia */
+}
+
+.compare figcaption {
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0.4rem;
+}
+
+.compare pre {
+  margin: 0;
+  height: 100%;
+}
+
+/* Il lato "di arrivo" (Oro) si distingue dal lato "di partenza" (Magento). */
+.compare figure:first-child pre { border-left-color: var(--rule); }
+
+@media (max-width: 38rem) {
+  .compare { grid-template-columns: 1fr; }
+}
+
+@media print {
+  .compare { break-inside: avoid; }
+}

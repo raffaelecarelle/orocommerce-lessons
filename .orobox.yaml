@@ -1,0 +1,23 @@
+type: project
+class: ""
+namespace: ""
+oro_version: "7.0"
+domains:
+    - host: oro.demo
+      root: public
+      ssl: true
+services:
+    redis: false
+    mailpit: true
+    rabbitmq: false
+    elasticsearch: false
+    redisinsight: false
+    kibana: false
+    adminer: false
+test:
+    use_tmpfs: false
+    tmpfs_size: ""
+commands: []
+composer:
+    repositories: []
+    auth: {}

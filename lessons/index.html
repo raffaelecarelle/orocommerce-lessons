@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Indice del corso — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Indice</p>
+  <h1>Da Magento a OroCommerce 7.0</h1>
+  <p class="subtitle">Dodici lezioni per arrivare a progettare e consegnare un progetto B2B su Oro, integrazioni ERP comprese.</p>
+  <p class="meta">
+    <span>Symfony 7.4 · PHP 8.5 · PostgreSQL</span>
+    <span>3-5 ore a settimana</span>
+    <span><a href="../RESOURCES.md">Risorse e fonti</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Parte prima — Le fondamenta</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Lezione</th><th>Cosa sai fare alla fine</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>01</td>
+      <td><a href="0001-ambiente-oro-7.html">Un Oro 7.0 che gira</a></td>
+      <td>Installare l'ambiente con <code>orobox</code> e sapere dove vive ogni cosa</td>
+    </tr>
+    <tr>
+      <td>02</td>
+      <td><a href="0002-primo-bundle.html">Il tuo primo bundle</a></td>
+      <td>Creare un bundle, registrare un servizio, scrivere un comando di console</td>
+    </tr>
+    <tr>
+      <td>03</td>
+      <td><a href="0003-entita-e-migration.html">Entità e migration</a></td>
+      <td>Mappare un'entità Doctrine, scrivere una migration, leggere e scrivere dati</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Parte seconda — L'applicazione</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Lezione</th><th>Cosa sai fare alla fine</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>04</td>
+      <td><a href="0004-crud-backoffice.html">Pagine di back-office</a></td>
+      <td>Rotte, controller come servizio, form type, template Twig</td>
+    </tr>
+    <tr>
+      <td>05</td>
+      <td><a href="0005-datagrid.html">Datagrid</a></td>
+      <td>Griglie dichiarative con colonne, filtri, ordinamenti e azioni</td>
+    </tr>
+    <tr>
+      <td>06</td>
+      <td><a href="0006-acl-e-permessi.html">ACL e permessi</a></td>
+      <td>Dichiarare permessi, agganciarli, capire la ownership</td>
+    </tr>
+    <tr>
+      <td>07</td>
+      <td><a href="0007-estendere-il-core.html">Estendere il core</a></td>
+      <td>Eventi, decorazione, compiler pass: cambiare <code>vendor/oro</code> senza toccarlo</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Parte terza — Le integrazioni</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Lezione</th><th>Cosa sai fare alla fine</th></tr></thead>
+  <tbody>
+    <tr>
+      <td>08</td>
+      <td><a href="0008-api-rest-admin.html">REST API amministrativa</a></td>
+      <td>Esporre entità in JSON:API, filtrare, autenticare con OAuth 2.0</td>
+    </tr>
+    <tr>
+      <td>09</td>
+      <td><a href="0009-storefront-api.html">Storefront API</a></td>
+      <td>Distinguere le due API e sapere cosa non esporre mai</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td><a href="0010-import-export.html">Import ed export</a></td>
+      <td>Caricare CSV in modo idempotente, con validazione separata</td>
+    </tr>
+    <tr>
+      <td>11</td>
+      <td><a href="0011-message-queue.html">Message queue</a></td>
+      <td>Topic, producer, processor, consumer e gestione dei fallimenti</td>
+    </tr>
+    <tr>
+      <td>12</td>
+      <td><a href="0012-integrazione-erp.html">L'integrazione ERP, messa insieme</a></td>
+      <td>Scegliere il canale e progettare l'integrazione, non solo scriverla</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Schede di riferimento</h2>
+
+<p>Le lezioni si leggono una volta, queste si riaprono. Sono fatte per essere stampate.</p>
+
+<ul>
+  <li><a href="../reference/orobox.html">Comandi <code>orobox</code></a> — l'ambiente di sviluppo</li>
+  <li><a href="../reference/magento-oro.html">Da Magento a Oro</a> — mappa concettuale fra i due mondi</li>
+  <li><a href="../reference/bundle-e-container.html">Bundle e service container</a> — struttura, <code>services.yml</code>, tag, diagnosi</li>
+  <li><a href="../reference/doctrine-e-migration.html">Doctrine e migration</a> — mapping, repository, schema</li>
+  <li><a href="../reference/estendere-il-core.html">Estendere il core</a> — eventi, decorazione, compiler pass</li>
+  <li><a href="../reference/integrazioni.html">API, code, import/export</a> — i quattro canali di integrazione</li>
+</ul>
+
+<h2>Come usare questo percorso</h2>
+
+<ol>
+  <li><strong>Una lezione per sessione</strong>, con la pratica eseguita davvero nell'ambiente.
+  Leggere senza eseguire non produce competenza durevole.</li>
+  <li><strong>I quiz si fanno a memoria</strong>, chiudendo la pagina della pratica. Sbagliare lì è
+  utile: lo sforzo di recupero è ciò che fissa la conoscenza.</li>
+  <li><strong>Gli esercizi fra una sessione e l'altra contano più della lezione successiva.</strong>
+  Sono distribuiti nel tempo apposta.</li>
+  <li><strong>Le domande di architettura vanno portate in chat.</strong> Le lezioni insegnano i
+  meccanismi; le scelte si discutono.</li>
+</ol>
+
+<div class="box">
+  <p class="box-title">Come sono state scritte</p>
+  <p>Tutti gli esempi di codice e i comandi sono stati verificati sul sorgente di
+  <code>vendor/oro</code> di un'installazione OroCommerce 7.0 Community Edition, e le parti
+  eseguibili sono state eseguite davvero prima di finire nella pagina. Dove una lezione riporta un
+  comportamento osservato (un alias generato, un'opzione obbligatoria, un errore) lo dichiara
+  esplicitamente.</p>
+  <p>Restano materiale vivo: se un passaggio non corrisponde a quello che vedi sul tuo ambiente,
+  segnalalo, perché la differenza è quasi sempre informativa — versione diversa, configurazione
+  diversa, o un dettaglio che merita di stare nella lezione.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>
+    <a href="../RESOURCES.md">Risorse e fonti verificate</a> ·
+    <a href="../reference/orobox.html">Comandi orobox</a> ·
+    <a href="../reference/magento-oro.html">Da Magento a Oro</a>
+  </p>
+</footer>
+
+</body>
+</html>

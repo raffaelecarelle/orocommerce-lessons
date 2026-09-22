@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 3 — Entità e migration</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 03</p>
+  <h1>Entità e migration</h1>
+  <p class="subtitle">Doctrine ORM al posto di Model / ResourceModel / Collection, e una migration che crea davvero la tabella.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0002-primo-bundle.html">Lezione 2</a></span>
+    <span>Obiettivo: tabella creata, record letto e scritto</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Un'integrazione ERP ha bisogno di posti dove mettere i dati: mappature di codici, stati di
+sincronizzazione, code di record da riconciliare. Tutto questo sono entità. È anche il punto in
+cui il tuo modello mentale Magento va riscritto di più, quindi vale la pena farlo adesso, su una
+entità piccola e tua, e non fra due mesi su quella del cliente.</p>
+
+<h2>Il salto concettuale da Magento</h2>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>Oro / Doctrine</th></tr></thead>
+  <tbody>
+    <tr><td><code>Model</code> (dati + logica + persistenza)</td><td>Entità: solo dati e comportamento di dominio. Non sa salvarsi.</td></tr>
+    <tr><td><code>ResourceModel</code></td><td><code>EntityManager</code>: gestisce persist / flush / remove per tutte le entità.</td></tr>
+    <tr><td><code>Collection</code></td><td><code>EntityRepository</code> + <code>QueryBuilder</code> (DQL).</td></tr>
+    <tr><td><code>etc/db_schema.xml</code></td><td>Classe di migration PHP in <code>Migrations/Schema/</code>.</td></tr>
+    <tr><td><code>setup:upgrade</code></td><td><code>oro:migration:load --force</code></td></tr>
+    <tr><td>Repository + interfacce di servizio</td><td>Repository Doctrine, ottenuto dal <code>ManagerRegistry</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">La differenza che conta davvero</p>
+  <p>Doctrine è un <strong>Data Mapper</strong> con <strong>Unit of Work</strong>: tu modifichi
+  oggetti PHP normali, e al <code>flush()</code> Doctrine calcola le query necessarie. Non esiste
+  <code>$model-&gt;save()</code>. Non esiste <code>$collection-&gt;load()</code>. Un oggetto
+  caricato e poi modificato viene salvato al <code>flush()</code> <em>anche se non chiami
+  <code>persist()</code></em>: <code>persist()</code> serve solo per gli oggetti nuovi.</p>
+</div>
+
+<h2>Come si dichiara un'entità in Oro 7.0</h2>
+
+<p>Mapping con <strong>attributi PHP</strong> (le annotation sono superate). Questa è la forma che
+trovi nel core — l'esempio sotto ricalca
+<code>vendor/oro/platform/src/Oro/Bundle/EmailBundle/Entity/EmailFolder.php</code>:</p>
+
+<pre><code>#[ORM\Entity]
+#[ORM\Table(name: 'algoritma_erp_mapping')]
+class ErpMapping
+{
+    #[ORM\Column(name: 'id', type: Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    protected ?int $id = null;
+
+    #[ORM\Column(name: 'erp_code', type: Types::STRING, length: 64)]
+    protected ?string $erpCode = null;
+}</code></pre>
+
+<p>Oro aggiunge un attributo suo, <code>#[Config]</code>
+(<code>Oro\Bundle\EntityConfigBundle\Metadata\Attribute\Config</code>), che registra l'entità nel
+sistema di <em>entity config</em>: icona, ownership, possibilità di aggiungere campi da interfaccia,
+comportamento verso audit e attività. Senza <code>#[Config]</code> l'entità esiste per Doctrine ma
+resta invisibile ai meccanismi Oro.</p>
+
+<p class="sidenote">Esempio reale minimo nel core:
+<code>vendor/oro/platform/src/Oro/Bundle/AddressBundle/Entity/Address.php</code> —
+<code>#[ORM\Entity]</code>, <code>#[ORM\Table('oro_address')]</code> e <code>#[Config(defaultValues: [...])]</code>.</p>
+
+<h2>La migration: lo schema è codice</h2>
+
+<p>Doctrine sa generare lo schema dalle entità, ma <strong>in Oro non si usa mai
+<code>doctrine:schema:update</code></strong>. Lo schema si dichiara in classi di migration, che
+Oro esegue in ordine e registra in tabella, così ogni ambiente arriva allo stesso stato.</p>
+
+<p>Due tipi di classe:</p>
+
+<ul>
+  <li><strong>Installer</strong> (<code>implements Installation</code>): crea lo schema da zero per
+  un'installazione nuova, e dichiara a quale versione corrisponde con <code>getMigrationVersion()</code>.</li>
+  <li><strong>Migration</strong> (<code>implements Migration</code>), in cartelle
+  <code>v1_0</code>, <code>v1_1</code>, …: modifica incrementale per chi ha già la versione precedente.</li>
+</ul>
+
+<p>Modello reale nel core:
+<code>vendor/oro/platform/src/Oro/Bundle/CronBundle/Migrations/Schema/OroCronBundleInstaller.php</code>
+(installer) e <code>.../Migrations/Schema/v1_3/OroCronBundle.php</code> (migration incrementale).</p>
+
+<div class="box">
+  <p class="box-title">Regola pratica di progetto</p>
+  <p>Finché il progetto non è in produzione puoi tenere solo l'installer e ricreare il database.
+  Dal primo deploy in poi, <strong>ogni modifica di schema è una nuova classe in una nuova
+  cartella <code>vN_M</code></strong>, e l'installer si aggiorna per restare allineato. Se modifichi
+  una migration già eseguita in produzione, quella modifica non verrà mai applicata: Oro ricorda
+  cosa ha già eseguito.</p>
+</div>
+
+<h2>Pratica: un'entità di mappatura ERP</h2>
+
+<p>Costruiamo qualcosa che userai davvero: una tabella che associa l'identificativo di un prodotto
+nell'ERP al prodotto Oro, con la data dell'ultima sincronizzazione.</p>
+
+<ol class="checklist">
+  <li>
+    <p><strong>L'entità.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Entity/ErpMapping.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Entity;
+
+use Doctrine\DBAL\Types\Types;
+use Doctrine\ORM\Mapping as ORM;
+use Oro\Bundle\EntityConfigBundle\Metadata\Attribute\Config;
+
+#[ORM\Entity(repositoryClass: ErpMappingRepository::class)]
+#[ORM\Table(name: 'algoritma_erp_mapping')]
+#[ORM\UniqueConstraint(name: 'uniq_algoritma_erp_code', columns: ['erp_code'])]
+#[Config(defaultValues: ['entity' =&gt; ['icon' =&gt; 'fa-exchange']])]
+class ErpMapping
+{
+    #[ORM\Column(name: 'id', type: Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    protected ?int $id = null;
+
+    #[ORM\Column(name: 'erp_code', type: Types::STRING, length: 64)]
+    protected ?string $erpCode = null;
+
+    #[ORM\Column(name: 'oro_sku', type: Types::STRING, length: 255)]
+    protected ?string $oroSku = null;
+
+    #[ORM\Column(name: 'synced_at', type: Types::DATETIME_MUTABLE, nullable: true)]
+    protected ?\DateTime $syncedAt = null;
+
+    public function getId(): ?int
+    {
+        return $this-&gt;id;
+    }
+
+    public function getErpCode(): ?string
+    {
+        return $this-&gt;erpCode;
+    }
+
+    public function setErpCode(string $erpCode): self
+    {
+        $this-&gt;erpCode = $erpCode;
+
+        return $this;
+    }
+
+    public function getOroSku(): ?string
+    {
+        return $this-&gt;oroSku;
+    }
+
+    public function setOroSku(string $oroSku): self
+    {
+        $this-&gt;oroSku = $oroSku;
+
+        return $this;
+    }
+
+    public function getSyncedAt(): ?\DateTime
+    {
+        return $this-&gt;syncedAt;
+    }
+
+    public function setSyncedAt(?\DateTime $syncedAt): self
+    {
+        $this-&gt;syncedAt = $syncedAt;
+
+        return $this;
+    }
+}</code></pre>
+  </li>
+  <li>
+    <p><strong>Il repository.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Entity/ErpMappingRepository.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Entity;
+
+use Doctrine\ORM\EntityRepository;
+
+/**
+ * @extends EntityRepository&lt;ErpMapping&gt;
+ */
+class ErpMappingRepository extends EntityRepository
+{
+    public function findByErpCode(string $erpCode): ?ErpMapping
+    {
+        return $this-&gt;findOneBy(['erpCode' =&gt; $erpCode]);
+    }
+
+    /**
+     * @return ErpMapping[]
+     */
+    public function findNeverSynced(int $limit = 50): array
+    {
+        return $this-&gt;createQueryBuilder('m')
+            -&gt;where('m.syncedAt IS NULL')
+            -&gt;orderBy('m.id', 'ASC')
+            -&gt;setMaxResults($limit)
+            -&gt;getQuery()
+            -&gt;getResult();
+    }
+}</code></pre>
+    <p>Nota <code>createQueryBuilder('m')</code>: i campi si nominano con il <strong>nome della
+    proprietà PHP</strong> (<code>m.syncedAt</code>), non con il nome della colonna
+    (<code>synced_at</code>). È DQL, non SQL.</p>
+  </li>
+  <li>
+    <p><strong>L'installer.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Migrations/Schema/AlgoritmaTrainingBundleInstaller.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Migrations\Schema;
+
+use Doctrine\DBAL\Schema\Schema;
+use Oro\Bundle\MigrationBundle\Migration\Installation;
+use Oro\Bundle\MigrationBundle\Migration\QueryBag;
+
+class AlgoritmaTrainingBundleInstaller implements Installation
+{
+    #[\Override]
+    public function getMigrationVersion(): string
+    {
+        return 'v1_0';
+    }
+
+    #[\Override]
+    public function up(Schema $schema, QueryBag $queries): void
+    {
+        if ($schema-&gt;hasTable('algoritma_erp_mapping')) {
+            return;
+        }
+
+        $table = $schema-&gt;createTable('algoritma_erp_mapping');
+        $table-&gt;addColumn('id', 'integer', ['autoincrement' =&gt; true]);
+        $table-&gt;addColumn('erp_code', 'string', ['length' =&gt; 64]);
+        $table-&gt;addColumn('oro_sku', 'string', ['length' =&gt; 255]);
+        $table-&gt;addColumn('synced_at', 'datetime', ['notnull' =&gt; false]);
+        $table-&gt;setPrimaryKey(['id']);
+        $table-&gt;addUniqueIndex(['erp_code'], 'uniq_algoritma_erp_code');
+    }
+}</code></pre>
+    <p>Nella migration usi i <strong>nomi di colonna</strong> e i tipi DBAL: qui sei al livello del
+    database, non dell'ORM. I due livelli devono combaciare a mano — nessuno lo verifica per te.</p>
+  </li>
+  <li>
+    <p><strong>Esegui.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console oro:migration:load --dry-run
+orobox console oro:migration:load --force</code></pre>
+    <p><code>--dry-run</code> elenca le migration che verrebbero eseguite senza toccare il
+    database. <code>--force</code> è l'interruttore di sicurezza: senza, il comando esce e non fa
+    nulla. Aggiungi <code>--show-queries</code> quando vuoi vedere l'SQL.</p>
+  </li>
+  <li>
+    <p><strong>Verifica lo schema.</strong></p>
+<pre><code>orobox console doctrine:query:sql "SELECT * FROM algoritma_erp_mapping"</code></pre>
+    <p>Atteso: zero righe, nessun errore. Se la tabella non esiste, la migration non è stata
+    raccolta: controlla il percorso <code>Migrations/Schema/</code> dentro il bundle.</p>
+  </li>
+  <li>
+    <p><strong>Scrivi e leggi dal codice.</strong> Estendi il comando della lezione 2 — o creane uno
+    nuovo, <code>Command/ErpMappingDemoCommand.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Command;
+
+use Algoritma\Bundle\TrainingBundle\Entity\ErpMapping;
+use Algoritma\Bundle\TrainingBundle\Entity\ErpMappingRepository;
+use Doctrine\Persistence\ManagerRegistry;
+use Symfony\Component\Console\Attribute\AsCommand;
+use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputInterface;
+use Symfony\Component\Console\Output\OutputInterface;
+
+#[AsCommand(name: 'algoritma:training:mapping-demo', description: 'Crea e rilegge una mappatura ERP.')]
+class ErpMappingDemoCommand extends Command
+{
+    public function __construct(private ManagerRegistry $doctrine)
+    {
+        parent::__construct();
+    }
+
+    protected function execute(InputInterface $input, OutputInterface $output): int
+    {
+        $manager = $this-&gt;doctrine-&gt;getManagerForClass(ErpMapping::class);
+
+        $mapping = new ErpMapping();
+        $mapping-&gt;setErpCode('ERP-' . random_int(1000, 9999));
+        $mapping-&gt;setOroSku('SKU-001');
+
+        $manager-&gt;persist($mapping);
+        $manager-&gt;flush();
+
+        /** @var ErpMappingRepository $repository */
+        $repository = $this-&gt;doctrine-&gt;getRepository(ErpMapping::class);
+        $output-&gt;writeln(sprintf('Creato id=%d, mai sincronizzati: %d',
+            $mapping-&gt;getId(),
+            count($repository-&gt;findNeverSynced())
+        ));
+
+        return Command::SUCCESS;
+    }
+}</code></pre>
+    <p>Registralo in <code>services.yml</code> con l'argomento <code>'@doctrine'</code> e il tag
+    <code>console.command</code>, poi:</p>
+<pre><code>orobox console cache:clear
+orobox console algoritma:training:mapping-demo</code></pre>
+    <p>Atteso: <code>Creato id=1, mai sincronizzati: 1</code>. Rilancialo: l'id cresce.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Hai una tabella creata da una migration tua, un'entità mappata con attributi, un repository con
+  una query DQL, e codice che scrive e rilegge. È il ciclo completo di persistenza: tutto il resto
+  (API, import, code) non fa che passare dati attraverso questo.</p>
+</div>
+
+<h2>Le tre trappole dei primi giorni</h2>
+
+<table>
+  <thead><tr><th>Trappola</th><th>Cosa succede</th></tr></thead>
+  <tbody>
+    <tr><td>Usare <code>doctrine:schema:update</code></td><td>Funziona sul tuo portatile e diverge da tutti gli altri ambienti. In Oro lo schema lo governano le migration.</td></tr>
+    <tr><td>Dimenticare <code>flush()</code></td><td>Nessun errore, nessun dato. <code>persist()</code> registra l'intenzione; <code>flush()</code> esegue.</td></tr>
+    <tr><td>Nomi colonna nel DQL</td><td><code>m.synced_at</code> non esiste: nel DQL si usa il nome della proprietà, <code>m.syncedAt</code>.</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Verificato: cancellare un'entità non basta</p>
+  <p>Provando questa lezione ho creato un'entità con <code>#[Config]</code> e poi ho cancellato il
+  bundle. Risultato: <code>cache:clear</code> si è rotto con
+  <code>Class "…\Entity\SandboxMapping" does not exist</code>, perché l'entità resta registrata
+  nella tabella <code>oro_entity_config</code>. Per ripulire servono tre delete, in quest'ordine:
+  <code>oro_entity_config_index_value</code> (per <code>entity_id</code> e per i <code>field_id</code>
+  di quell'entità), poi <code>oro_entity_config_field</code>, poi <code>oro_entity_config</code>.
+  Morale operativa: <strong>in Oro un'entità lascia tracce nel database oltre alla sua tabella</strong>.
+  Tienilo presente quando fai pulizia su un progetto reale.</p>
+</div>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Chi salva sul database un'entità Doctrine modificata?</p>
+  <div class="options">
+    <button class="opt" data-correct>L'EntityManager, quando esegui flush</button>
+    <button class="opt">L'entità stessa, col suo metodo save</button>
+    <button class="opt">Il repository, quando esegui find</button>
+    <button class="opt">La migration, quando esegui load</button>
+  </div>
+  <p class="explain" hidden>L'entità è un oggetto PHP senza logica di persistenza (Data Mapper).
+  L'<code>EntityManager</code> traccia le modifiche e le scrive al <code>flush()</code>.
+  <code>persist()</code> serve solo a far conoscere all'EntityManager un oggetto <em>nuovo</em>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale comando applica le tue migration al database?</p>
+  <div class="options">
+    <button class="opt" data-correct>Comando oro:migration:load con --force</button>
+    <button class="opt">Comando doctrine:schema:update con --force</button>
+    <button class="opt">Comando oro:platform:update con --force</button>
+    <button class="opt">Comando oro:migration:dump con --force</button>
+  </div>
+  <p class="explain" hidden><code>oro:migration:load --force</code>. Senza <code>--force</code> il
+  comando esce senza fare nulla: è una sicurezza voluta. <code>oro:migration:dump</code> stampa lo
+  schema esistente come codice, non lo applica.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">In un QueryBuilder, come nomini il campo di data?</p>
+  <div class="options">
+    <button class="opt" data-correct>Con la proprietà PHP, cioè m.syncedAt</button>
+    <button class="opt">Con la colonna SQL, cioè m.synced_at</button>
+    <button class="opt">Con il nome tabella, cioè mapping.syncedAt</button>
+    <button class="opt">Con il tipo Doctrine, cioè m.datetime</button>
+  </div>
+  <p class="explain" hidden>Il QueryBuilder produce DQL, che ragiona su entità e proprietà. I nomi
+  di colonna servono solo nelle migration e nell'SQL nativo.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">A cosa serve l'attributo Config sull'entità?</p>
+  <div class="options">
+    <button class="opt" data-correct>La registra nell'entity config di Oro</button>
+    <button class="opt">La registra come servizio nel container</button>
+    <button class="opt">Le assegna il repository da utilizzare</button>
+    <button class="opt">Le assegna la tabella del database</button>
+  </div>
+  <p class="explain" hidden><code>#[Config]</code> è di Oro
+  (<code>EntityConfigBundle</code>) e alimenta icona, ownership, audit, campi aggiuntivi da
+  interfaccia. Il repository si dichiara in <code>#[ORM\Entity(repositoryClass: ...)]</code>, la
+  tabella in <code>#[ORM\Table]</code>.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: traduci in Oro i tre pezzi Magento — Model, ResourceModel, Collection.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Model → entità (solo dati e dominio) · ResourceModel → <code>EntityManager</code> (unico, per
+    tutte le entità) · Collection → <code>EntityRepository</code> + <code>QueryBuilder</code> (DQL).
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 2 (spaziatura): cosa serve perché un tuo servizio diventi un
+  comando di console?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Classe che estende <code>Command</code>, attributo <code>#[AsCommand]</code> per nome e
+    descrizione, definizione in <code>services.yml</code> con gli argomenti espliciti e il tag
+    <code>console.command</code> (serve perché <code>autoconfigure</code> è <code>false</code>),
+    poi <code>cache:clear</code>.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://www.doctrine-project.org/projects/doctrine-orm/en/current/reference/working-with-objects.html">Doctrine ORM — Working with Objects</a>.
+  Le sezioni su <em>persist</em>, <em>flush</em> e <em>managed / detached</em>. Trenta minuti che ti
+  risparmiano un mese di comportamenti «strani» che strani non sono.</p>
+</div>
+
+<p>Poi, lato Oro: <a href="https://doc.oroinc.com/backend/entities/migration/">Database Structure Migrations</a>
+e <a href="https://doc.oroinc.com/backend/entities/create-entities/">Create Entities</a>.</p>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi un campo <code>status</code> (stringa, 32 caratteri, default <code>'new'</code>)
+  all'entità. Fallo nel modo giusto: <strong>non</strong> modificando l'installer, ma creando
+  <code>Migrations/Schema/v1_1/AddStatusColumn.php</code> che implementa <code>Migration</code> e
+  usa <code>$schema-&gt;getTable(...)-&gt;addColumn(...)</code>. Poi <code>oro:migration:load --force</code>.</li>
+  <li>Aggiungi al repository un metodo <code>countByStatus(string $status): int</code> con
+  <code>select('COUNT(m.id)')</code> e <code>getSingleScalarResult()</code>.</li>
+  <li>Domanda a cui rispondere da solo, leggendo il core: perché quasi tutte le entità Oro dichiarano
+  <code>protected</code> e non <code>private</code> per le proprietà? Cerca
+  <code>ExtendEntityTrait</code> in <code>vendor/oro/platform</code> e fatti un'idea; ne parliamo.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 4: CRUD nel back-office.</strong> Routing con attributi, controller, form type,
+template Twig che estendono <code>@OroUI/actions/index.html.twig</code>, voce di menu in
+<code>navigation.yml</code>. Cioè: rendere l'entità di oggi visibile e modificabile da un essere umano.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0002-primo-bundle.html">Lezione 2</a> ·
+    <a href="0004-crud-backoffice.html">Lezione 4</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/doctrine-e-migration.html">Reference: Doctrine e migration</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a> ·
+    <a href="../RESOURCES.md">Risorse</a>
+  </p>
+  <p>Se Doctrine fa qualcosa che non ti aspetti — un flush che non salva, un'entità che «torna
+  indietro» — scrivimelo: nove volte su dieci è l'Unit of Work, e capirla una volta vale per sempre.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

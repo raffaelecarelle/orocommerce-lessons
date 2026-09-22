@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- https://phpunit.de/manual/current/en/appendixes.configuration.html -->
+<phpunit
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/9.5/phpunit.xsd"
+        backupGlobals="false"
+        backupStaticAttributes="false"
+        bootstrap="config/bootstrap_test.php"
+        stopOnError="false"
+        stopOnFailure="false"
+        stopOnWarning="false"
+        stopOnIncomplete="false"
+        stopOnRisky="false"
+        stopOnSkipped="false"
+        failOnRisky="false"
+        failOnWarning="false"
+        beStrictAboutChangesToGlobalState="false"
+        beStrictAboutOutputDuringTests="false"
+        beStrictAboutResourceUsageDuringSmallTests="false"
+        beStrictAboutTestsThatDoNotTestAnything="false"
+        beStrictAboutTodoAnnotatedTests="false"
+        beStrictAboutCoversAnnotation="false"
+        enforceTimeLimit="false"
+        verbose="false">
+
+    <groups>
+        <exclude>
+            <group>crm</group>
+            <group>commerce</group>
+            <group>install</group>
+            <group>segfault</group>
+            <group>demo-fixtures</group>
+        </exclude>
+    </groups>
+    <testsuites>
+        <testsuite name="unit">
+            <directory>vendor/oro/*/Tests/Unit</directory>
+            <directory>vendor/oro/*/*/Tests/Unit</directory>
+            <directory>vendor/oro/*/*/*/Tests/Unit</directory>
+            <directory>vendor/oro/*/*/*/*/Tests/Unit</directory>
+            <directory>vendor/oro/*/*/*/*/*/Tests/Unit</directory>
+        </testsuite>
+        <testsuite name="functional">
+            <directory>vendor/oro/*/Tests/Functional</directory>
+            <directory>vendor/oro/*/*/Tests/Functional</directory>
+            <directory>vendor/oro/*/*/*/Tests/Functional</directory>
+            <directory>vendor/oro/*/*/*/*/Tests/Functional</directory>
+            <directory>vendor/oro/*/*/*/*/*/Tests/Functional</directory>
+        </testsuite>
+    </testsuites>
+    <php>
+        <env name="ORO_ENV" value="test"/>
+        <env name="ORO_DEBUG" value="0"/>
+        <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled" />
+        <ini name="error_reporting" value="8191"/>
+        <ini name="memory_limit" value="-1"/>
+        <server name="KERNEL_DIR" value="src/"/>
+        <server name="KERNEL_CLASS" value="AppKernel"/>
+    </php>
+    <listeners>
+        <listener class="Symfony\Bridge\PhpUnit\SymfonyTestsListener"/>
+        <listener class="Oro\Component\TestUtils\Listener\TestListener"/>
+    </listeners>
+    <coverage>
+        <include>
+            <directory>vendor/oro</directory>
+        </include>
+        <exclude>
+            <directory>vendor/oro/*/Command</directory>
+            <directory>vendor/oro/*/*/Command</directory>
+            <directory>vendor/oro/*/*/*/Command</directory>
+            <directory>vendor/oro/*/*/*/*/Command</directory>
+            <directory>vendor/oro/*/*/*/*/*/Command</directory>
+
+            <directory>vendor/oro/*/Controller</directory>
+            <directory>vendor/oro/*/*/Controller</directory>
+            <directory>vendor/oro/*/*/*/Controller</directory>
+            <directory>vendor/oro/*/*/*/*/Controller</directory>
+            <directory>vendor/oro/*/*/*/*/*/Controller</directory>
+
+            <directory>vendor/oro/*/Entity/Repository</directory>
+            <directory>vendor/oro/*/*/Entity/Repository</directory>
+            <directory>vendor/oro/*/*/*/Entity/Repository</directory>
+            <directory>vendor/oro/*/*/*/*/Entity/Repository</directory>
+            <directory>vendor/oro/*/*/*/*/*/Entity/Repository</directory>
+
+            <directory>vendor/oro/*/Migrations</directory>
+            <directory>vendor/oro/*/*/Migrations</directory>
+            <directory>vendor/oro/*/*/*/Migrations</directory>
+            <directory>vendor/oro/*/*/*/*/Migrations</directory>
+            <directory>vendor/oro/*/*/*/*/*/Migrations</directory>
+
+            <directory>vendor/oro/*/Tests</directory>
+            <directory>vendor/oro/*/*/Tests</directory>
+            <directory>vendor/oro/*/*/*/Tests</directory>
+            <directory>vendor/oro/*/*/*/*/Tests</directory>
+            <directory>vendor/oro/*/*/*/*/*/Tests</directory>
+        </exclude>
+    </coverage>
+</phpunit>

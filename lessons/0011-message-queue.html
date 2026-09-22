@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 11 — Message queue</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 11</p>
+  <h1>Message queue</h1>
+  <p class="subtitle">Topic, producer, processor, consumer: il lavoro in background di Oro, e il motivo per cui l'integrazione ERP ci gira sopra.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0010-import-export.html">Lezione 10</a></span>
+    <span>Obiettivo: un tuo messaggio prodotto e consumato</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Un webhook dell'ERP non può aspettare trenta secondi mentre ricalcoli i prezzi. Una
+sincronizzazione notturna non può girare dentro una richiesta HTTP. La risposta di Oro è la
+<strong>message queue</strong>: chi riceve l'evento mette un messaggio in coda e risponde subito;
+un processo separato lo esegue.</p>
+
+<p>Non è un'infrastruttura opzionale: in Oro ci girano già l'indicizzazione della ricerca, gli
+import, il ricalcolo dei prezzi, le notifiche email. Quando aggiungi il tuo lavoro asincrono, ti
+inserisci in un meccanismo che è già il cuore dell'applicazione.</p>
+
+<div class="box">
+  <p class="box-title">Community Edition: nessuna infrastruttura in più</p>
+  <p>In CE il trasporto è <strong>DBAL</strong>: la coda è una tabella PostgreSQL. In Enterprise si
+  usa RabbitMQ. <strong>Il codice che scrivi è identico</strong>: cambia solo la configurazione del
+  trasporto. Nota pratica: il trasporto su database funziona a polling, quindi un messaggio può
+  partire con qualche secondo di ritardo — normale, non è un bug.</p>
+</div>
+
+<h2>I quattro concetti</h2>
+
+<table>
+  <thead><tr><th>Concetto</th><th>Cos'è</th><th>Dove vive</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Topic</strong></td><td>Il tipo di messaggio, con il contratto del suo payload</td><td>Classe in <code>Async/Topic/</code></td></tr>
+    <tr><td><strong>Producer</strong></td><td>Chi invia il messaggio</td><td>Servizio <code>oro_message_queue.client.message_producer</code></td></tr>
+    <tr><td><strong>Processor</strong></td><td>Chi esegue il lavoro</td><td>Classe in <code>Async/</code>, registrata con un tag</td></tr>
+    <tr><td><strong>Consumer</strong></td><td>Il processo che estrae i messaggi e li smista</td><td>Comando <code>oro:message-queue:consume</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Il topic: un contratto, non una stringa</h2>
+
+<p>In Oro il topic è una classe che estende <code>AbstractTopic</code> e dichiara la forma del
+payload con un <code>OptionsResolver</code>. È una scelta di design importante: i messaggi
+malformati falliscono <em>quando li pubblichi</em>, non tre ore dopo dentro al consumer.</p>
+
+<pre><code>class CreateOpenApiSpecificationTopic extends AbstractTopic
+{
+    #[\Override]
+    public static function getName(): string
+    {
+        return 'oro.api.create_open_api_specification';
+    }
+
+    #[\Override]
+    public static function getDescription(): string
+    {
+        return 'Creates OpenAPI specification.';
+    }
+
+    #[\Override]
+    public function configureMessageBody(OptionsResolver $resolver): void
+    {
+        $resolver
+            -&gt;setRequired('entityId')
+            -&gt;setAllowedTypes('entityId', 'int');
+    }
+}</code></pre>
+
+<p class="sidenote">Sorgente:
+<code>vendor/oro/platform/src/Oro/Bundle/ApiBundle/Async/Topic/CreateOpenApiSpecificationTopic.php</code>.
+I topic si registrano in <code>Resources/config/mq_topics.yml</code> con il tag
+<code>oro_message_queue.topic</code>, di solito applicato a tutto il file con
+<code>_defaults</code>.</p>
+
+<h2>Il processor: tre esiti possibili</h2>
+
+<p>Un processor implementa due interfacce: <code>MessageProcessorInterface</code> (fa il lavoro) e
+<code>TopicSubscriberInterface</code> (dichiara a quali topic è iscritto). Il valore restituito
+decide il destino del messaggio:</p>
+
+<table>
+  <thead><tr><th>Costante</th><th>Significato</th><th>Quando</th></tr></thead>
+  <tbody>
+    <tr><td><code>ACK</code></td><td>Fatto, rimuovi dalla coda</td><td>Successo</td></tr>
+    <tr><td><code>REJECT</code></td><td>Non processabile, scarta</td><td>Messaggio non valido: riprovare non aiuta</td></tr>
+    <tr><td><code>REQUEUE</code></td><td>Rimetti in coda</td><td>Problema temporaneo: ERP irraggiungibile, lock occupato</td></tr>
+  </tbody>
+</table>
+
+<p>Le costanti stanno in
+<code>vendor/oro/platform/src/Oro/Component/MessageQueue/Consumption/MessageProcessorInterface.php</code>.
+Scegliere fra <code>REJECT</code> e <code>REQUEUE</code> è la decisione di progetto più importante
+del codice asincrono: un <code>REQUEUE</code> su un errore permanente crea un ciclo infinito.</p>
+
+<h2>Pratica: sincronizza una mappatura in background</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Il topic.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Async/Topic/SyncErpMappingTopic.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Async\Topic;
+
+use Oro\Component\MessageQueue\Topic\AbstractTopic;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+class SyncErpMappingTopic extends AbstractTopic
+{
+    #[\Override]
+    public static function getName(): string
+    {
+        return 'algoritma.training.sync_erp_mapping';
+    }
+
+    #[\Override]
+    public static function getDescription(): string
+    {
+        return 'Segna una mappatura ERP come sincronizzata.';
+    }
+
+    #[\Override]
+    public function configureMessageBody(OptionsResolver $resolver): void
+    {
+        $resolver
+            -&gt;setRequired('mappingId')
+            -&gt;setAllowedTypes('mappingId', 'int');
+    }
+}</code></pre>
+  </li>
+  <li>
+    <p><strong>Il processor.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Async/SyncErpMappingProcessor.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Async;
+
+use Algoritma\Bundle\TrainingBundle\Async\Topic\SyncErpMappingTopic;
+use Algoritma\Bundle\TrainingBundle\Entity\ErpMapping;
+use Doctrine\Persistence\ManagerRegistry;
+use Oro\Component\MessageQueue\Client\TopicSubscriberInterface;
+use Oro\Component\MessageQueue\Consumption\MessageProcessorInterface;
+use Oro\Component\MessageQueue\Transport\MessageInterface;
+use Oro\Component\MessageQueue\Transport\SessionInterface;
+use Psr\Log\LoggerInterface;
+
+class SyncErpMappingProcessor implements MessageProcessorInterface, TopicSubscriberInterface
+{
+    public function __construct(
+        private ManagerRegistry $doctrine,
+        private LoggerInterface $logger
+    ) {
+    }
+
+    #[\Override]
+    public static function getSubscribedTopics(): array
+    {
+        return [SyncErpMappingTopic::getName()];
+    }
+
+    #[\Override]
+    public function process(MessageInterface $message, SessionInterface $session): string
+    {
+        $body = $message-&gt;getBody();
+        $manager = $this-&gt;doctrine-&gt;getManagerForClass(ErpMapping::class);
+        $mapping = $manager-&gt;find(ErpMapping::class, $body['mappingId']);
+
+        if (null === $mapping) {
+            $this-&gt;logger-&gt;warning('Mappatura {id} non trovata', ['id' =&gt; $body['mappingId']]);
+
+            return self::REJECT;
+        }
+
+        $mapping-&gt;setSyncedAt(new \DateTime());
+        $manager-&gt;flush();
+
+        $this-&gt;logger-&gt;info('Mappatura {id} sincronizzata', ['id' =&gt; $body['mappingId']]);
+
+        return self::ACK;
+    }
+}</code></pre>
+    <p>Nota il <code>REJECT</code> sul record inesistente: riprovare non lo farebbe comparire.</p>
+  </li>
+  <li>
+    <p><strong>Registra topic e processor.</strong>
+    <code>Resources/config/mq_topics.yml</code>:</p>
+<pre><code>services:
+    _defaults:
+        tags:
+            - { name: oro_message_queue.topic }
+
+    Algoritma\Bundle\TrainingBundle\Async\Topic\SyncErpMappingTopic: ~</code></pre>
+    <p><code>Resources/config/mq_processors.yml</code>:</p>
+<pre><code>services:
+    _instanceof:
+        Oro\Component\MessageQueue\Client\TopicSubscriberInterface:
+            tags:
+                - { name: oro_message_queue.client.message_processor }
+
+    Algoritma\Bundle\TrainingBundle\Async\SyncErpMappingProcessor:
+        arguments:
+            - '@doctrine'
+            - '@logger'</code></pre>
+    <p>E nell'Extension: <code>$loader-&gt;load('mq_topics.yml');</code> e
+    <code>$loader-&gt;load('mq_processors.yml');</code>. Il costrutto <code>_instanceof</code> è la
+    stessa scorciatoia che usa <code>AttachmentBundle</code>: tagga automaticamente ogni servizio
+    del file che implementa quell'interfaccia.</p>
+  </li>
+  <li>
+    <p><strong>Pubblica il messaggio.</strong> Un comando è il modo più rapido per provarlo.
+    Aggiungi al comando della lezione 3, o creane uno nuovo, questa dipendenza e questa riga:</p>
+<pre><code>use Oro\Component\MessageQueue\Client\MessageProducerInterface;
+
+// costruttore: private MessageProducerInterface $producer
+
+$this-&gt;producer-&gt;send(SyncErpMappingTopic::getName(), ['mappingId' =&gt; $id]);</code></pre>
+    <p>Nel <code>services.yml</code>, l'argomento è
+    <code>'@oro_message_queue.client.message_producer'</code>.</p>
+  </li>
+  <li>
+    <p><strong>Verifica che il topic sia registrato.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console oro:message-queue:topics | grep algoritma</code></pre>
+  </li>
+  <li>
+    <p><strong>Avvia il consumer</strong> in un terminale e lascialo girare:</p>
+<pre><code>orobox console oro:message-queue:consume -vv</code></pre>
+    <p>In un secondo terminale lancia il comando che pubblica il messaggio. Nel primo devi vedere
+    il messaggio ricevuto e processato; nel database, <code>synced_at</code> valorizzato.</p>
+<pre><code>orobox console doctrine:query:sql "SELECT id, erp_code, synced_at FROM algoritma_erp_mapping"</code></pre>
+  </li>
+  <li>
+    <p><strong>Prova il fallimento.</strong> Pubblica un <code>mappingId</code> inesistente
+    (es. 999999) e guarda il consumer: <code>REJECT</code>, warning nel log, messaggio non
+    ripubblicato. Poi prova a mandare un payload sbagliato — per esempio una stringa al posto
+    dell'intero — e osserva che l'errore arriva <strong>in fase di pubblicazione</strong>: è il
+    contratto del topic che fa il suo lavoro.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Hai un canale asincrono tuo, con un contratto esplicito sul payload e una gestione dei
+  fallimenti pensata. È lo schema con cui costruirai la sincronizzazione ERP vera: un webhook che
+  pubblica, un consumer che lavora, e il processo HTTP che resta veloce.</p>
+</div>
+
+<h2>Comandi che userai</h2>
+
+<table>
+  <thead><tr><th>Scopo</th><th>Comando</th></tr></thead>
+  <tbody>
+    <tr><td>Consumare i messaggi</td><td><code>orobox console oro:message-queue:consume</code></td></tr>
+    <tr><td>Elencare i topic registrati</td><td><code>orobox console oro:message-queue:topics</code></td></tr>
+    <tr><td>Vedere le destinazioni (code)</td><td><code>orobox console oro:message-queue:destinations</code></td></tr>
+    <tr><td>Creare le code mancanti</td><td><code>orobox console oro:message-queue:create-queues</code></td></tr>
+    <tr><td>Pulire i job vecchi</td><td><code>orobox console oro:cron:message-queue:cleanup</code></td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Il consumer va riavviato dopo ogni modifica al codice</p>
+  <p>È un processo PHP di lunga durata: il codice che ha in memoria è quello di quando è partito.
+  Se cambi il processor e non riavvii, continuerai a vedere il comportamento vecchio e a dare la
+  colpa alla cache. In produzione il consumer è gestito da un supervisor che lo fa ripartire.</p>
+</div>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Cosa definisce la classe Topic in Oro?</p>
+  <div class="options">
+    <button class="opt" data-correct>Nome del messaggio e struttura del suo payload</button>
+    <button class="opt">Il processore che eseguirà quel tipo di lavoro</button>
+    <button class="opt">La coda fisica su cui viene scritto il dato</button>
+    <button class="opt">Il numero massimo di tentativi di consumo</button>
+  </div>
+  <p class="explain" hidden>Nome (<code>getName()</code>) e contratto del payload
+  (<code>configureMessageBody()</code> con un <code>OptionsResolver</code>). Il processor si iscrive
+  al topic dichiarandone il nome in <code>getSubscribedTopics()</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un ERP è irraggiungibile durante il consumo. Cosa restituisci?</p>
+  <div class="options">
+    <button class="opt" data-correct>La costante REQUEUE, per riprovare più tardi</button>
+    <button class="opt">La costante REJECT, perché ora è fallito</button>
+    <button class="opt">La costante ACK, per non bloccare la coda</button>
+    <button class="opt">Una eccezione, che sarà gestita dal consumer</button>
+  </div>
+  <p class="explain" hidden><code>REQUEUE</code>: il problema è temporaneo.
+  <code>REJECT</code> si usa quando riprovare non può funzionare (payload non valido, record
+  inesistente). <code>ACK</code> su un fallimento fa perdere il lavoro in silenzio.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Su Community Edition, dove vive la coda?</p>
+  <div class="options">
+    <button class="opt" data-correct>Su PostgreSQL, tramite il trasporto DBAL</button>
+    <button class="opt">Su RabbitMQ, incluso nell'installazione base</button>
+    <button class="opt">In memoria, nel processo del consumer attivo</button>
+    <button class="opt">Su file, dentro la cartella var del progetto</button>
+  </div>
+  <p class="explain" hidden>Trasporto DBAL su PostgreSQL. RabbitMQ è Enterprise. Il codice non
+  cambia: cambia la configurazione del trasporto, e con essa la latenza (il DBAL fa polling).</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Hai modificato il processor ma il comportamento è quello vecchio. Perché?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il consumer in esecuzione ha in memoria il codice precedente</button>
+    <button class="opt">I messaggi già in coda contengono il codice precedente</button>
+    <button class="opt">Il topic va rigenerato con il comando create-queues</button>
+    <button class="opt">La cache dell'API va svuotata dopo ogni modifica</button>
+  </div>
+  <p class="explain" hidden>Il consumer è un processo di lunga durata: va riavviato. È l'errore
+  numero uno di chi inizia a lavorare con le code.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro concetti della message queue e chi fa cosa.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Topic: nome e contratto del payload. Producer: pubblica
+    (<code>oro_message_queue.client.message_producer</code>). Processor: esegue e restituisce
+    ACK / REJECT / REQUEUE. Consumer: il processo <code>oro:message-queue:consume</code> che estrae
+    i messaggi e li smista ai processor iscritti.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 10 (spaziatura): quale attributo rende un import idempotente,
+  e su quale campo lo metteresti nella tua entità?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]</code>, sul campo
+    <code>erpCode</code>: è il codice con cui l'ERP identifica il record, quindi è la chiave con cui
+    la strategia decide fra creazione e aggiornamento.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/mq/">Oro — Message Queue</a>, le pagine
+  <em>Topics</em>, <em>Consumer</em> e <em>Jobs</em>. Quest'ultima introduce il concetto di
+  <em>job</em>: messaggi con stato, dipendenze e progresso, che è quello che userai per una
+  sincronizzazione notturna seria.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Fai pubblicare il messaggio automaticamente: un
+  <code>doctrine.orm.entity_listener</code> su <code>ErpMapping</code>, evento
+  <code>postPersist</code>, che invia <code>SyncErpMappingTopic</code>. Attenzione: dentro un
+  listener Doctrine non si fa <code>flush</code> — pubblica e basta, il lavoro lo farà il consumer.</li>
+  <li>Aggiungi al payload del topic un campo opzionale <code>force</code> (booleano, default
+  <code>false</code>) e usalo nel processor per risincronizzare anche chi ha già
+  <code>syncedAt</code>. Verifica che un payload con un tipo sbagliato venga rifiutato alla
+  pubblicazione.</li>
+  <li>Leggi <code>vendor/oro/platform/src/Oro/Bundle/ImportExportBundle/Async/</code> e individua
+  come l'import della lezione 10 usa la coda. Portami la catena: chi pubblica, chi consuma, e dove
+  si vede l'avanzamento nel back-office.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 12: l'integrazione ERP messa insieme.</strong> Il pattern <em>Integration</em> di
+Oro (canale, trasporto, connettore), come scegliere fra API, import e coda, la schedulazione con
+cron, e una checklist di architettura per il tuo primo progetto vero.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0010-import-export.html">Lezione 10</a> ·
+    <a href="0012-integrazione-erp.html">Lezione 12</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+  </p>
+  <p>Se un messaggio «sparisce», guarda prima i log del consumer: nove volte su dieci ha fatto
+  <code>REJECT</code> e te lo ha scritto. Se non capisci perché, mandami la riga.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

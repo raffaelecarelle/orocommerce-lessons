@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reference — Comandi orobox</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Comandi orobox</h1>
+  <p class="subtitle">Il ciclo di vita di un ambiente Oro locale, in una pagina. Pensata per essere stampata e tenuta accanto alla tastiera.</p>
+  <p class="meta">
+    <span>Fonte: <code>orobox --help</code> (v. installata in <code>~/.local/bin/orobox</code>)</span>
+    <span>Progetto: <a href="https://github.com/algoritma-dev/orobox">algoritma-dev/orobox</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Ciclo di vita</h2>
+
+<table>
+  <thead><tr><th>Fase</th><th>Comando</th><th>Cosa fa</th></tr></thead>
+  <tbody>
+    <tr><td>Scaffold</td><td><code>orobox create project &lt;path&gt; -v 7.0</code></td><td>Clona l'albero dei sorgenti dell'applicazione. Non tocca Docker. Default versione: <code>6.1</code> — specifica sempre <code>-v</code>.</td></tr>
+    <tr><td>Scaffold</td><td><code>orobox create bundle 'Acme\Bundle\FooBundle'</code></td><td>Genera lo scheletro di un bundle. Dentro un progetto finisce in <code>src/Acme/Bundle/FooBundle/</code>, già in autoload.</td></tr>
+    <tr><td>Provisioning</td><td><code>orobox init -t project -v 7.0</code></td><td>Genera configurazione e file Docker Compose, installa i vendor ed esegue l'installazione di Oro.</td></tr>
+    <tr><td>Avvio</td><td><code>orobox up</code></td><td>Avvia l'ambiente. <code>--rebuild</code> ricostruisce l'immagine ignorando la cache Docker; <code>-c</code> pulisce prima di partire.</td></tr>
+    <tr><td>Stop</td><td><code>orobox down</code></td><td>Spegne l'ambiente lasciando i dati.</td></tr>
+    <tr><td>Reset</td><td><code>orobox clear</code></td><td>Rimuove container e volumi. Riparte da zero: perdi il database.</td></tr>
+  </tbody>
+</table>
+
+<h2>Lavoro quotidiano</h2>
+
+<table>
+  <thead><tr><th>Comando</th><th>Uso</th></tr></thead>
+  <tbody>
+    <tr><td><code>orobox console &lt;cmd&gt;</code></td><td>Esegue <code>bin/console</code> nel container dell'applicazione. Il comando che userai di più.</td></tr>
+    <tr><td><code>orobox shell [servizio]</code></td><td>Shell interattiva dentro un container.</td></tr>
+    <tr><td><code>orobox logs</code></td><td>Log dell'ambiente.</td></tr>
+    <tr><td><code>orobox xdebug</code></td><td>Attiva, disattiva o mostra lo stato di Xdebug (web, CLI, consumer, cron).</td></tr>
+    <tr><td><code>orobox db backup</code> / <code>orobox db restore</code></td><td>Dump e ripristino del database. Da fare prima di ogni esperimento distruttivo.</td></tr>
+    <tr><td><code>orobox run &lt;nome&gt;</code></td><td>Esegue un comando personalizzato definito nella sezione <code>commands</code> di <code>.orobox.yaml</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2>Qualità e test</h2>
+
+<table>
+  <thead><tr><th>Comando</th><th>Uso</th></tr></thead>
+  <tbody>
+    <tr><td><code>orobox qa-init</code></td><td>Installa e configura la toolchain QA nel progetto o nel bundle.</td></tr>
+    <tr><td><code>orobox qa</code></td><td>Esegue PHPStan, Rector, PHP-CS-Fixer, Twig-CS-Fixer, ESLint, Stylelint.</td></tr>
+    <tr><td><code>orobox test-init</code></td><td>Inizializza o azzera l'ambiente di test.</td></tr>
+    <tr><td><code>orobox test -f &lt;filtro&gt;</code></td><td>Esegue PHPUnit. <code>-t</code> per una specifica testsuite, <code>--report gitlab</code> per il report JUnit.</td></tr>
+  </tbody>
+</table>
+
+<h2>Flag globali utili</h2>
+
+<ul>
+  <li><code>-d, --debug</code> — mostra tutto l'output Docker. Prima cosa da aggiungere quando un comando fallisce senza spiegazioni.</li>
+  <li><code>--config &lt;file&gt;</code> — usa un file di configurazione diverso da <code>.orobox.yaml</code>.</li>
+  <li><code>--agent</code> — output minimo, pensato per chiamanti automatici.</li>
+</ul>
+
+<h2>Il file <code>.orobox.yaml</code></h2>
+
+<p>Descrive l'ambiente del progetto: versione Oro, dominio locale e document root, servizi opzionali
+(Redis, Mailpit, RabbitMQ, Elasticsearch, Adminer…), impostazioni dei test e comandi personalizzati.
+È il primo file da leggere quando entri in un progetto Oro altrui.</p>
+
+<pre><code>type: project
+oro_version: "7.0"
+domains:
+    - host: oro.demo
+      root: public
+      ssl: true
+services:
+    mailpit: true
+    redis: false
+    elasticsearch: false</code></pre>
+
+<div class="box warn">
+  <p class="box-title">Attenzione</p>
+  <p><code>oro_version</code> in <code>.orobox.yaml</code> è una dichiarazione dell'ambiente, non una
+  garanzia sul codice. La verità sulla versione dell'applicazione sta in <code>composer.json</code> e
+  <code>composer.lock</code>. Controlla sempre entrambi.</p>
+</div>
+
+</main>
+
+<footer>
+  <p><a href="../lessons/0001-ambiente-oro-7.html">Lezione 1 — Un Oro 7.0 che gira</a> ·
+     <a href="magento-oro.html">Reference: da Magento a Oro</a></p>
+  <p>Dubbi su un comando? Chiedimeli in chat: aggiorno questa pagina con quello che scopriamo.</p>
+</footer>
+
+</body>
+</html>

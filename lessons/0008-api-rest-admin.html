@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 8 — REST API amministrativa</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 08</p>
+  <h1>REST API amministrativa</h1>
+  <p class="subtitle">JSON:API, <code>api.yml</code>, e la tua entità esposta in lettura e scrittura in venti righe di configurazione.</p>
+  <p class="meta">
+    <span>Durata: ~75 min</span>
+    <span>Prerequisiti: <a href="0007-estendere-il-core.html">Lezione 7</a></span>
+    <span>Obiettivo: chiamare la tua entità via HTTP, autenticato</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Collegare i sistemi del cliente (ERP/PIM) è il cuore della maggior parte dei progetti Oro, e il
+primo canale è quasi sempre la REST API. La buona notizia: in Oro le API non si
+scrivono, <strong>si dichiarano</strong>. Il controller, la serializzazione, i filtri, la
+paginazione, la validazione e la documentazione arrivano dalla piattaforma.</p>
+
+<h2>Cosa c'è di diverso dalle API di Magento</h2>
+
+<table>
+  <thead><tr><th>Aspetto</th><th>Magento 2</th><th>Oro 7.0</th></tr></thead>
+  <tbody>
+    <tr><td>Dichiarazione</td><td><code>etc/webapi.xml</code> + interfaccia di servizio</td><td><code>Resources/config/oro/api.yml</code></td></tr>
+    <tr><td>Implementazione</td><td>Scrivi il repository o il service contract</td><td>Nessuna: l'entità basta</td></tr>
+    <tr><td>Formato</td><td>JSON «piatto» (o SOAP, storicamente)</td><td><a href="https://jsonapi.org/">JSON:API</a>, con <code>data</code>, <code>attributes</code>, <code>relationships</code></td></tr>
+    <tr><td>Documentazione</td><td>Swagger generato</td><td>Sandbox interattiva su <code>/admin/api/doc</code>, più OpenAPI su richiesta</td></tr>
+    <tr><td>Permessi</td><td>ACL dichiarati nell'endpoint</td><td>Gli stessi ACL del back-office, ownership compresa</td></tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p class="box-title">Le due API di Oro</p>
+  <p><strong>Admin API</strong> — gli utenti del back-office, tutte le entità di gestione. Con la
+  configurazione standard sta sotto <code>/admin/api/</code>, con la sandbox su
+  <code>/admin/api/doc</code>, ed è configurata in <code>Resources/config/oro/api.yml</code>.</p>
+  <p><strong>Storefront API</strong> — i customer user, un insieme di risorse molto più ristretto.
+  Sta sotto <code>/api/</code>, sandbox su <code>/api/doc</code>, configurata in
+  <code>Resources/config/oro/api_frontend.yml</code>. È la lezione 9.</p>
+  <p>I prefissi dipendono dalla configurazione del progetto: verificali sempre invece di fidarti di
+  questa pagina — <code>orobox console debug:router | grep rest_api</code>.</p>
+</div>
+
+<h2>JSON:API in tre minuti</h2>
+
+<p>Un formato con regole fisse, che Oro rispetta. Content type:
+<code>application/vnd.api+json</code>. Una risposta ha sempre questa forma:</p>
+
+<pre><code>{
+  "data": {
+    "type": "erpmappings",
+    "id": "1",
+    "attributes": {
+      "erpCode": "ERP-1234",
+      "oroSku": "SKU-001",
+      "syncedAt": null
+    },
+    "relationships": { }
+  }
+}</code></pre>
+
+<p>Le convenzioni che userai ogni giorno:</p>
+
+<table>
+  <thead><tr><th>Cosa vuoi</th><th>Come si scrive</th></tr></thead>
+  <tbody>
+    <tr><td>Elenco</td><td><code>GET /admin/api/&lt;alias-plurale&gt;</code></td></tr>
+    <tr><td>Un record</td><td><code>GET /admin/api/&lt;alias-plurale&gt;/{id}</code></td></tr>
+    <tr><td>Creare</td><td><code>POST</code> con corpo <code>{"data": {"type": ..., "attributes": {...}}}</code></td></tr>
+    <tr><td>Modificare</td><td><code>PATCH</code> sullo stesso URL del record</td></tr>
+    <tr><td>Filtrare</td><td><code>?filter[erpCode]=ERP-1234</code></td></tr>
+    <tr><td>Ordinare</td><td><code>?sort=-syncedAt</code></td></tr>
+    <tr><td>Paginare</td><td><code>?page[size]=20&amp;page[number]=2</code></td></tr>
+    <tr><td>Scegliere i campi</td><td><code>?fields[erpmappings]=erpCode,oroSku</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Esporre un'entità</h2>
+
+<p>Si dichiara in <code>Resources/config/oro/api.yml</code>. Forma minima:</p>
+
+<pre><code>api:
+    entities:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping: ~</code></pre>
+
+<p>Da lì in poi la risorsa esiste, con tutte le azioni standard. Poi si <em>restringe</em>, che nei
+progetti reali è la parte importante:</p>
+
+<pre><code>api:
+    entities:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping:
+            actions:
+                delete: false
+                delete_list: false
+            fields:
+                syncedAt:
+                    description: Data dell'ultima sincronizzazione riuscita
+            filters:
+                fields:
+                    erpCode:
+                        data_type: string</code></pre>
+
+<p>Le chiavi che vedrai più spesso nel core: <code>actions</code> (abilita o disabilita
+<code>get</code>, <code>get_list</code>, <code>create</code>, <code>update</code>,
+<code>delete</code>, <code>delete_list</code>), <code>fields</code> (rinomina, escludi, documenta),
+<code>filters</code>, <code>documentation_resource</code> (un file Markdown con la descrizione
+della risorsa). Esempi reali:
+<code>vendor/oro/platform/src/Oro/Bundle/UserBundle/Resources/config/oro/api.yml</code>.</p>
+
+<h2>Autenticazione: OAuth 2.0</h2>
+
+<p>L'API non accetta la sessione del browser: serve un token. Oro include
+<code>oro/oauth2-server</code>, e il flusso più adatto a un ERP è <strong>client credentials</strong>
+— un'applicazione che parla con un'altra applicazione, senza utente interattivo.</p>
+
+<pre><code>POST https://&lt;dominio&gt;:&lt;porta&gt;/oauth2-token
+Content-Type: application/json
+
+{
+  "grant_type": "client_credentials",
+  "client_id": "&lt;id generato&gt;",
+  "client_secret": "&lt;secret generato&gt;"
+}</code></pre>
+
+<p>La risposta contiene <code>access_token</code>, da usare in ogni chiamata successiva come
+<code>Authorization: Bearer &lt;token&gt;</code>.</p>
+
+<p class="sidenote">Il client si crea dal back-office in <em>Sistema → Applicazioni OAuth</em>
+(rotta <code>/admin/oauth2/</code>). Le chiavi RSA del server sono già state generate
+dall'installer; se mancano: <code>orobox console oro:oauth-server:generate-keys</code>.</p>
+
+<h2>Pratica: la tua entità via HTTP</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Dichiara la risorsa.</strong>
+    <code>src/Algoritma/Bundle/TrainingBundle/Resources/config/oro/api.yml</code>:</p>
+<pre><code>api:
+    entities:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping:
+            actions:
+                delete_list: false
+            filters:
+                fields:
+                    erpCode:
+                        data_type: string</code></pre>
+<pre><code>orobox console cache:clear
+orobox console oro:api:cache:clear</code></pre>
+  </li>
+  <li>
+    <p><strong>Trova l'alias assegnato.</strong> Non indovinarlo: chiedilo.</p>
+<pre><code>orobox console oro:api:dump | grep -i erpmapping</code></pre>
+    <p>Ti risponde con l'<em>entity type</em>, cioè l'alias plurale usato nell'URL.</p>
+    <div class="box warn">
+      <p class="box-title">Verificato: l'alias derivato non è quello che ti aspetti</p>
+      <p>Provando questa lezione su un'installazione 7.0 CE, la classe
+      <code>Sandbox\Bundle\CheckBundle\Entity\SandboxMapping</code> ha ricevuto l'alias
+      <code>checksandboxmappings</code> — non <code>sandboxmappings</code>. La derivazione tiene
+      conto anche del nome del bundle. Due conseguenze pratiche: <strong>non indovinare mai
+      l'alias</strong>, e nei progetti reali <strong>dichiaralo esplicitamente</strong>, così
+      l'URL non cambia se un domani rinomini una classe:</p>
+<pre><code>api:
+    entity_aliases:
+        Algoritma\Bundle\TrainingBundle\Entity\ErpMapping:
+            alias: erpmapping
+            plural_alias: erpmappings</code></pre>
+      <p>Nei comandi <code>curl</code> qui sotto, sostituisci <code>&lt;alias-plurale&gt;</code> con
+      quello che ti ha dato <code>oro:api:dump</code> (o con quello che hai dichiarato tu).</p>
+    </div>
+  </li>
+  <li>
+    <p><strong>Guarda la configurazione risolta.</strong> È il comando che userai per capire
+    <em>perché</em> un campo non compare:</p>
+<pre><code>orobox console oro:api:config:dump 'Algoritma\Bundle\TrainingBundle\Entity\ErpMapping'</code></pre>
+  </li>
+  <li>
+    <p><strong>Apri la sandbox.</strong> <code>https://&lt;dominio&gt;:&lt;porta&gt;/admin/api/doc</code>, cerca la
+    tua risorsa. Puoi provarla da lì, autenticato con la sessione del back-office: è il modo più
+    veloce per vedere la forma esatta delle richieste.</p>
+  </li>
+  <li>
+    <p><strong>Crea un client OAuth.</strong> Back-office → <em>Sistema → Applicazioni OAuth</em> →
+    nuova applicazione, tipo <em>client credentials</em>, associata a un utente. Annota
+    <code>client_id</code> e <code>client_secret</code>: il secret si vede una volta sola.</p>
+  </li>
+  <li>
+    <p><strong>Chiama da riga di comando.</strong></p>
+<pre><code>BASE=https://&lt;dominio&gt;:&lt;porta&gt;      # l'URL stampato da `orobox up`
+
+TOKEN=$(curl -sk -X POST "$BASE/oauth2-token" \
+  -H 'Content-Type: application/json' \
+  -d '{"grant_type":"client_credentials","client_id":"...","client_secret":"..."}' \
+  | python3 -c 'import sys,json; print(json.load(sys.stdin)["access_token"])')
+
+curl -sk "$BASE/admin/api/erpmappings" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Accept: application/vnd.api+json'</code></pre>
+    <p>Il flag <code>-k</code> serve perché il certificato dell'ambiente di sviluppo è
+    autofirmato. Sostituisci l'alias con quello che ti ha dato <code>oro:api:dump</code>.</p>
+  </li>
+  <li>
+    <p><strong>Scrivi.</strong></p>
+<pre><code>curl -sk -X POST "$BASE/admin/api/erpmappings" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/vnd.api+json' \
+  -d '{"data":{"type":"erpmappings","attributes":{"erpCode":"ERP-9001","oroSku":"SKU-009"}}}'</code></pre>
+    <p>Atteso: <code>201 Created</code> e il record nel corpo. Verificalo anche nella griglia della
+    lezione 5: è lo stesso dato, dalla parte opposta.</p>
+  </li>
+  <li>
+    <p><strong>Prova i permessi.</strong> Togli <code>VIEW</code> sulle mappature al ruolo
+    dell'utente collegato al client OAuth e ripeti la GET. Atteso: <code>403</code>. Questa è la
+    proprietà più preziosa dell'API di Oro — <strong>gli ACL della lezione 6 valgono qui senza che
+    tu abbia scritto nulla</strong>.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Un sistema esterno può leggere e scrivere le tue mappature, autenticato, filtrato e soggetto
+  ai permessi, e tu hai scritto un file YAML di dieci righe. Questo è il pezzo dell'integrazione
+  ERP che di solito si stima in giorni.</p>
+</div>
+
+<h2>Comandi di diagnosi dell'API</h2>
+
+<table>
+  <thead><tr><th>Domanda</th><th>Comando</th></tr></thead>
+  <tbody>
+    <tr><td>Quali risorse esistono?</td><td><code>orobox console oro:api:dump</code></td></tr>
+    <tr><td>Come è configurata questa risorsa?</td><td><code>orobox console oro:api:config:dump &lt;classe&gt;</code></td></tr>
+    <tr><td>Quali metadati vede l'API?</td><td><code>orobox console oro:api:metadata:dump &lt;classe&gt;</code></td></tr>
+    <tr><td>Ho cambiato api.yml e non succede nulla</td><td><code>orobox console oro:api:cache:clear</code></td></tr>
+    <tr><td>La sandbox mostra dati vecchi</td><td><code>orobox console oro:api:doc:cache:clear</code></td></tr>
+    <tr><td>Serve uno spec OpenAPI per il cliente</td><td><code>orobox console oro:api:doc:open-api:dump</code></td></tr>
+  </tbody>
+</table>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Cosa serve per esporre una tua entità nell'API amministrativa?</p>
+  <div class="options">
+    <button class="opt" data-correct>Una voce nella sezione entities di api.yml</button>
+    <button class="opt">Un controller che estenda la classe RestApi</button>
+    <button class="opt">Una rotta dichiarata dentro il file routing.yml</button>
+    <button class="opt">Un servizio con il tag oro_api.resource attivo</button>
+  </div>
+  <p class="explain" hidden>La dichiarazione basta: controller, serializzazione, filtri,
+  paginazione e documentazione sono della piattaforma. Il lavoro vero è <em>restringere</em> con
+  <code>actions</code>, <code>fields</code> e <code>filters</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Qual è il Content-Type delle richieste di scrittura?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il tipo application/vnd.api+json di JSON:API</button>
+    <button class="opt">Il tipo application/json usato di solito</button>
+    <button class="opt">Il tipo application/x-www-form-urlencoded</button>
+    <button class="opt">Il tipo multipart/form-data con i campi</button>
+  </div>
+  <p class="explain" hidden>L'API segue JSON:API, quindi <code>application/vnd.api+json</code>. La
+  richiesta del token OAuth invece è una normale <code>application/json</code>: sono due cose
+  diverse.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Come sono protette le risorse dell'API amministrativa?</p>
+  <div class="options">
+    <button class="opt" data-correct>Dagli stessi ACL del back-office, ownership inclusa</button>
+    <button class="opt">Da un elenco di permessi dedicato solo all'API</button>
+    <button class="opt">Dalla sola validità del token OAuth ricevuto</button>
+    <button class="opt">Dalle regole scritte nel file di configurazione api.yml</button>
+  </div>
+  <p class="explain" hidden>Stessi ACL, stessa ownership: un utente vede via API esattamente i
+  record che vedrebbe nel back-office. È il motivo per cui la lezione 6 viene prima di questa.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Hai modificato api.yml e l'API non cambia. Cosa manca?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il comando oro:api:cache:clear dopo la modifica</button>
+    <button class="opt">Il comando oro:migration:load con l'opzione force</button>
+    <button class="opt">Il riavvio dei container con il comando orobox up</button>
+    <button class="opt">La rigenerazione delle chiavi con oro:oauth-server</button>
+  </div>
+  <p class="explain" hidden>L'API ha una cache propria, oltre a quella del framework. La coppia da
+  ricordare è <code>cache:clear</code> più <code>oro:api:cache:clear</code>; per la sandbox,
+  <code>oro:api:doc:cache:clear</code>.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: scrivi l'URL per ottenere le prime 20 mappature ordinate per data di
+  sincronizzazione decrescente, filtrate per codice ERP.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>/admin/api/erpmappings?filter[erpCode]=ERP-1234&amp;sort=-syncedAt&amp;page[size]=20</code>
+    — il meno davanti al campo in <code>sort</code> significa discendente.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 7 (spaziatura): quali comandi usi per scoprire se il core
+  pubblica un evento nel punto che ti interessa?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>orobox console debug:event-dispatcher</code> (tutti gli eventi e i loro listener),
+    <code>debug:event-dispatcher &lt;nome&gt;</code> per uno solo, e
+    <code>grep -rn "dispatch(" vendor/oro/…</code> per vedere dove viene lanciato nel codice.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/api/">Oro — API Developer Guide</a>, le pagine
+  <em>Configuration</em> e <em>Actions</em>. È la sezione di documentazione Oro più densa e più
+  utile: qui, a differenza che altrove, leggere la documentazione conviene più che leggere il core.</p>
+</div>
+
+<p>Se JSON:API ti è nuovo, dieci minuti su <a href="https://jsonapi.org/format/">jsonapi.org/format</a>
+(sezioni <em>Document Structure</em> e <em>Fetching Data</em>) ti risparmiano molti tentativi.</p>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Disabilita l'azione <code>delete</code> sulla tua risorsa e verifica con
+  <code>curl -X DELETE</code> che risponda <code>404</code> o <code>405</code>. Poi riabilitala.</li>
+  <li>Aggiungi un campo calcolato in sola lettura: dichiara in <code>api.yml</code> un campo
+  <code>isSynced</code> con <code>data_type: boolean</code> e <code>property_path</code> verso un
+  metodo <code>isSynced()</code> dell'entità che restituisce <code>syncedAt !== null</code>.</li>
+  <li>Scrivi un file <code>Resources/doc/api/erp_mapping.md</code> e collegalo con
+  <code>documentation_resource</code>. Riapri la sandbox: la tua descrizione deve comparire.
+  È il tipo di dettaglio che fa la differenza quando l'API la usa il fornitore dell'ERP e non tu.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 9: Storefront API.</strong> <code>api_frontend.yml</code>, il <em>request type</em>
+<code>frontend</code>, le differenze di autenticazione (customer user, visitatori ospiti) e perché
+esporre la stessa entità sulle due API non è la stessa cosa.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0007-estendere-il-core.html">Lezione 7</a> ·
+    <a href="0009-storefront-api.html">Lezione 9</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+  </p>
+  <p>Se una chiamata risponde 403 e non capisci perché, mandami utente, ruolo e URL: nove volte su
+  dieci è ownership, ed è un ottimo momento per consolidarla.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

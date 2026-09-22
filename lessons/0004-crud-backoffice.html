@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 4 — Pagine di back-office: rotte, controller, form</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 04</p>
+  <h1>Pagine di back-office</h1>
+  <p class="subtitle">Rotte con attributi, controller come servizio, form type e il template Twig che ti regala mezza interfaccia.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0003-entita-e-migration.html">Lezione 3</a></span>
+    <span>Obiettivo: creare e modificare un record dal browser</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>La mappatura ERP della lezione 3 oggi la può creare solo un comando di console. Nel progetto
+reale la deve poter correggere un utente: un codice sbagliato, un allineamento saltato. Serve una
+pagina. Ed è l'occasione per incontrare quattro pezzi di Symfony in un colpo solo — routing,
+controller, form, Twig — tutti nella variante che usa Oro, che non è sempre quella dei tutorial.</p>
+
+<h2>Il giro completo di una richiesta</h2>
+
+<pre><code>Browser
+  └─ Router            legge routing.yml e gli attributi #[Route]  → quale controller
+      └─ Controller    è un servizio; costruisce il form, delega il salvataggio
+          └─ Form      FormType: descrive i campi; valida; scrive sull'entità
+              └─ Twig  template che estende un layout Oro già pronto
+</code></pre>
+
+<div class="compare">
+  <figure>
+    <figcaption>Magento 2</figcaption>
+<pre><code>etc/adminhtml/routes.xml
+Controller/Adminhtml/.../Index.php
+Block + Ui Component (XML)
+view/adminhtml/templates/*.phtml</code></pre>
+  </figure>
+  <figure>
+    <figcaption>Oro 7.0</figcaption>
+<pre><code>Resources/config/oro/routing.yml
+Controller/*.php con #[Route]
+Form/Type/*.php (FormType)
+Resources/views/**/*.html.twig</code></pre>
+  </figure>
+</div>
+
+<h2>Uno: dichiarare le rotte</h2>
+
+<p>Oro carica le rotte da <code>Resources/config/oro/routing.yml</code>. Il file non elenca le
+singole rotte: dice al router di leggere gli <strong>attributi</strong> dei controller del bundle.
+Forma esatta usata dal core (<code>CronBundle</code>):</p>
+
+<pre><code>algoritma_training:
+    resource: "@AlgoritmaTrainingBundle/Controller"
+    type:     attribute
+    prefix:   /algoritma/erp-mapping</code></pre>
+
+<p>Da lì in poi ogni <code>#[Route]</code> nei controller di quel bundle è attivo, con il prefisso
+applicato.</p>
+
+<h2>Due: il controller è un servizio</h2>
+
+<p>Questa è la parte che sorprende chi arriva da Symfony «da tutorial»: in Oro i controller si
+registrano esplicitamente, in <code>Resources/config/controllers.yml</code>, e sono
+<strong>public</strong>. Il container viene iniettato con <code>setContainer</code> e i servizi si
+dichiarano con <code>getSubscribedServices()</code>: è il pattern
+<em>service subscriber</em>, che carica un servizio solo quando l'azione lo usa davvero.</p>
+
+<pre><code># Resources/config/controllers.yml
+services:
+    _defaults:
+        public: true
+
+    Algoritma\Bundle\TrainingBundle\Controller\ErpMappingController:
+        calls:
+            - ['setContainer', ['@Psr\Container\ContainerInterface']]
+        tags:
+            - { name: container.service_subscriber }</code></pre>
+
+<p>E l'Extension del bundle deve caricare anche questo file:</p>
+
+<pre><code>$loader-&gt;load('services.yml');
+$loader-&gt;load('controllers.yml');</code></pre>
+
+<p class="sidenote">Modello nel core:
+<code>vendor/oro/platform/src/Oro/Bundle/DigitalAssetBundle/Resources/config/controllers.yml</code>
+e <code>.../Controller/DigitalAssetController.php</code>. Vale la pena aprirli in parallelo alla
+pratica: è il CRUD Oro più corto che si trovi.</p>
+
+<h2>Tre: il salvataggio non lo scrivi tu</h2>
+
+<p>Oro ha un servizio che gestisce il ciclo «mostra form → intercetta POST → valida → salva →
+messaggio → redirect»: <code>Oro\Bundle\FormBundle\Model\UpdateHandlerFacade</code>. Il tuo
+controller gli passa entità, form e messaggio di successo, e riceve indietro o l'array per il
+template o una <code>RedirectResponse</code>. Non scrivere a mano
+<code>handleRequest</code>/<code>isValid</code>/<code>flush</code>: perderesti il comportamento
+standard delle pagine Oro (pulsanti «salva e chiudi», widget in dialog, messaggi flash).</p>
+
+<h2>Pratica: creare e modificare una mappatura</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Il form type.</strong> <code>Form/Type/ErpMappingType.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Form\Type;
+
+use Algoritma\Bundle\TrainingBundle\Entity\ErpMapping;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\Extension\Core\Type\TextType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+
+class ErpMappingType extends AbstractType
+{
+    #[\Override]
+    public function buildForm(FormBuilderInterface $builder, array $options): void
+    {
+        $builder
+            -&gt;add('erpCode', TextType::class, [
+                'label' =&gt; 'Codice ERP',
+                'required' =&gt; true,
+            ])
+            -&gt;add('oroSku', TextType::class, [
+                'label' =&gt; 'SKU Oro',
+                'required' =&gt; true,
+            ]);
+    }
+
+    #[\Override]
+    public function configureOptions(OptionsResolver $resolver): void
+    {
+        $resolver-&gt;setDefaults([
+            'data_class' =&gt; ErpMapping::class,
+            'csrf_token_id' =&gt; 'algoritma_erp_mapping',
+        ]);
+    }
+
+    #[\Override]
+    public function getBlockPrefix(): string
+    {
+        return 'algoritma_erp_mapping';
+    }
+}</code></pre>
+    <p>Il form scrive direttamente sull'entità grazie a <code>data_class</code>: i nomi dei campi
+    corrispondono alle proprietà, e Symfony usa i getter e setter che hai scritto nella lezione 3.</p>
+  </li>
+  <li>
+    <p><strong>Il controller.</strong> <code>Controller/ErpMappingController.php</code>:</p>
+<pre><code>&lt;?php
+
+declare(strict_types=1);
+
+namespace Algoritma\Bundle\TrainingBundle\Controller;
+
+use Algoritma\Bundle\TrainingBundle\Entity\ErpMapping;
+use Algoritma\Bundle\TrainingBundle\Form\Type\ErpMappingType;
+use Oro\Bundle\FormBundle\Model\UpdateHandlerFacade;
+use Symfony\Bridge\Twig\Attribute\Template;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Attribute\Route;
+
+class ErpMappingController extends AbstractController
+{
+    #[Route(path: '/create', name: 'algoritma_erp_mapping_create')]
+    #[Template('@AlgoritmaTraining/ErpMapping/update.html.twig')]
+    public function createAction(): array|RedirectResponse
+    {
+        return $this-&gt;update(new ErpMapping());
+    }
+
+    #[Route(path: '/update/{id}', name: 'algoritma_erp_mapping_update', requirements: ['id' =&gt; '\d+'])]
+    #[Template('@AlgoritmaTraining/ErpMapping/update.html.twig')]
+    public function updateAction(ErpMapping $erpMapping): array|RedirectResponse
+    {
+        return $this-&gt;update($erpMapping);
+    }
+
+    private function update(ErpMapping $erpMapping): array|RedirectResponse
+    {
+        return $this-&gt;container-&gt;get(UpdateHandlerFacade::class)-&gt;update(
+            $erpMapping,
+            $this-&gt;createForm(ErpMappingType::class, $erpMapping),
+            'Mappatura ERP salvata'
+        );
+    }
+
+    #[\Override]
+    public static function getSubscribedServices(): array
+    {
+        return array_merge(parent::getSubscribedServices(), [
+            UpdateHandlerFacade::class,
+        ]);
+    }
+}</code></pre>
+    <p>Due cose da notare. <code>updateAction(ErpMapping $erpMapping)</code>: Symfony converte
+    automaticamente l'<code>{id}</code> della rotta nell'entità (<em>entity value resolver</em>), e
+    risponde 404 se non esiste. E il nome del template, <code>@AlgoritmaTraining/...</code>: la
+    scorciatoia Twig per <code>Resources/views/</code> del bundle, con il suffisso
+    <code>Bundle</code> tolto dal nome.</p>
+  </li>
+  <li>
+    <p><strong>Il template.</strong>
+    <code>Resources/views/ErpMapping/update.html.twig</code>:</p>
+<pre><code>{% extends '@OroUI/actions/update.html.twig' %}
+
+{% set formAction = form.vars.value.id
+    ? path('algoritma_erp_mapping_update', { id: form.vars.value.id })
+    : path('algoritma_erp_mapping_create')
+%}
+
+{% block pageHeader %}
+    &lt;h1&gt;{{ form.vars.value.id ? 'Modifica mappatura ERP' : 'Nuova mappatura ERP' }}&lt;/h1&gt;
+{% endblock %}</code></pre>
+    <p>Tre righe di tuo e hai l'intestazione, i pulsanti di salvataggio, la gestione degli errori e
+    lo stile del back-office, perché <code>@OroUI/actions/update.html.twig</code> fa tutto il
+    resto. È lo stesso layout che estendono i controller del core.</p>
+  </li>
+  <li>
+    <p><strong>Registra rotte, controller e form type.</strong></p>
+<pre><code># Resources/config/oro/routing.yml
+algoritma_training:
+    resource: "@AlgoritmaTrainingBundle/Controller"
+    type:     attribute
+    prefix:   /algoritma/erp-mapping</code></pre>
+<pre><code># Resources/config/services.yml — sotto _defaults
+    Algoritma\Bundle\TrainingBundle\Form\Type\ErpMappingType:
+        tags:
+            - { name: form.type }</code></pre>
+    <p>Più <code>controllers.yml</code> come sopra, e il suo <code>$loader-&gt;load('controllers.yml')</code>
+    nell'Extension.</p>
+  </li>
+  <li>
+    <p><strong>Prova.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console debug:router | grep algoritma</code></pre>
+    <p>Atteso: due rotte, <code>algoritma_erp_mapping_create</code> e
+    <code>algoritma_erp_mapping_update</code>, con i loro percorsi. Poi apri
+    <code>https://&lt;dominio&gt;:&lt;porta&gt;/admin/algoritma/erp-mapping/create</code> (l'URL base è quello stampato da <code>orobox up</code>), compila e salva.</p>
+    <p>Dopo il salvataggio, verifica dal database che il record ci sia:</p>
+<pre><code>orobox console doctrine:query:sql "SELECT * FROM algoritma_erp_mapping"</code></pre>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Un utente non tecnico può creare e correggere una mappatura ERP dal back-office. Hai scritto
+  un form type, un controller di venti righe e un template di tre: tutto il resto — layout,
+  pulsanti, validazione, messaggi — te lo ha dato la piattaforma.</p>
+</div>
+
+<h2>Quando qualcosa non gira</h2>
+
+<table>
+  <thead><tr><th>Sintomo</th><th>Causa quasi certa</th></tr></thead>
+  <tbody>
+    <tr><td>404 sulla rotta</td><td><code>routing.yml</code> mancante o <code>resource</code> con nome bundle sbagliato; oppure manca <code>cache:clear</code>.</td></tr>
+    <tr><td><code>Service "..." not found</code> dentro l'azione</td><td>Il servizio non è in <code>getSubscribedServices()</code>.</td></tr>
+    <tr><td><code>Cannot autowire ... controller</code></td><td>Il controller non è registrato in <code>controllers.yml</code>, o manca il tag <code>container.service_subscriber</code>.</td></tr>
+    <tr><td>Il form non salva e non dà errori</td><td>Stai costruendo il form a mano invece di passarlo a <code>UpdateHandlerFacade::update()</code>.</td></tr>
+    <tr><td><code>Unable to find template</code></td><td>Nome logico sbagliato: è <code>@AlgoritmaTraining/…</code>, senza <code>Bundle</code>.</td></tr>
+  </tbody>
+</table>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Cosa contiene tipicamente il file routing.yml di un bundle Oro?</p>
+  <div class="options">
+    <button class="opt" data-correct>Un riferimento alla cartella Controller del bundle</button>
+    <button class="opt">Una riga per ogni azione esposta dal bundle</button>
+    <button class="opt">La mappa completa fra URL e template Twig</button>
+    <button class="opt">Le regole di riscrittura URL per il server web</button>
+  </div>
+  <p class="explain" hidden>Il file punta a <code>@NomeBundle/Controller</code> con
+  <code>type: attribute</code>: le singole rotte stanno negli attributi <code>#[Route]</code> dei
+  metodi, e il <code>prefix</code> del file si applica a tutte.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Perché un controller Oro dichiara getSubscribedServices?</p>
+  <div class="options">
+    <button class="opt" data-correct>Per ottenere i servizi solo quando servono</button>
+    <button class="opt">Per rendere pubblici i servizi del container</button>
+    <button class="opt">Per registrare le rotte insieme ai servizi</button>
+    <button class="opt">Per iniettare i servizi dentro il template</button>
+  </div>
+  <p class="explain" hidden>È il pattern <em>service subscriber</em>: il controller dichiara cosa
+  potrebbe servirgli e il container glielo fornisce pigramente, invece di costruire tutte le
+  dipendenze a ogni richiesta.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Chi salva l'entità quando l'utente invia il form?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il servizio UpdateHandlerFacade del FormBundle</button>
+    <button class="opt">Il form type, dentro il metodo buildForm</button>
+    <button class="opt">Il template Twig, nel blocco navButtons</button>
+    <button class="opt">Il router, prima di invocare il controller</button>
+  </div>
+  <p class="explain" hidden><code>UpdateHandlerFacade::update()</code> gestisce submit, validazione,
+  <code>flush</code>, messaggio flash e redirect. Il form type descrive solo i campi.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Cosa indica il nome di template @AlgoritmaTraining/ErpMapping/update.html.twig?</p>
+  <div class="options">
+    <button class="opt" data-correct>Resources/views del bundle AlgoritmaTrainingBundle</button>
+    <button class="opt">La cartella templates nella radice del progetto</button>
+    <button class="opt">Il percorso pubblico servito da public/bundles</button>
+    <button class="opt">Il namespace PHP del controller che lo usa</button>
+  </div>
+  <p class="explain" hidden>La chiocciola indica il namespace Twig del bundle, che punta a
+  <code>Resources/views/</code>. Nel nome logico il suffisso <code>Bundle</code> si omette.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro file (oltre all'entità) che hai toccato per avere una pagina
+  funzionante, e cosa contiene ciascuno.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>oro/routing.yml</code> punta alla cartella Controller ·
+    <code>controllers.yml</code> registra il controller come servizio pubblico con
+    <code>container.service_subscriber</code> ·
+    <code>Form/Type/ErpMappingType.php</code> descrive i campi e la <code>data_class</code> ·
+    <code>Resources/views/ErpMapping/update.html.twig</code> estende
+    <code>@OroUI/actions/update.html.twig</code>.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 3 (spaziatura): perché non si usa
+  <code>doctrine:schema:update</code> in Oro?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Perché lo schema è governato dalle migration, che Oro esegue in ordine e registra: sono l'unico
+    modo per far arrivare tutti gli ambienti allo stesso stato in modo ripetibile.
+    <code>schema:update</code> allinea solo il database su cui lo lanci.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://symfony.com/doc/current/forms.html">Symfony — Forms</a>, fino a «Validating
+  Forms» compreso. Salta la parte su form senza classe di dati: in Oro il form è quasi sempre
+  legato a un'entità tramite <code>data_class</code>.</p>
+</div>
+
+<p>Poi apri, come esempio reale da imitare,
+<code>vendor/oro/platform/src/Oro/Bundle/DigitalAssetBundle/Controller/DigitalAssetController.php</code>.
+Leggere il core è una competenza del mestiere, non un extra.</p>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi al form il campo <code>syncedAt</code> con
+  <code>Oro\Bundle\FormBundle\Form\Type\OroDateTimeType</code> e <code>'required' =&gt; false</code>.
+  Verifica che il valore si salvi.</li>
+  <li>Aggiungi una validazione: <code>#[Assert\NotBlank]</code> e
+  <code>#[Assert\Length(max: 64)]</code> sulla proprietà <code>erpCode</code> dell'entità
+  (<code>use Symfony\Component\Validator\Constraints as Assert;</code>). Prova a salvare vuoto e
+  guarda l'errore comparire nella pagina, senza aver scritto una riga di gestione errori.</li>
+  <li>Domanda da girarmi con la tua risposta: se in Magento avresti messo questa logica in un
+  <code>Ui Component</code> XML, dove finisce in Oro? Prova a rispondere prima di chiedere.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 5: datagrid.</strong> La griglia dichiarativa di Oro: <code>datagrids.yml</code>,
+sorgente ORM, colonne, filtri, ordinamenti, azioni di riga. È l'equivalente concettuale delle
+listing UI Component di Magento, e in Oro è il posto dove passerai più tempo di quanto pensi.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0003-entita-e-migration.html">Lezione 3</a> ·
+    <a href="0005-datagrid.html">Lezione 5</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a> ·
+    <a href="../reference/doctrine-e-migration.html">Reference: Doctrine e migration</a>
+  </p>
+  <p>Se il form non salva o la rotta non risponde, mandami l'output di
+  <code>orobox console debug:router | grep algoritma</code>: nove volte su dieci la risposta è lì.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

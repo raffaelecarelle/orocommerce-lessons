@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 6 — ACL e permessi</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 06</p>
+  <h1>ACL e permessi</h1>
+  <p class="subtitle">Dichiarare i permessi, agganciarli alle azioni, e capire la ownership — il pezzo di Oro che Magento non ha.</p>
+  <p class="meta">
+    <span>Durata: ~60 min</span>
+    <span>Prerequisiti: <a href="0005-datagrid.html">Lezione 5</a></span>
+    <span>Obiettivo: pagine e griglia protette da permessi veri</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Nelle lezioni 4 e 5 hai esposto dati senza protezione: chiunque abbia accesso al back-office
+può aprire e modificare le mappature. In un progetto B2B questo non passa una revisione. E c'è una
+ragione più profonda per affrontarlo ora: in Oro i permessi non sono un controllo aggiuntivo che
+metti alla fine, sono una <strong>proprietà dell'entità</strong>, e decidono anche cosa l'utente
+vede nelle griglie e nelle API.</p>
+
+<div class="box warn">
+  <p class="box-title">Qui Magento non ti aiuta</p>
+  <p>In Magento hai <code>acl.xml</code> con un albero di risorse e un controllo per azione
+  (<code>_isAllowed</code>). Oro ha quello — e in più un modello di <strong>ownership</strong>:
+  ogni record può appartenere a un utente, a una business unit o a un'organizzazione, e lo stesso
+  permesso (<code>VIEW</code>) può essere concesso a livelli diversi (solo i miei / della mia
+  business unit / di tutta l'organizzazione). Il filtro sui record avviene automaticamente, anche
+  nelle griglie e nelle API.</p>
+</div>
+
+<h2>I tre pezzi del sistema</h2>
+
+<table>
+  <thead><tr><th>Pezzo</th><th>Dove si dichiara</th><th>Cosa decide</th></tr></thead>
+  <tbody>
+    <tr><td>Risorsa ACL</td><td><code>Resources/config/oro/acls.yml</code> o attributo <code>#[Acl]</code></td><td>Il nome del permesso e su quale entità e operazione agisce</td></tr>
+    <tr><td>Permessi</td><td>Standard: <code>VIEW CREATE EDIT DELETE ASSIGN</code></td><td>Il verbo</td></tr>
+    <tr><td>Ownership</td><td><code>#[Config(defaultValues: ['ownership' =&gt; …])]</code> sull'entità</td><td>Il <em>livello</em> a cui un ruolo può esercitare quel verbo</td></tr>
+  </tbody>
+</table>
+
+<p>I livelli di ownership disponibili sono quattro, e li trovi nel codice come costanti in
+<code>vendor/oro/platform/src/Oro/Bundle/SecurityBundle/Owner/Metadata/OwnershipMetadata.php</code>:
+<code>NONE</code>, <code>ORGANIZATION</code>, <code>BUSINESS_UNIT</code>, <code>USER</code>.</p>
+
+<h2>Dichiarare i permessi</h2>
+
+<p>Due forme equivalenti. In YAML, come fa <code>EmailBundle</code>:</p>
+
+<pre><code># Resources/config/oro/acls.yml
+acls:
+    algoritma_erp_mapping_view:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: VIEW
+        group_name: ""</code></pre>
+
+<p>Oppure direttamente sull'azione del controller, come fa <code>EmailTemplateController</code>:</p>
+
+<pre><code>#[Acl(
+    id: 'algoritma_erp_mapping_view',
+    type: 'entity',
+    class: ErpMapping::class,
+    permission: 'VIEW'
+)]
+public function indexAction(): array</code></pre>
+
+<p>La regola pratica: <strong>dichiara con <code>#[Acl]</code> il permesso nel punto in cui nasce</strong>
+(l'azione «canonica»), e <strong>riusa con <code>#[AclAncestor]</code></strong> ovunque serva lo
+stesso permesso. Se un permesso serve anche fuori dai controller — per esempio in un datagrid —
+molti bundle preferiscono <code>acls.yml</code>, così non è legato a un'azione.</p>
+
+<pre><code>#[AclAncestor('algoritma_erp_mapping_view')]
+public function exportAction(): Response</code></pre>
+
+<h2>Verificare un permesso</h2>
+
+<div class="compare">
+  <figure>
+    <figcaption>In Twig</figcaption>
+<pre><code>{% if is_granted('algoritma_erp_mapping_create') %}
+    {{ UI.addButton({...}) }}
+{% endif %}
+
+{# permesso su uno specifico record #}
+{% if is_granted('EDIT', entity) %}</code></pre>
+  </figure>
+  <figure>
+    <figcaption>In PHP</figcaption>
+<pre><code>use Symfony\Component\Security\Core\Authorization\
+    AuthorizationCheckerInterface;
+
+if (!$this-&gt;authorizationChecker
+        -&gt;isGranted('EDIT', $mapping)) {
+    throw $this-&gt;createAccessDeniedException();
+}</code></pre>
+  </figure>
+</div>
+
+<p>Due modi di chiedere, con significati diversi: <code>is_granted('nome_acl')</code> chiede
+«questo utente ha questo permesso in generale?», <code>is_granted('EDIT', $record)</code> chiede
+«su <em>questo</em> record?» — ed è qui che entra in gioco la ownership.</p>
+
+<h2>Pratica: proteggere le mappature ERP</h2>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Dichiara i quattro permessi.</strong>
+    <code>Resources/config/oro/acls.yml</code>:</p>
+<pre><code>acls:
+    algoritma_erp_mapping_view:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: VIEW
+        group_name: ""
+    algoritma_erp_mapping_create:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: CREATE
+        group_name: ""
+    algoritma_erp_mapping_update:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: EDIT
+        group_name: ""
+    algoritma_erp_mapping_delete:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: DELETE
+        group_name: ""</code></pre>
+  </li>
+  <li>
+    <p><strong>Rendi l'entità «sicura».</strong> Aggiungi la configurazione di sicurezza
+    all'attributo <code>#[Config]</code> dell'entità:</p>
+<pre><code>#[Config(
+    routeName: 'algoritma_erp_mapping_index',
+    defaultValues: [
+        'entity' =&gt; ['icon' =&gt; 'fa-exchange'],
+        'security' =&gt; ['type' =&gt; 'ACL', 'group_name' =&gt; ''],
+    ]
+)]</code></pre>
+    <p>Senza <code>'security' =&gt; ['type' =&gt; 'ACL']</code> l'entità non compare fra quelle
+    gestibili nella schermata dei ruoli.</p>
+  </li>
+  <li>
+    <p><strong>Aggancia le azioni.</strong> Nel controller della lezione 4:</p>
+<pre><code>#[Route(path: '/', name: 'algoritma_erp_mapping_index')]
+#[Template('@AlgoritmaTraining/ErpMapping/index.html.twig')]
+#[AclAncestor('algoritma_erp_mapping_view')]
+public function indexAction(): array
+
+#[Route(path: '/create', name: 'algoritma_erp_mapping_create')]
+#[Template('@AlgoritmaTraining/ErpMapping/update.html.twig')]
+#[AclAncestor('algoritma_erp_mapping_create')]
+public function createAction(): array|RedirectResponse
+
+#[Route(path: '/update/{id}', name: 'algoritma_erp_mapping_update', requirements: ['id' =&gt; '\d+'])]
+#[Template('@AlgoritmaTraining/ErpMapping/update.html.twig')]
+#[AclAncestor('algoritma_erp_mapping_update')]
+public function updateAction(ErpMapping $erpMapping): array|RedirectResponse</code></pre>
+    <p>Import necessari:
+    <code>Oro\Bundle\SecurityBundle\Attribute\AclAncestor</code> (e <code>...\Attribute\Acl</code>
+    se dichiari lì il permesso).</p>
+  </li>
+  <li>
+    <p><strong>Rimetti la protezione sulla griglia.</strong> In <code>datagrids.yml</code> torna la
+    riga che avevi tolto nella lezione 5:</p>
+<pre><code>        acl_resource: algoritma_erp_mapping_view</code></pre>
+    <p>E proteggi il pulsante di creazione nel template <code>index.html.twig</code>:</p>
+<pre><code>{% block navButtons %}
+    {% if is_granted('algoritma_erp_mapping_create') %}
+        {{ UI.addButton({
+            'path': path('algoritma_erp_mapping_create'),
+            'entity_label': 'mappatura ERP'
+        }) }}
+    {% endif %}
+{% endblock %}</code></pre>
+  </li>
+  <li>
+    <p><strong>Applica e verifica.</strong></p>
+<pre><code>orobox console cache:clear
+orobox console security:permission:configuration:load</code></pre>
+    <p>Poi, nel back-office: <em>Sistema → Utenti → Ruoli</em>, apri un ruolo e cerca la tua entità
+    nell'elenco delle entità. Devi vedere i quattro permessi. Prova a togliere <code>VIEW</code> a
+    un ruolo di prova, accedi con un utente che ha quel ruolo e verifica che la pagina di elenco
+    risponda 403.</p>
+  </li>
+  <li>
+    <p><strong>Ispeziona.</strong></p>
+<pre><code>orobox console debug:security:role-hierarchy</code></pre>
+    <p>Utile per capire com'è composto il sistema dei ruoli prima di metterci mano sul progetto del cliente.</p>
+  </li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>La tua entità è entrata nel sistema di sicurezza di Oro: compare nella schermata dei ruoli,
+  la griglia e le azioni rispettano i permessi, e non hai scritto un solo <code>if</code> di
+  controllo accessi nel codice di dominio.</p>
+</div>
+
+<h2>La ownership, spiegata in un esempio</h2>
+
+<p>Se dichiari ownership a livello <code>USER</code>, l'entità deve avere un campo
+<code>owner</code> verso <code>Oro\Bundle\UserBundle\Entity\User</code> e — tipicamente — un campo
+<code>organization</code>. Dopo di che un ruolo può avere <code>VIEW</code> al livello «utente»
+(vede solo i propri record), «business unit», «divisione» o «organizzazione». Il filtro sui record
+è applicato da Oro nelle query delle griglie e delle API: non lo scrivi tu.</p>
+
+<pre><code>'ownership' =&gt; [
+    'owner_type' =&gt; 'USER',
+    'owner_field_name' =&gt; 'owner',
+    'owner_column_name' =&gt; 'user_owner_id',
+    'organization_field_name' =&gt; 'organization',
+    'organization_column_name' =&gt; 'organization_id',
+],</code></pre>
+
+<p class="sidenote">Esempio reale, con ownership <code>BUSINESS_UNIT</code>:
+<code>vendor/oro/platform/src/Oro/Bundle/UserBundle/Entity/User.php</code>, righe 47-65.
+Aggiungere la ownership implica aggiungere le colonne con una migration: non è una modifica solo
+di configurazione.</p>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Cosa aggiunge Oro rispetto agli ACL di Magento?</p>
+  <div class="options">
+    <button class="opt" data-correct>La ownership, cioè il livello di accesso ai record</button>
+    <button class="opt">La possibilità di proteggere le singole azioni</button>
+    <button class="opt">La dichiarazione dei permessi in file di configurazione</button>
+    <button class="opt">L'assegnazione dei permessi ai ruoli degli utenti</button>
+  </div>
+  <p class="explain" hidden>Proteggere azioni e dichiarare permessi li fanno entrambi. La differenza
+  è la ownership: lo stesso permesso vale su un insieme di record diverso a seconda del livello
+  (utente, business unit, divisione, organizzazione), e il filtro è automatico.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quando usi AclAncestor invece di Acl?</p>
+  <div class="options">
+    <button class="opt" data-correct>Quando riusi un permesso già dichiarato altrove</button>
+    <button class="opt">Quando il permesso vale su tutta l'organizzazione</button>
+    <button class="opt">Quando il permesso deve valere solo in lettura</button>
+    <button class="opt">Quando il permesso riguarda una entità estesa</button>
+  </div>
+  <p class="explain" hidden><code>#[Acl]</code> <em>dichiara</em> la risorsa;
+  <code>#[AclAncestor]</code> la <em>riusa</em>. Dichiarare due volte lo stesso id è un errore di
+  configurazione.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Cosa fa is_granted('EDIT', entity) rispetto a is_granted('nome_acl')?</p>
+  <div class="options">
+    <button class="opt" data-correct>Valuta il permesso su quello specifico record</button>
+    <button class="opt">Valuta il permesso sull'intera classe entità</button>
+    <button class="opt">Valuta il permesso ignorando la ownership</button>
+    <button class="opt">Valuta il permesso solo per gli amministratori</button>
+  </div>
+  <p class="explain" hidden>Con un oggetto come secondo argomento entra in gioco la ownership del
+  record: l'utente può avere <code>EDIT</code> sui propri record e non su quelli altrui.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Perché la griglia dichiara acl_resource?</p>
+  <div class="options">
+    <button class="opt" data-correct>Per negare l'accesso ai dati della griglia</button>
+    <button class="opt">Per assegnare la griglia a un ruolo utente</button>
+    <button class="opt">Per filtrare le colonne mostrate all'utente</button>
+    <button class="opt">Per registrare la griglia nel menu laterale</button>
+  </div>
+  <p class="explain" hidden>Senza quella chiave, chiunque possa raggiungere l'URL della griglia ne
+  ottiene i dati, anche se la pagina che la contiene è protetta. La griglia risponde a richieste
+  proprie: va protetta per conto suo.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro livelli di ownership di Oro, dal più stretto al più ampio.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <code>USER</code> → <code>BUSINESS_UNIT</code> → <code>ORGANIZATION</code>, più
+    <code>NONE</code> per le entità che non appartengono a nessuno (permesso globale).
+    Nel codice: <code>OwnershipMetadata</code> nel <code>SecurityBundle</code>.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 5 (spaziatura): dove vivono le griglie dello storefront in
+  Oro 7.0, e perché non in <code>config/oro/</code>?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    In <code>Resources/views/layouts/&lt;tema&gt;/config/datagrids.yml</code>: lo storefront è
+    organizzato per tema, quindi la griglia è una risorsa del tema. In
+    <code>config/oro/datagrids.yml</code> restano le griglie del back-office.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/security/">Oro — Security</a>, in particolare le
+  pagine su ACL e permessi. È una delle sezioni della documentazione Oro scritte meglio, perché il
+  modello di ownership non si deduce dal codice in mezz'ora.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Crea un ruolo «Operatore ERP» dal back-office con solo <code>VIEW</code> sulle mappature.
+  Crea un utente con quel ruolo, entra e verifica: vede la griglia, non vede il pulsante di
+  creazione, e l'URL di creazione risponde 403.</li>
+  <li>Aggiungi la ownership <code>ORGANIZATION</code> all'entità: campo <code>organization</code>
+  verso <code>Oro\Bundle\OrganizationBundle\Entity\Organization</code>, migration per la colonna
+  <code>organization_id</code>, e la sezione <code>ownership</code> nel <code>#[Config]</code>.
+  Verifica che i ruoli mostrino ora il selettore di livello.</li>
+  <li>Domanda da girarmi: quale ownership sceglieresti per una tabella di mappatura ERP in un
+  progetto con una sola organizzazione? Motiva — non c'è una risposta unica, e la discussione vale
+  più della risposta.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 7: estendere il core senza toccarlo.</strong> Eventi Symfony e Doctrine,
+decorazione dei servizi, compiler pass, override dei template. È la lezione che risponde alla
+domanda che ti porti dietro dalla prima riga di questo percorso: «e i plugin di Magento, qui?».</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0005-datagrid.html">Lezione 5</a> ·
+    <a href="0007-estendere-il-core.html">Lezione 7</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/bundle-e-container.html">Reference: bundle e container</a>
+  </p>
+  <p>Se un permesso «non si vede» nella schermata dei ruoli, il problema è quasi sempre la
+  configurazione <code>security</code> sull'entità: scrivimi e controlliamo insieme.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

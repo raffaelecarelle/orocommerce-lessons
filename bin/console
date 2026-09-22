@@ -1,0 +1,22 @@
+#!/usr/bin/env php
+<?php
+
+use Symfony\Bundle\FrameworkBundle\Console\Application;
+
+// if you don't want to set up permissions the proper way, just uncomment the following PHP line
+// read https://symfony.com/doc/current/setup.html#configuration-and-setup for more information
+//umask(0000);
+
+set_time_limit(0);
+
+// Set the project directory as the current working directory
+// for running child processes correctly without specifying the execution directory
+chdir(__DIR__ . DIRECTORY_SEPARATOR . '..');
+
+require_once dirname(__DIR__).'/vendor/autoload_runtime.php';
+
+return function (array $context) {
+    $kernel = new AppKernel($context['ORO_ENV'], (bool) $context['ORO_DEBUG']);
+
+    return new Application($kernel);
+};
