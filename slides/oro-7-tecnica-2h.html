@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OroCommerce 7.0 — sessione tecnica di due ore</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/slides.css">
+</head>
+<body class="deck">
+
+<!-- 01 -->
+<section class="slide">
+  <p class="kicker">Formazione OroCommerce · Sessione tecnica di apertura</p>
+  <h1>OroCommerce 7.0 per sviluppatori</h1>
+  <p class="subtitle">Quindici minuti per capire che cosa sono i tre nomi. Poi solo codice: dove va il vostro, e come si aggancia a quello che c'è già.</p>
+  <p class="meta">
+    <span>Durata: 120 minuti</span>
+    <span>OroCommerce 7.0 CE · Symfony 7.4 · PHP 8.5 · PostgreSQL</span>
+    <span>Pubblico: sviluppatori PHP con esperienza Magento 2</span>
+  </p>
+  <p class="notes">Chiedi subito: chi ha l'ambiente su? Servono due pratiche eseguite. Chi non ce l'ha si mette in coppia adesso, non alle 00:45.</p>
+</section>
+
+<!-- 02 -->
+<section class="slide">
+  <h2>Agenda</h2>
+  <ul class="agenda">
+    <li><span class="t">00:00 – 00:05</span><span>Apertura e controllo ambiente</span></li>
+    <li><span class="t">00:05 – 00:20</span><span><strong>Parte 0</strong> — I tre nomi: OroPlatform, OroCRM, OroCommerce</span></li>
+    <li><span class="t">00:20 – 00:45</span><span><strong>Parte 1</strong> — Dove va il vostro codice: Symfony, bundle, container</span></li>
+    <li><span class="t">00:45 – 01:00</span><span><strong>Pratica 1</strong> — Bundle, servizio, comando che risponde</span></li>
+    <li><span class="t">01:00 – 01:07</span><span>Pausa</span></li>
+    <li><span class="t">01:07 – 01:30</span><span><strong>Parte 2</strong> — Entità, migration, datagrid, ACL</span></li>
+    <li><span class="t">01:30 – 01:45</span><span><strong>Pratica 2</strong> — Tabella creata da voi, elenco in back-office</span></li>
+    <li><span class="t">01:45 – 01:57</span><span><strong>Parte 3</strong> — Estendere il core senza toccarlo</span></li>
+    <li><span class="t">01:57 – 02:00</span><span>Nativo / configurabile / custom, e come si prosegue</span></li>
+  </ul>
+  <p class="notes">Dichiara il patto: due ore non fanno autonomia. Danno la mappa e tolgono i malintesi ereditati da Magento.</p>
+</section>
+
+<!-- 03 -->
+<section class="slide">
+  <h2>Cosa vi portate a casa</h2>
+  <ul>
+    <li>Sapere <strong>dove va il vostro codice</strong>, e perché <code>vendor/oro</code> non si tocca mai.</li>
+    <li>Creare un bundle, registrare un servizio, farlo costruire dal <strong>container</strong>.</li>
+    <li>Creare una tabella con una <strong>migration</strong>, e un elenco filtrabile senza scrivere JavaScript.</li>
+    <li>Scegliere fra <strong>evento, decorazione, compiler pass, override</strong> quando dovete cambiare un comportamento del core.</li>
+  </ul>
+  <div class="box">
+    <p class="box-title">Cosa <em>non</em> vi portate a casa</p>
+    <p>API REST, integrazioni ERP, message queue, workflow, layout dello storefront. Sono nel percorso lungo (lezioni 8-14). Oggi si costruisce la base su cui tutte quelle cose poggiano.</p>
+  </div>
+</section>
+
+<!-- 04 -->
+<section class="slide">
+  <h2>Prima di partire: l'ambiente</h2>
+  <p>Le due pratiche girano sulla vostra installazione. Controllate adesso.</p>
+<pre><code>orobox up
+grep -m1 '"oro/commerce"' composer.json   # deve dire 7.0.*</code></pre>
+  <p>Il comando stampa gli URL veri. Con la configurazione di default esce
+  <code>https://oro.demo:8443/admin</code> — <strong>porta 8443, non 443</strong>.</p>
+  <div class="box warn">
+    <p class="box-title">Se leggete <code>6.1.*</code></p>
+    <p>Gli esempi non torneranno, soprattutto su datagrid dello storefront e attributi PHP. Segnalatelo subito.</p>
+  </div>
+  <p class="notes">Due minuti veri di silenzio. Chi è ancora in installazione lavora in coppia: l'init completo non sta in due ore.</p>
+</section>
+
+<!-- 05 -->
+<section class="slide section-break">
+  <p class="kicker">Parte 0 · 15 minuti</p>
+  <h2>I tre nomi</h2>
+  <p class="subtitle">Che cosa state installando davvero quando scrivete <code>oro/commerce</code>.</p>
+</section>
+
+<!-- 06 -->
+<section class="slide">
+  <h2>Tre strati, non tre prodotti</h2>
+  <p>Non sono tre applicazioni che dialogano. Sono <strong>tre insiemi di bundle Symfony</strong> nella stessa applicazione, nello stesso database, dietro lo stesso kernel.</p>
+  <table>
+    <thead><tr><th>Strato</th><th>Pacchetto</th><th>Bundle</th><th>Cosa porta</th></tr></thead>
+    <tbody>
+      <tr><td><strong>OroPlatform</strong></td><td><code>oro/platform</code></td><td>74</td><td>Entità, sicurezza, datagrid, workflow, API, code, config</td></tr>
+      <tr><td><strong>OroCRM</strong></td><td><code>oro/crm</code> (+ <code>marketing</code>)</td><td>12 + 4</td><td>Account, Contact, Lead, Opportunity, Case, campagne</td></tr>
+      <tr><td><strong>OroCommerce</strong></td><td><code>oro/commerce</code></td><td>36</td><td>Catalogo, listini, RFQ, preventivi, shopping list, checkout</td></tr>
+      <tr><td>Storefront</td><td><code>oro/customer-portal</code></td><td>9</td><td>Il sito pubblico: <code>Customer</code>, <code>Website</code>, tema</td></tr>
+    </tbody>
+  </table>
+  <p class="sidenote">Verificabile ora: <code>ls vendor/oro</code>. Il pacchetto dell'applicazione si chiama <code>oro/commerce-crm-application</code> — il nome dice che i tre strati stanno insieme.</p>
+  <p class="notes">Questa è la slide che toglie la domanda ricorrente «devo installare anche il CRM?». È già lì.</p>
+</section>
+
+<!-- 07 -->
+<section class="slide">
+  <h2>OroPlatform: lo strato che userete di più</h2>
+  <p>È il motore. Non lo vedete nei menu, ma ogni cosa che scriverete lo attraversa.</p>
+  <div class="cols">
+    <div>
+      <h3>Meccanismi che eredita ogni entità</h3>
+      <ul>
+        <li><strong>Entity config</strong> — campi aggiungibili da interfaccia, audit, attività</li>
+        <li><strong>Sicurezza</strong> — ACL con ownership a quattro livelli</li>
+        <li><strong>Datagrid</strong> — elenchi dichiarativi in YAML</li>
+        <li><strong>Workflow</strong> — stati e transizioni dichiarati, non <code>if</code></li>
+      </ul>
+    </div>
+    <div>
+      <h3>Infrastruttura</h3>
+      <ul>
+        <li><strong>API REST</strong> JSON:API generata dalle entità</li>
+        <li><strong>Message queue</strong> — topic e processor</li>
+        <li><strong>Integration bundle</strong> — canale, trasporto, connettore</li>
+        <li><strong>Cron</strong>, import/export, email, allegati</li>
+      </ul>
+    </div>
+  </div>
+  <div class="box">
+    <p class="box-title">La conseguenza pratica</p>
+    <p>Un'entità dichiarata bene eredita gratis griglia, permessi, API e audit. Un'entità dichiarata male li perde tutti insieme. È il motivo per cui la Parte 2 di oggi vale più di quanto sembri.</p>
+  </div>
+</section>
+
+<!-- 08 -->
+<section class="slide">
+  <h2>OroCRM e OroCommerce: cosa aggiungono</h2>
+  <div class="cols">
+    <div>
+      <h3>OroCRM</h3>
+      <p>Il lato relazione, con le entità del ciclo commerciale: <code>Account</code>, <code>Contact</code>, <code>Lead</code>, <code>Opportunity</code>, <code>Case</code>, più i canali di acquisizione (<code>ChannelBundle</code>) e le campagne di marketing.</p>
+      <p>In un progetto B2B serve perché <strong>il compratore esiste prima dell'ordine</strong>: trattativa, preventivo, storico.</p>
+    </div>
+    <div>
+      <h3>OroCommerce</h3>
+      <p>Il lato vendita: catalogo a categorie, unità di misura, listini per cliente, RFQ e preventivi, shopping list multiple, checkout a workflow, inventario.</p>
+      <p>E <code>oro/customer-portal</code>, che porta lo <strong>storefront</strong> con il suo motore di rendering — quello a layout, diverso dal back-office.</p>
+    </div>
+  </div>
+  <p class="sidenote">Le entità dei tre strati sono <em>collegate</em> fra loro: un <code>Customer</code> di commerce può avere un <code>Account</code> CRM. Non sono due database da sincronizzare.</p>
+</section>
+
+<!-- 09 -->
+<section class="slide">
+  <h2>Lo stack, e cosa cambia fra Community ed Enterprise</h2>
+  <div class="cols">
+    <div>
+      <h3>Lo stack di 7.0</h3>
+      <table>
+        <tbody>
+          <tr><td>PHP</td><td><code>~8.5.0</code></td></tr>
+          <tr><td>Framework</td><td>Symfony <strong>7.4</strong></td></tr>
+          <tr><td>ORM</td><td>Doctrine ORM / DBAL</td></tr>
+          <tr><td>Database</td><td>PostgreSQL</td></tr>
+          <tr><td>Front-end admin</td><td>Twig + JS a moduli (webpack)</td></tr>
+          <tr><td>Storefront</td><td>Layout (albero di blocchi)</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>CE vs EE — le due differenze che vi toccano</h3>
+      <table>
+        <tbody>
+          <tr><td>Ricerca</td><td>DB in CE · Elasticsearch in EE</td></tr>
+          <tr><td>Code</td><td>DB in CE · RabbitMQ in EE</td></tr>
+        </tbody>
+      </table>
+      <p>Il codice che scrivete è lo stesso: si dichiara un topic e un processor in entrambe. Cambia il trasporto sotto.</p>
+      <p class="sidenote">JS del back-office: moduli dichiarati in <code>Resources/config/oro/jsmodules.yml</code> e compilati da webpack. <strong>RequireJS non c'è più</strong>: se trovate un articolo che ne parla, è pre-4.2.</p>
+    </div>
+  </div>
+  <div class="box warn">
+    <p class="box-title">Da dire sempre al cliente</p>
+    <p>Multi-sito, magazzini multipli, Elasticsearch: solo Enterprise. In demo si finisce per promettere funzioni che in Community non esistono.</p>
+  </div>
+</section>
+
+<!-- 10 -->
+<section class="slide">
+  <h2>Due trappole di vocabolario, prima del codice</h2>
+  <div class="box warn">
+    <p class="box-title">Uno · <code>Customer</code> è l'azienda</p>
+    <p><code>Customer</code> = l'azienda cliente. <code>Customer User</code> = la persona che fa login. È l'inversione rispetto a Magento, e rovina i documenti di analisi. Ripetetela finché non suona naturale.</p>
+  </div>
+  <div class="box warn">
+    <p class="box-title">Due · Due mondi, non due menu</p>
+    <p><strong>Back-office</strong> (<code>/admin</code>) e <strong>storefront</strong> sono due applicazioni dentro la stessa installazione: due firewall, due sistemi di utenti (<code>User</code> / <code>CustomerUser</code>), due motori di rendering, due posti dove si dichiara un datagrid.</p>
+  </div>
+  <p class="notes">Se in aula passa solo una cosa della Parte 0, che sia questa slide. Le altre si recuperano leggendo.</p>
+</section>
+
+<!-- 11 -->
+<section class="slide section-break">
+  <p class="kicker">Parte 1 · 25 minuti</p>
+  <h2>Dove va il vostro codice</h2>
+  <p class="subtitle">Symfony sotto, il bundle come contenitore, il container che costruisce gli oggetti.</p>
+</section>
+
+<!-- 12 -->
+<section class="slide">
+  <h2>Oro è un'applicazione Symfony</h2>
+  <p>Non un framework proprietario con Symfony dentro. <strong>Symfony è l'applicazione</strong>: kernel, container, eventi, routing, Twig, Doctrine sono quelli standard, documentati su symfony.com.</p>
+  <ul>
+    <li>Quello che Oro aggiunge sta <em>sopra</em>: entity config, ACL con ownership, datagrid, workflow, layout.</li>
+    <li>Quando un comportamento vi sfugge, la domanda è sempre: <em>è Symfony o è Oro?</em> Cambia dove cercare la documentazione.</li>
+    <li>Imparare Symfony non è un costo accessorio del progetto. È il progetto.</li>
+  </ul>
+  <div class="box source">
+    <p class="box-title">La prova in dieci secondi</p>
+<pre><code>grep -m1 VERSION vendor/symfony/http-kernel/Kernel.php</code></pre>
+  </div>
+  <p class="notes">Chi viene da Magento cerca istintivamente il framework proprietario. Qui non c'è, ed è una buona notizia: la documentazione è enormemente più ampia.</p>
+</section>
+
+<!-- 13 -->
+<section class="slide">
+  <h2>Da Magento 2 a Oro 7.0 — il ponte</h2>
+  <table>
+    <thead><tr><th>Concetto</th><th>Magento 2</th><th>Oro 7.0</th></tr></thead>
+    <tbody>
+      <tr><td>Unità di codice</td><td>Modulo</td><td>Bundle</td></tr>
+      <tr><td>Dichiarazione</td><td><code>etc/module.xml</code> + <code>registration.php</code></td><td><code>Resources/config/oro/bundles.yml</code> + classe <code>*Bundle</code></td></tr>
+      <tr><td>Abilitazione</td><td><code>app/etc/config.php</code></td><td>Nessun file da editare: la presenza di <code>bundles.yml</code> <em>è</em> l'abilitazione</td></tr>
+      <tr><td>Ordine di caricamento</td><td><code>&lt;sequence&gt;</code></td><td><code>priority</code> in <code>bundles.yml</code></td></tr>
+      <tr><td>Dipendenze / DI</td><td><code>etc/di.xml</code></td><td><code>Resources/config/services.yml</code></td></tr>
+      <tr><td>Schema</td><td><code>etc/db_schema.xml</code></td><td>Classe PHP in <code>Migrations/Schema/</code></td></tr>
+      <tr><td>Rendere effettivo</td><td><code>bin/magento setup:upgrade</code></td><td><code>orobox console cache:clear</code></td></tr>
+    </tbody>
+  </table>
+  <p class="sidenote">Il ponte serve solo dove accorcia la strada. Nella slide dopo si rompe, ed è il punto più importante della giornata.</p>
+</section>
+
+<!-- 14 -->
+<section class="slide">
+  <h2>Dove il ponte si rompe: i plugin non esistono</h2>
+  <p>In Magento aggiungete comportamento con un <strong>plugin</strong>: intercettate «il metodo X della classe Y» dichiarandolo in un file XML. <strong>In Symfony quel meccanismo non c'è</strong>, e nessun bundle Oro lo reintroduce.</p>
+  <p>Al suo posto quattro strumenti diversi, e la competenza consiste nello scegliere:</p>
+  <ul class="pillars">
+    <li><strong>Evento</strong> — il core ha già dichiarato una porta in quel punto</li>
+    <li><strong>Decorazione</strong> — prendete il posto di un servizio e delegate il resto</li>
+    <li><strong>Compiler pass</strong> — cambiate la definizione del servizio a compile time</li>
+    <li><strong>Override</strong> — di un template o di un file di configurazione</li>
+  </ul>
+  <p>Li vediamo nella Parte 3. Per ora tenete la conseguenza: <em>a volte la risposta corretta è «quel punto non è estendibile, serve un'altra strada»</em>.</p>
+  <p class="notes">Aspettati resistenza qui. È la perdita più dolorosa per chi arriva da Magento. Non minimizzarla: è davvero meno comodo, ed è deliberato.</p>
+</section>
+
+<!-- 15 -->
+<section class="slide">
+  <h2>Come Oro scopre il vostro codice</h2>
+  <p>In Symfony puro i bundle si registrano a mano in <code>config/bundles.php</code>. <strong>Oro non fa così</strong>: il kernel scandisce <code>src/</code> e <code>vendor/</code> cercando i file <code>Resources/config/oro/bundles.yml</code> e registra quello che trova.</p>
+<pre><code>grep -n "bundles.yml" \
+  vendor/oro/platform/src/Oro/Bundle/DistributionBundle/OroKernel.php</code></pre>
+  <div class="cols">
+    <div>
+      <h3>I tre metodi da conoscere</h3>
+      <ul>
+        <li><code>collectBundles()</code> — definisce le due radici della scansione</li>
+        <li><code>findBundles()</code> — raccoglie i <code>bundles.yml</code></li>
+        <li><code>compareBundles()</code> — ordina per <code>priority</code> <strong>crescente</strong>, poi alfabetico</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Perché la priorità è crescente</h3>
+      <p>I bundle del core usano numeri negativi (<code>OroUIBundle</code>: <code>-120</code>). Il vostro parte positivo e viene caricato <em>dopo</em>: la posizione giusta per chi deve sovrascrivere risorse del core, non subirle.</p>
+      <p class="sidenote"><code>orobox</code> scaffolda <code>30</code>, la documentazione ufficiale usa <code>255</code>. Entrambe vanno bene: sono solo posizioni diverse nella coda.</p>
+    </div>
+  </div>
+  <p class="notes">Molti esempi Symfony online dicono di editare <code>config/bundles.php</code>. In Oro non serve e non è il posto giusto: dillo esplicitamente, altrimenti ci provano.</p>
+</section>
+
+<!-- 16 -->
+<section class="slide">
+  <h2>Anatomia di un bundle: cinque file</h2>
+  <p><code>orobox create bundle</code> ne genera cinque. Sono gli stessi cinque che trovate in qualunque bundle di <code>vendor/oro</code>.</p>
+  <table>
+    <thead><tr><th>File</th><th>Ruolo</th></tr></thead>
+    <tbody>
+      <tr><td><code>AcmeDemoBundle.php</code></td><td>La classe del bundle. Estende <code>Bundle</code>, di solito resta vuota. Punto di aggancio per nome, percorso, compiler pass.</td></tr>
+      <tr><td><code>DependencyInjection/AcmeDemoExtension.php</code></td><td>Eseguita quando il container si compila: carica i file dei servizi. Symfony la trova per convenzione di nome.</td></tr>
+      <tr><td><code>DependencyInjection/Configuration.php</code></td><td>Albero di configurazione semantica del bundle. Ignoratela finché non serve.</td></tr>
+      <tr><td><code>Resources/config/services.yml</code></td><td>Le definizioni dei servizi. È il vostro <code>di.xml</code>.</td></tr>
+      <tr><td><code>Resources/config/oro/bundles.yml</code></td><td>La dichiarazione che rende il bundle visibile al kernel.</td></tr>
+    </tbody>
+  </table>
+  <p class="sidenote">Il bundle vive in <code>src/</code>, già in autoload PSR-4 grazie al <code>composer.json</code> dello skeleton: <code>"psr-4": {"": "src/"}</code>.</p>
+</section>
+
+<!-- 17 -->
+<section class="slide">
+  <h2>Il container, e perché <code>autowire: false</code></h2>
+  <p>Il <strong>container</strong> è l'oggetto che sa costruire tutti gli altri oggetti. Non viene interpretato a runtime: viene <strong>compilato in PHP</strong> dentro <code>var/cache/</code>. Da qui la regola per sempre: modifica a un file di configurazione → <code>cache:clear</code>.</p>
+  <div class="cols">
+    <div>
+      <h3>Lo <code>services.yml</code> generato</h3>
+<pre><code>services:
+    _defaults:
+        autowire: false
+        autoconfigure: false
+        public: false</code></pre>
+      <p>Tre scelte deliberate, seguite da tutto il codice Oro: ogni argomento si dichiara, ogni tag si scrive, i servizi si ottengono per injection.</p>
+    </div>
+    <div>
+      <h3>La sintassi, tutta qui</h3>
+      <ul>
+        <li><code>'@id.del.servizio'</code> — inietta un altro servizio</li>
+        <li><code>'%parametro%'</code> — inietta un parametro</li>
+        <li>stringa qualsiasi — valore letterale</li>
+        <li><code>tags:</code> — «questo servizio partecipa a un meccanismo»</li>
+      </ul>
+      <p class="sidenote">Come id, Oro 7.0 usa quasi sempre il FQCN. Gli id vecchio stile (<code>oro_cron.cron_helper</code>) sono legacy: non imitateli.</p>
+    </div>
+  </div>
+  <div class="box win">
+    <p class="box-title">Buona notizia per chi viene da Magento</p>
+    <p>È esattamente la disciplina esplicita di <code>di.xml</code>, non la magia implicita dei tutorial Symfony.</p>
+  </div>
+</section>
+
+<!-- 18 -->
+<section class="slide section-break hands-on">
+  <p class="kicker">Pratica 1 · 15 minuti</p>
+  <h2>Bundle, servizio, comando</h2>
+  <p class="subtitle">Alla fine avete un comando vostro che gira nel container e stampa una stringa prodotta da un servizio vostro.</p>
+</section>
+
+<!-- 19 -->
+<section class="slide hands-on">
+  <h2>Pratica 1 — generare e far scoprire</h2>
+  <ol>
+    <li>Dalla radice del progetto:
+<pre><code>orobox create bundle 'Algoritma\Bundle\TrainingBundle'</code></pre>
+      <p class="sidenote">Gli apici singoli servono: senza, la shell si mangia i backslash.</p>
+    </li>
+    <li>Fatelo scoprire da Oro e verificate:
+<pre><code>orobox console cache:clear
+orobox console debug:container --parameter=kernel.bundles --format=json | grep Training</code></pre>
+      <p class="sidenote">Atteso: una riga con <code>"AlgoritmaTrainingBundle"</code>. Se manca, il bundle non è registrato: controllate <code>Resources/config/oro/bundles.yml</code>.</p>
+    </li>
+    <li>Il servizio, in <code>src/Algoritma/Bundle/TrainingBundle/Provider/GreetingProvider.php</code>:
+<pre><code>class GreetingProvider
+{
+    public function __construct(private string $appName) {}
+
+    public function greet(string $who): string
+    {
+        return sprintf('Ciao %s, qui %s.', $who, $this-&gt;appName);
+    }
+}</code></pre>
+    </li>
+  </ol>
+  <p class="notes">Passo 2 è il momento didattico: nessuno ha editato un file di registrazione, eppure il bundle c'è. Fermati un attimo su questo.</p>
+</section>
+
+<!-- 20 -->
+<section class="slide hands-on">
+  <h2>Pratica 1 — il comando, e il tag che lo attiva</h2>
+  <div class="cols">
+    <div>
+      <h3><code>Command/HelloCommand.php</code></h3>
+<pre><code>#[AsCommand(
+    name: 'algoritma:training:hello',
+    description: 'Primo comando del percorso.'
+)]
+class HelloCommand extends Command
+{
+    public function __construct(
+        private GreetingProvider $greetingProvider
+    ) {
+        parent::__construct();
+    }
+
+    protected function execute(
+        InputInterface $input,
+        OutputInterface $output
+    ): int {
+        $output-&gt;writeln(
+            $this-&gt;greetingProvider-&gt;greet('mondo')
+        );
+
+        return Command::SUCCESS;
+    }
+}</code></pre>
+    </div>
+    <div>
+      <h3><code>Resources/config/services.yml</code></h3>
+<pre><code>services:
+    _defaults:
+        autowire: false
+        autoconfigure: false
+        public: false
+
+    Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider:
+        arguments:
+            - '%kernel.environment%'
+
+    Algoritma\Bundle\TrainingBundle\Command\HelloCommand:
+        arguments:
+            - '@Algoritma\Bundle\TrainingBundle\Provider\GreetingProvider'
+        tags:
+            - { name: console.command }</code></pre>
+      <h3>Verifica</h3>
+<pre><code>orobox console cache:clear
+orobox console algoritma:training:hello</code></pre>
+      <p class="sidenote">Atteso: <code>Ciao mondo, qui dev.</code></p>
+    </div>
+  </div>
+  <div class="box warn">
+    <p class="box-title">Il dettaglio che sorprende</p>
+    <p>L'attributo <code>#[AsCommand]</code> da solo non basta: con <code>autoconfigure: false</code> serve <strong>anche</strong> il tag <code>console.command</code>. Il core fa lo stesso — vedi <code>CronBundle/Command/CronCommand.php</code> più <code>Resources/config/commands.yml</code>.</p>
+  </div>
+</section>
+
+<!-- 21 -->
+<section class="slide section-break">
+  <p class="kicker">01:00 – 01:07</p>
+  <h2>Pausa</h2>
+  <p class="subtitle">Chi è rimasto indietro sulla Pratica 1 recupera adesso, in coppia.</p>
+</section>
+
+<!-- 22 -->
+<section class="slide section-break">
+  <p class="kicker">Parte 2 · 23 minuti</p>
+  <h2>Entità, migration, griglia, permessi</h2>
+  <p class="subtitle">Il ciclo completo: un dato che esiste, si elenca e si protegge.</p>
+</section>
+
+<!-- 23 -->
+<section class="slide">
+  <h2>Il salto da Magento: Doctrine è un Data Mapper</h2>
+  <table>
+    <thead><tr><th>Magento 2</th><th>Oro / Doctrine</th></tr></thead>
+    <tbody>
+      <tr><td><code>Model</code> (dati + logica + persistenza)</td><td><strong>Entità</strong>: solo dati e comportamento di dominio. Non sa salvarsi.</td></tr>
+      <tr><td><code>ResourceModel</code></td><td><code>EntityManager</code>: <code>persist</code> / <code>flush</code> / <code>remove</code> per tutte le entità</td></tr>
+      <tr><td><code>Collection</code></td><td><code>EntityRepository</code> + <code>QueryBuilder</code> (DQL)</td></tr>
+      <tr><td><code>etc/db_schema.xml</code></td><td>Classe di migration PHP in <code>Migrations/Schema/</code></td></tr>
+      <tr><td><code>setup:upgrade</code></td><td><code>oro:migration:load --force</code></td></tr>
+    </tbody>
+  </table>
+  <div class="box">
+    <p class="box-title">La differenza che conta</p>
+    <p>Non esiste <code>$model-&gt;save()</code>. Voi modificate oggetti PHP normali; al <code>flush()</code> Doctrine calcola le query. Un oggetto <em>caricato</em> e poi modificato viene salvato anche senza <code>persist()</code>: <code>persist()</code> serve solo per gli oggetti nuovi.</p>
+  </div>
+</section>
+
+<!-- 24 -->
+<section class="slide">
+  <h2>Un'entità in Oro 7.0</h2>
+  <div class="cols">
+    <div>
+      <p>Mapping con <strong>attributi PHP</strong> (le annotation sono superate).</p>
+<pre><code>#[ORM\Entity(repositoryClass: ErpMappingRepository::class)]
+#[ORM\Table(name: 'algoritma_erp_mapping')]
+#[Config(defaultValues: [
+    'entity' =&gt; ['icon' =&gt; 'fa-exchange']
+])]
+class ErpMapping
+{
+    #[ORM\Column(name: 'id', type: Types::INTEGER)]
+    #[ORM\Id]
+    #[ORM\GeneratedValue(strategy: 'AUTO')]
+    protected ?int $id = null;
+
+    #[ORM\Column(name: 'erp_code', type: Types::STRING, length: 64)]
+    protected ?string $erpCode = null;
+}</code></pre>
+    </div>
+    <div>
+      <h3>L'attributo che è solo di Oro</h3>
+      <p><code>#[Config]</code> (<code>Oro\Bundle\EntityConfigBundle\Metadata\Attribute\Config</code>) registra l'entità nel sistema di <strong>entity config</strong>: icona, ownership, campi aggiungibili da interfaccia, audit, attività.</p>
+      <div class="box warn">
+        <p class="box-title">Senza <code>#[Config]</code></p>
+        <p>L'entità esiste per Doctrine ma resta <strong>invisibile ai meccanismi Oro</strong>. Niente ownership, niente audit, niente campi da interfaccia.</p>
+      </div>
+      <p class="sidenote">Modello reale minimo: <code>vendor/oro/platform/src/Oro/Bundle/AddressBundle/Entity/Address.php</code>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 25 -->
+<section class="slide">
+  <h2>La migration: lo schema è codice</h2>
+  <p>Doctrine sa generare lo schema dalle entità, ma <strong>in Oro <code>doctrine:schema:update</code> non si usa mai</strong>. Lo schema si dichiara in classi che Oro esegue in ordine e registra in tabella, così ogni ambiente arriva allo stesso stato.</p>
+  <div class="cols">
+    <div>
+      <h3>Due tipi di classe</h3>
+      <ul>
+        <li><strong>Installer</strong> (<code>implements Installation</code>): crea lo schema da zero, e dichiara a quale versione corrisponde con <code>getMigrationVersion()</code></li>
+        <li><strong>Migration</strong> (<code>implements Migration</code>), in cartelle <code>v1_0</code>, <code>v1_1</code>, …: modifica incrementale</li>
+      </ul>
+      <p class="sidenote">Modelli nel core: <code>CronBundle/Migrations/Schema/OroCronBundleInstaller.php</code> e <code>.../v1_3/OroCronBundle.php</code>.</p>
+    </div>
+    <div>
+      <h3>Regola pratica di progetto</h3>
+      <p>Prima della produzione: tenete solo l'installer e ricreate il database.</p>
+      <p>Dal primo deploy in poi: ogni modifica di schema è una <strong>nuova classe in una nuova cartella <code>vN_M</code></strong>, e l'installer si aggiorna per restare allineato.</p>
+      <p>Se modificate una migration già eseguita, quella modifica <strong>non verrà mai applicata</strong>: Oro ricorda cosa ha già eseguito.</p>
+    </div>
+  </div>
+</section>
+
+<!-- 26 -->
+<section class="slide">
+  <h2>Le trappole dei primi giorni</h2>
+  <table>
+    <thead><tr><th>Trappola</th><th>Cosa succede</th></tr></thead>
+    <tbody>
+      <tr><td>Usare <code>doctrine:schema:update</code></td><td>Funziona sul vostro portatile e diverge da tutti gli altri ambienti</td></tr>
+      <tr><td>Dimenticare <code>flush()</code></td><td>Nessun errore, nessun dato. <code>persist()</code> registra l'intenzione, <code>flush()</code> esegue</td></tr>
+      <tr><td>Nomi di colonna nel DQL</td><td><code>m.synced_at</code> non esiste: nel DQL si usa il nome della proprietà, <code>m.syncedAt</code></td></tr>
+      <tr><td>Nomi di proprietà nella migration</td><td>Nella migration siete al livello del database: nomi di colonna e tipi DBAL. I due livelli combaciano a mano</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn">
+    <p class="box-title">Verificato sul campo: cancellare un'entità non basta</p>
+    <p>Cancellare un bundle con un'entità <code>#[Config]</code> rompe <code>cache:clear</code> con <code>Class "…\Entity\X" does not exist</code>: l'entità resta registrata in <code>oro_entity_config</code>. Servono tre delete, <strong>in quest'ordine</strong>: <code>oro_entity_config_index_value</code>, poi <code>oro_entity_config_field</code>, poi <code>oro_entity_config</code>.</p>
+  </div>
+  <p class="notes">Questa è successa davvero preparando il materiale. Raccontala come incidente, non come nota a piè di pagina: si ricorda meglio.</p>
+</section>
+
+<!-- 27 -->
+<section class="slide">
+  <h2>Datagrid: una griglia senza JavaScript</h2>
+  <p>Nel back-office quasi ogni elenco è un datagrid. L'idea è la stessa dei Ui Component di Magento — una griglia descritta in configurazione — ma <strong>la query vive dentro la configurazione</strong>, in forma dichiarativa, invece di stare in una classe DataProvider.</p>
+  <div class="cols">
+    <div>
+      <h3>Sei sezioni, sempre nello stesso ordine</h3>
+      <table>
+        <tbody>
+          <tr><td><code>source</code></td><td>Da dove arrivano i dati (tipo <code>orm</code> + query)</td></tr>
+          <tr><td><code>columns</code></td><td>Cosa vede l'utente, e come è formattato</td></tr>
+          <tr><td><code>sorters</code></td><td>Su cosa può ordinare</td></tr>
+          <tr><td><code>filters</code></td><td>Su cosa può filtrare</td></tr>
+          <tr><td><code>properties</code></td><td>Valori non visibili usati dalle azioni</td></tr>
+          <tr><td><code>actions</code></td><td>Cosa può fare su una riga, con quale permesso</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div>
+      <h3>Dove vive il file</h3>
+      <table>
+        <tbody>
+          <tr><td>Back-office</td><td><code>Resources/config/oro/datagrids.yml</code></td></tr>
+          <tr><td>Storefront</td><td><code>Resources/views/layouts/&lt;tema&gt;/config/datagrids.yml</code></td></tr>
+        </tbody>
+      </table>
+      <div class="box warn">
+        <p class="box-title">Cambio da tenere a mente</p>
+        <p>Le griglie dello storefront sono definite <strong>a livello di tema</strong>. Molti articoli per versioni precedenti mostrano tutto in <code>config/oro/</code>: per lo storefront è la posizione sbagliata.</p>
+      </div>
+    </div>
+  </div>
+  <p class="sidenote">Modello completo e leggibile: <code>vendor/oro/platform/src/Oro/Bundle/TagBundle/Resources/config/oro/datagrids.yml</code> — query con join, colonna calcolata, filtri di tre tipi, tre azioni.</p>
+</section>
+
+<!-- 28 -->
+<section class="slide">
+  <h2>ACL: il pezzo che Magento non ha</h2>
+  <p>In Magento avete <code>acl.xml</code> e un controllo per azione. Oro ha quello — <strong>e in più un modello di ownership</strong>: ogni record appartiene a un utente, a una business unit o a un'organizzazione, e lo stesso permesso può essere concesso a livelli diversi. Il filtro sui record avviene <strong>automaticamente</strong>, anche nelle griglie e nelle API.</p>
+  <table>
+    <thead><tr><th>Pezzo</th><th>Dove si dichiara</th><th>Cosa decide</th></tr></thead>
+    <tbody>
+      <tr><td>Risorsa ACL</td><td><code>Resources/config/oro/acls.yml</code> o attributo <code>#[Acl]</code></td><td>Il nome del permesso, su quale entità e operazione</td></tr>
+      <tr><td>Permessi</td><td>Standard: <code>VIEW CREATE EDIT DELETE ASSIGN</code></td><td>Il verbo</td></tr>
+      <tr><td>Ownership</td><td><code>#[Config(defaultValues: ['ownership' =&gt; …])]</code></td><td>Il livello a cui un ruolo esercita quel verbo</td></tr>
+    </tbody>
+  </table>
+  <p>I quattro livelli sono costanti in <code>SecurityBundle/Owner/Metadata/OwnershipMetadata.php</code>: <code>NONE</code>, <code>ORGANIZATION</code>, <code>BUSINESS_UNIT</code>, <code>USER</code>.</p>
+</section>
+
+<!-- 29 -->
+<section class="slide">
+  <h2>Dichiarare e verificare un permesso</h2>
+  <div class="cols">
+    <div>
+      <h3>Dichiarare — <code>acls.yml</code></h3>
+<pre><code>acls:
+    algoritma_erp_mapping_view:
+        type: entity
+        class: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        permission: VIEW
+        group_name: ""</code></pre>
+      <h3>Oppure sull'azione</h3>
+<pre><code>#[Acl(
+    id: 'algoritma_erp_mapping_view',
+    type: 'entity',
+    class: ErpMapping::class,
+    permission: 'VIEW'
+)]
+public function indexAction(): array
+
+#[AclAncestor('algoritma_erp_mapping_view')]
+public function exportAction(): Response</code></pre>
+    </div>
+    <div>
+      <h3>Verificare — Twig e PHP</h3>
+<pre><code>{% if is_granted('algoritma_erp_mapping_create') %}
+    {{ UI.addButton({...}) }}
+{% endif %}
+
+{# permesso su uno specifico record #}
+{% if is_granted('EDIT', entity) %}</code></pre>
+<pre><code>if (!$this-&gt;authorizationChecker
+        -&gt;isGranted('EDIT', $mapping)) {
+    throw $this-&gt;createAccessDeniedException();
+}</code></pre>
+      <div class="box">
+        <p class="box-title">Due domande diverse</p>
+        <p><code>is_granted('nome_acl')</code> chiede «ha questo permesso in generale?». <code>is_granted('EDIT', $record)</code> chiede «su questo record?» — ed è lì che entra la ownership.</p>
+      </div>
+    </div>
+  </div>
+  <p class="sidenote">Regola pratica: <code>#[Acl]</code> nel punto dove il permesso nasce, <code>#[AclAncestor]</code> ovunque si riusi. Se serve anche fuori dai controller (per esempio in un datagrid), <code>acls.yml</code>.</p>
+</section>
+
+<!-- 30 -->
+<section class="slide section-break hands-on">
+  <p class="kicker">Pratica 2 · 15 minuti</p>
+  <h2>Tabella vostra, elenco in back-office</h2>
+  <p class="subtitle">Una mappatura ERP → SKU Oro: la tabella che scriverete davvero al primo progetto di integrazione.</p>
+</section>
+
+<!-- 31 -->
+<section class="slide hands-on">
+  <h2>Pratica 2 — entità e installer</h2>
+  <div class="cols">
+    <div>
+      <h3>1 · <code>Entity/ErpMapping.php</code></h3>
+      <p>Quattro colonne, più getter e setter:</p>
+<pre><code>#[ORM\Entity]
+#[ORM\Table(name: 'algoritma_erp_mapping')]
+#[Config(defaultValues: [
+    'entity' =&gt; ['icon' =&gt; 'fa-exchange']
+])]
+class ErpMapping
+{
+    // id        integer, auto
+    // erpCode   string(64)
+    // oroSku    string(255)
+    // syncedAt  datetime, nullable
+}</code></pre>
+    </div>
+    <div>
+      <h3>2 · <code>Migrations/Schema/AlgoritmaTrainingBundleInstaller.php</code></h3>
+<pre><code>class AlgoritmaTrainingBundleInstaller implements Installation
+{
+    #[\Override]
+    public function getMigrationVersion(): string
+    {
+        return 'v1_0';
+    }
+
+    #[\Override]
+    public function up(Schema $schema, QueryBag $queries): void
+    {
+        if ($schema-&gt;hasTable('algoritma_erp_mapping')) {
+            return;
+        }
+
+        $table = $schema-&gt;createTable('algoritma_erp_mapping');
+        $table-&gt;addColumn('id', 'integer', ['autoincrement' =&gt; true]);
+        $table-&gt;addColumn('erp_code', 'string', ['length' =&gt; 64]);
+        $table-&gt;addColumn('oro_sku', 'string', ['length' =&gt; 255]);
+        $table-&gt;addColumn('synced_at', 'datetime', ['notnull' =&gt; false]);
+        $table-&gt;setPrimaryKey(['id']);
+        $table-&gt;addUniqueIndex(['erp_code'], 'uniq_algoritma_erp_code');
+    }
+}</code></pre>
+    </div>
+  </div>
+  <p class="notes">Fai notare il passaggio di livello: sopra nomi di proprietà, sotto nomi di colonna. Nessuno verifica che combacino.</p>
+</section>
+
+<!-- 32 -->
+<section class="slide hands-on">
+  <h2>Pratica 2 — eseguire, e la griglia</h2>
+  <div class="cols">
+    <div>
+      <h3>3 · Eseguire la migration</h3>
+<pre><code>orobox console cache:clear
+orobox console oro:migration:load --dry-run
+orobox console oro:migration:load --force</code></pre>
+      <p><code>--dry-run</code> elenca senza toccare il database. <code>--force</code> è l'interruttore di sicurezza: senza, il comando esce e non fa nulla.</p>
+      <h3>4 · Verificare lo schema</h3>
+<pre><code>orobox console doctrine:query:sql \
+  "SELECT * FROM algoritma_erp_mapping"</code></pre>
+      <p class="sidenote">Atteso: zero righe, nessun errore. Se la tabella non esiste, la migration non è stata raccolta: controllate il percorso <code>Migrations/Schema/</code>.</p>
+    </div>
+    <div>
+      <h3>5 · <code>Resources/config/oro/datagrids.yml</code></h3>
+<pre><code>datagrids:
+    algoritma-erp-mapping-grid:
+        options:
+            entityHint: mappature ERP
+        source:
+            type: orm
+            query:
+                select:
+                    - m.id
+                    - m.erpCode
+                    - m.oroSku
+                    - m.syncedAt
+                from:
+                    - { table: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping, alias: m }
+        columns:
+            erpCode:  { label: Codice ERP, type: field, frontend_type: string }
+            oroSku:   { label: SKU Oro, type: field, frontend_type: string }
+            syncedAt: { label: Sincronizzata, type: field, frontend_type: datetime }
+        sorters:
+            columns:
+                syncedAt: { data_name: m.syncedAt }
+            default:
+                syncedAt: DESC
+        filters:
+            columns:
+                erpCode: { type: string, data_name: m.erpCode }</code></pre>
+    </div>
+  </div>
+  <div class="box warn">
+    <p class="box-title">Manca una riga, di proposito</p>
+    <p>Questa griglia non ha <code>acl_resource</code>. In un progetto reale è un <strong>errore di sicurezza</strong>, non una scorciatoia: si aggiunge appena esistono i permessi (lezione 6). Qui serve solo a farla girare senza il controller e gli ACL.</p>
+  </div>
+</section>
+
+<!-- 33 -->
+<section class="slide section-break">
+  <p class="kicker">Parte 3 · 12 minuti</p>
+  <h2>Estendere il core senza toccarlo</h2>
+  <p class="subtitle">Da qui in poi il lavoro vero non è aggiungere: è cambiare come si comporta qualcosa che esiste già.</p>
+</section>
+
+<!-- 34 -->
+<section class="slide">
+  <h2>I quattro strumenti, in ordine di preferenza</h2>
+  <table>
+    <thead><tr><th>Strumento</th><th>Quando</th><th>Costo di manutenzione</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Evento</strong></td><td>Il core pubblica già un evento nel punto che vi interessa</td><td>Minimo: è un punto di estensione dichiarato</td></tr>
+      <tr><td><strong>Decorazione</strong></td><td>Dovete cambiare il comportamento di un servizio esistente</td><td>Basso, ma vi legate all'interfaccia</td></tr>
+      <tr><td><strong>Compiler pass</strong></td><td>Dovete modificare la <em>definizione</em> di un servizio a compile time</td><td>Medio: agite sul container</td></tr>
+      <tr><td><strong>Override di template</strong></td><td>Dovete cambiare solo cosa si vede</td><td>Alto: il template del core cambia agli upgrade</td></tr>
+    </tbody>
+  </table>
+  <p>Prima di scegliere, la domanda è sempre la stessa: <strong>il core mi ha già lasciato una porta?</strong></p>
+<pre><code>orobox console debug:event-dispatcher | grep -i order
+grep -rn "dispatch(" vendor/oro/commerce/src/Oro/Bundle/OrderBundle/ | head -20</code></pre>
+  <p class="notes">Insisti sull'ordine. Chi arriva da Magento salta direttamente all'override del template, che è lo strumento più costoso di tutti.</p>
+</section>
+
+<!-- 35 -->
+<section class="slide">
+  <h2>Eventi: un servizio più un tag</h2>
+  <div class="cols">
+    <div>
+      <h3>La forma</h3>
+<pre><code>Algoritma\Bundle\TrainingBundle\EventListener\MyListener:
+    arguments:
+        - '@logger'
+    tags:
+        - { name: kernel.event_listener,
+            event: kernel.request,
+            method: onKernelRequest }</code></pre>
+      <h3>Gli eventi di Doctrine</h3>
+<pre><code>tags:
+    # tutte le entità, a ogni flush
+    - { name: doctrine.event_listener, event: onFlush }
+
+    # una sola entità, dopo la rimozione
+    - { name: doctrine.orm.entity_listener,
+        entity: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping,
+        event: postRemove }</code></pre>
+      <p class="sidenote">Il secondo è quasi sempre la scelta giusta: più mirato, più veloce, più leggibile.</p>
+    </div>
+    <div>
+      <h3>Eventi Oro che userete presto</h3>
+      <table>
+        <tbody>
+          <tr><td><code>oro_datagrid.datagrid.build.pre</code></td><td>Prima che la configurazione della griglia sia costruita: potete modificarla</td></tr>
+          <tr><td><code>oro_datagrid.datagrid.build.after</code></td><td>Dopo: avete in mano la griglia e la sua query</td></tr>
+          <tr><td><code>…build.after.&lt;nome-griglia&gt;</code></td><td>Come sopra, ma solo per una griglia</td></tr>
+        </tbody>
+      </table>
+      <div class="box">
+        <p class="box-title">La variante col nome in coda</p>
+        <p>È il modo per non eseguire il listener su <em>tutte</em> le griglie dell'applicazione. Le costanti stanno in <code>DataGridBundle/Event/PreBuild.php</code> e <code>BuildAfter.php</code>.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 36 -->
+<section class="slide">
+  <h2>Decorazione: il sostituto del plugin «around»</h2>
+  <div class="cols">
+    <div>
+      <h3>Magento 2 — plugin <code>around</code></h3>
+<pre><code>public function aroundValidate(
+    Subject $subject,
+    callable $proceed,
+    $value
+) {
+    if ($this-&gt;isSpecial($value)) {
+        return true;
+    }
+
+    return $proceed($value);
+}</code></pre>
+    </div>
+    <div>
+      <h3>Oro / Symfony — decorazione</h3>
+<pre><code>class MyValidator implements ValidatorInterface
+{
+    public function __construct(
+        private ValidatorInterface $inner
+    ) {}
+
+    public function validate($value): bool
+    {
+        if ($this-&gt;isSpecial($value)) {
+            return true;
+        }
+
+        return $this-&gt;inner-&gt;validate($value);
+    }
+}</code></pre>
+<pre><code>Algoritma\Bundle\TrainingBundle\Validator\MyValidator:
+    decorates: oro_attachment.protocol_validator
+    arguments:
+        - '@.inner'</code></pre>
+    </div>
+  </div>
+  <div class="box warn">
+    <p class="box-title">Le due differenze che contano</p>
+    <p><strong>Uno:</strong> decorate un <em>servizio</em>, non una classe. Se il codice da cambiare è un <code>new</code> dentro un metodo, la decorazione non serve a nulla. <strong>Due:</strong> dovete rispettare l'interfaccia — non si intercetta «solo un metodo»: prendete il posto dell'altro per intero e delegate quello che non cambiate.</p>
+  </div>
+</section>
+
+<!-- 37 -->
+<section class="slide">
+  <h2>Compiler pass e override, in breve</h2>
+  <div class="cols">
+    <div>
+      <h3>Compiler pass</h3>
+      <p>Quando dovete cambiare un argomento, togliere un tag, sostituire una classe — e la decorazione non basta. Si aggancia dalla classe del bundle:</p>
+<pre><code>class AlgoritmaTrainingBundle extends Bundle
+{
+    #[\Override]
+    public function build(ContainerBuilder $container): void
+    {
+        parent::build($container);
+        $container-&gt;addCompilerPass(new MyPass());
+    }
+}</code></pre>
+      <p class="sidenote">Struttura identica a <code>DataGridBundle/OroDataGridBundle.php</code>. Potente e invasivo: usatelo quando le prime due strade sono chiuse.</p>
+    </div>
+    <div>
+      <h3>Override di un template</h3>
+      <p>Per cambiare solo la resa grafica: copiate il template del core sotto <code>templates/bundles/</code> nella radice del progetto, mantenendo il percorso.</p>
+<pre><code>vendor/oro/platform/src/Oro/Bundle/UIBundle/
+    Resources/views/actions/index.html.twig
+        ↓
+templates/bundles/OroUIBundle/
+    actions/index.html.twig</code></pre>
+      <div class="box warn">
+        <p class="box-title">Perché è l'ultima scelta</p>
+        <p>Il template del core cambia agli upgrade, e la vostra copia no. Ogni override è debito che vi presenta il conto alla prossima minor.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 38 -->
+<section class="slide">
+  <h2>La griglia che salva le stime</h2>
+  <div class="cols">
+    <div>
+      <h3>Nativo</h3>
+      <p>C'è già e funziona. Costo: zero sviluppo, solo verifica.</p>
+      <h3>Configurabile</h3>
+      <p>Esiste il meccanismo, va dichiarato: datagrid, ACL, workflow, listino, campo aggiunto da interfaccia. Costo: ore, non giorni. <strong>Nessun rischio di upgrade.</strong></p>
+    </div>
+    <div>
+      <h3>Custom</h3>
+      <p>Serve codice vostro: un bundle, un'entità, un listener, una decorazione. Costo: giorni, e <strong>manutenzione a ogni upgrade</strong>.</p>
+      <h3>La domanda da fare sempre per prima</h3>
+      <p><em>Il core mi ha già lasciato una porta?</em> Mezz'ora di <code>grep</code> in <code>vendor/oro</code> vale più di tre giorni di codice custom scritto in fretta.</p>
+    </div>
+  </div>
+  <div class="box">
+    <p class="box-title">Perché ve lo dico in una sessione tecnica</p>
+    <p>È la riga che separa una stima sensata da una promessa. La sbagliate in analisi, la pagate in sviluppo.</p>
+  </div>
+</section>
+
+<!-- 39 -->
+<section class="slide">
+  <h2>Come si prosegue</h2>
+  <div class="cols">
+    <div>
+      <h3>Quello che avete visto oggi</h3>
+      <p>Lezioni <strong>1-3, 5-7</strong> del percorso tecnico: ambiente, bundle, entità e migration, datagrid, ACL, estendere il core.</p>
+      <h3>Quello che resta</h3>
+      <ul>
+        <li><strong>4</strong> — CRUD in back-office (controller, form, Twig)</li>
+        <li><strong>8</strong> — Workflow e process</li>
+        <li><strong>9-10</strong> — API REST admin e storefront</li>
+        <li><strong>11-13</strong> — Integration bundle, message queue, integrazione ERP</li>
+        <li><strong>14</strong> — Layout dello storefront</li>
+      </ul>
+    </div>
+    <div>
+      <h3>Il ritmo</h3>
+      <p>3-5 ore a settimana, una lezione per sessione, con la pratica <strong>eseguita</strong> fra una sessione e l'altra.</p>
+      <p><a href="../lessons/index.html">lessons/index.html</a></p>
+      <h3>Schede di riferimento</h3>
+      <p>Bundle e container, Doctrine e migration, integrazioni: <a href="../reference/">reference/</a>.</p>
+    </div>
+  </div>
+  <div class="box">
+    <p class="box-title">La regola che decide se funziona</p>
+    <p>Copertura non è apprendimento. Leggere senza eseguire non produce competenza durevole: gli esercizi fra una sessione e l'altra contano più della lezione dopo.</p>
+  </div>
+</section>
+
+<!-- 40 -->
+<section class="slide section-break">
+  <p class="kicker">Ultimi tre minuti</p>
+  <h2>Domande</h2>
+  <p class="subtitle">E una a voi: qual è il punto in cui oggi, mentalmente, stavate ancora cercando il plugin?</p>
+  <p class="notes">Raccogli i punti dove la sala si è incagliata: servono per decidere da quale lezione partire davvero.</p>
+</section>
+
+<div class="deck-progress"></div>
+<div class="deck-bar">
+  <span class="title">OroCommerce 7.0 — sessione tecnica di due ore</span>
+  <span class="hint">&larr; &rarr; naviga · <kbd>n</kbd> note · <kbd>l</kbd> vista lineare</span>
+  <span class="counter"></span>
+</div>
+
+<script src="../assets/slides.js"></script>
+</body>
+</html>
