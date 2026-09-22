@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 14 — Il layout dello storefront</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 14</p>
+  <h1>Il layout dello storefront</h1>
+  <p class="subtitle">Il secondo motore di rendering di Oro: dichiarativo, componibile, e l'unico modo per cambiare una pagina del negozio senza toccare il core.</p>
+  <p class="meta">
+    <span>Durata: ~60 min</span>
+    <span>Prerequisiti: <a href="0004-crud-backoffice.html">Lezione 4</a>, <a href="0007-estendere-il-core.html">Lezione 7</a></span>
+    <span>Obiettivo: aggiungere, spostare e togliere blocchi in una pagina storefront</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Il debito che questa lezione paga</h2>
+
+<p>Nelle lezioni 5 e 6 hai scritto file dentro
+<code>Resources/views/layouts/&lt;tema&gt;/config/</code> senza che nessuno ti spiegasse cosa fosse
+quella cartella. Era un debito voluto: serviva la datagrid, non tutto il sistema di rendering.
+Adesso si paga.</p>
+
+<p>La domanda da cui parte tutto: perché il back-office si costruisce con normali template Twig,
+e lo storefront no?</p>
+
+<h2>Due motori, due pubblici</h2>
+
+<p>Il back-office ha pagine scritte da sviluppatori per sviluppatori e amministratori. Lo
+storefront è una vetrina che deve essere ricomponibile <strong>senza toccare il codice</strong>:
+tema scelto dal cliente, blocchi accesi e spenti dalla configurazione di sistema, contenuti
+piazzati dal web catalog. Un template Twig monolitico non regge quel carico.</p>
+
+<table>
+  <thead><tr><th></th><th>Back-office</th><th>Storefront</th></tr></thead>
+  <tbody>
+    <tr><td>Motore</td><td>Twig di Symfony</td><td>Sistema Layout di Oro</td></tr>
+    <tr><td>Il controller</td><td>rende un template</td><td>restituisce un array di dati</td></tr>
+    <tr><td>Attributo</td><td><code>#[Template]</code> o <code>render()</code></td><td><code>#[Layout]</code></td></tr>
+    <tr><td>Struttura della pagina</td><td>ereditarietà di template</td><td>albero di blocchi costruito da più file</td></tr>
+    <tr><td>Dove si interviene</td><td><code>Resources/views/</code></td><td><code>Resources/views/layouts/&lt;tema&gt;/</code></td></tr>
+    <tr><td>Chi può cambiarla</td><td>solo chi scrive codice</td><td>codice, tema, configurazione, web catalog</td></tr>
+  </tbody>
+</table>
+
+<p>Un controller storefront reale — nessun template, solo dati:</p>
+
+<pre><code>#[Route(path: '/view/{id}', name: 'oro_product_frontend_product_view', requirements: ['id' =&gt; '\d+'])]
+#[Layout(vars: ['product_type', 'attribute_family', 'page_template'])]
+public function viewAction(Product $product): array
+{
+    // ... restituisce ['data' =&gt; [...]], non una Response
+}</code></pre>
+
+<p class="sidenote">Verificabile in
+<code>vendor/oro/commerce/src/Oro/Bundle/ProductBundle/Controller/Frontend/ProductController.php</code>.
+L'attributo è <code>Oro\Bundle\LayoutBundle\Attribute\Layout</code>.</p>
+
+<div class="box">
+  <p class="box-title">La conseguenza che conta</p>
+  <p>Il controller non sa che aspetto avrà la pagina. Sa solo quali dati mette a disposizione.
+  Chi decide la forma è l'albero dei blocchi, e quell'albero lo compone <em>l'unione</em> di tutti i
+  file di layout attivi — quelli del core, quelli del tema, e i tuoi.</p>
+</div>
+
+<h2>L'albero dei blocchi</h2>
+
+<p>Ogni pagina storefront è un albero. La radice si chiama <code>root</code> e la aggiunge il
+codice, non un file YAML:</p>
+
+<pre><code>// vendor/oro/platform/src/Oro/Bundle/LayoutBundle/Layout/LayoutManager.php
+$layoutBuilder-&gt;add('root', null, 'root');</code></pre>
+
+<p>Da lì in giù è tutto dichiarativo. Lo scheletro che ti interessa davvero, nel tema
+<code>default</code>:</p>
+
+<pre><code>root
+├─ head
+│  └─ title, meta_charset, meta_viewport, styles, …
+└─ body
+   └─ wrapper
+      └─ page_container
+         └─ page_main
+            └─ page_main_content
+               ├─ page_main_header
+               ├─ page_sidebar
+               └─ page_content   ← qui finisce il contenuto della pagina</code></pre>
+
+<p class="sidenote">L'albero sopra è dichiarato con un solo <code>@addTree</code> in
+<code>vendor/oro/platform/src/Oro/Bundle/UIBundle/Resources/views/layouts/default/page/layout.yml</code>.
+Il customer portal ci aggiunge sopra i pezzi dello storefront
+(<code>FrontendBundle/Resources/views/layouts/default/</code>, cartelle <code>page/</code> e
+<code>oro_frontend_root/</code>). <code>page_content</code> è il punto di aggancio più usato: quando
+non sai dove attaccare qualcosa, è la risposta di partenza.</p>
+
+<h2>Dove vive un layout</h2>
+
+<p>La convenzione è rigida e va imparata una volta sola:</p>
+
+<pre><code>Resources/views/layouts/
+└─ &lt;tema&gt;/                            default, oppure un tema figlio
+   ├─ theme.yml                        definizione del tema
+   ├─ config/                          datagrids.yml, assets.yml, jsmodules.yml,
+   │                                   images.yml, page_templates.yml
+   ├─ imports/                         frammenti riutilizzabili
+   ├─ page/                            layout comune a tutte le pagine
+   └─ &lt;nome_della_rotta&gt;/              un cartella per rotta
+      ├─ layout.yml                    layout update
+      ├─ layout.html.twig              block theme
+      └─ &lt;altro_nome&gt;.yml              altri update, stessa rotta</code></pre>
+
+<div class="box warn">
+  <p class="box-title">Il nome della cartella è il nome della rotta</p>
+  <p>Non un nome libero: <code>oro_product_frontend_product_view/</code> è esattamente il
+  <code>name:</code> dell'attributo <code>#[Route]</code>. Sbagli il nome, il file viene caricato
+  senza errori e non succede nulla. È il primo posto dove guardare quando «non si vede niente».</p>
+</div>
+
+<p>Dentro una cartella-rotta i file YAML sono più di uno e si sommano tutti. Il core stesso lo fa:
+la pagina prodotto ha <code>layout.yml</code>, <code>related_products.yml</code>,
+<code>upsell_products.yml</code>, <code>product_media.yml</code> e altri. Un file per funzionalità,
+non un file per pagina.</p>
+
+<h2>Il layout update: cinque azioni</h2>
+
+<p>Un file di layout update è un elenco di azioni applicate all'albero. Queste cinque coprono
+quasi tutto:</p>
+
+<table>
+  <thead><tr><th>Azione</th><th>Cosa fa</th></tr></thead>
+  <tbody>
+    <tr><td><code>@add</code></td><td>aggiunge un blocco sotto un genitore</td></tr>
+    <tr><td><code>@addTree</code></td><td>aggiunge molti blocchi in una volta, con la loro gerarchia</td></tr>
+    <tr><td><code>@move</code></td><td>sposta un blocco esistente sotto un altro genitore</td></tr>
+    <tr><td><code>@remove</code></td><td>toglie un blocco dall'albero</td></tr>
+    <tr><td><code>@setOption</code></td><td>cambia un'opzione di un blocco già presente</td></tr>
+  </tbody>
+</table>
+
+<p>A queste si aggiunge <code>@setBlockTheme</code>, che non tocca l'albero: dice quale file Twig
+contiene il markup dei tuoi blocchi.</p>
+
+<pre><code>layout:
+    actions:
+        - '@setBlockTheme':
+            themes: '@AlgoritmaTraining/layouts/default/oro_product_frontend_product_view/training_notice.html.twig'
+
+        - '@add':
+            id: training_notice          # identificatore unico nell'intera pagina
+            parentId: page_content       # sotto quale blocco
+            siblingId: ~                 # accanto a quale fratello (~ = estremo)
+            prepend: true                # prima del fratello, non dopo
+            blockType: text              # che tipo di blocco
+            options:
+                text: 'Blocco aggiunto dal TrainingBundle'</code></pre>
+
+<p>E la coppia che serve quando devi <em>ritoccare</em> il core invece di aggiungere. Esempio reale,
+dal page template «wide» della pagina prodotto:</p>
+
+<pre><code>        - '@remove':
+            id: attribute_group_rest
+        - '@move':
+            id: line_item_form_shopping_lists
+            parentId: line_item_form
+            siblingId: line_item_form_end
+            prepend: true</code></pre>
+
+<p class="sidenote">File:
+<code>…/ProductBundle/Resources/views/layouts/default/oro_product_frontend_product_view/page_template/wide/layout.yml</code>.</p>
+
+<h3>Applicare un update solo a certe condizioni</h3>
+
+<p>Un update può avere una condizione, valutata sul <em>contesto</em> della pagina:</p>
+
+<pre><code>    conditions: 'context["filters_position"] == "sidebar"'</code></pre>
+
+<p>Se è falsa, l'intero file viene saltato. È così che il core accende e spegne intere porzioni di
+pagina in base alla configurazione di sistema, senza <code>if</code> sparsi nei template.</p>
+
+<h3>Riusare pezzi: gli import</h3>
+
+<pre><code>layout:
+    imports:
+        -
+            id: oro_product_list          # frammento in imports/oro_product_list/
+            root: product_view_related_products_container
+            namespace: related            # prefissa gli id importati</code></pre>
+
+<p>Il <code>namespace</code> esiste perché gli id dei blocchi sono unici in tutta la pagina: se
+importi due volte lo stesso frammento, senza namespace hai una collisione.</p>
+
+<h2>I dati: espressioni e data provider</h2>
+
+<p>Un valore che comincia con <code>=</code> è un'espressione, non una stringa. Due sorgenti:</p>
+
+<ul>
+  <li><code>context["…"]</code> — le variabili di contesto della pagina (quelle dichiarate in
+  <code>#[Layout(vars: […])]</code>, più quelle di sistema).</li>
+  <li><code>data["…"]</code> — i <strong>data provider</strong>: servizi che la vista può
+  interrogare.</li>
+</ul>
+
+<pre><code>        - '@setOption':
+            id: related_products
+            optionName: items
+            optionValue: '=data["oro_product_related_products"].getRelatedItems(data["product"])'</code></pre>
+
+<p>Un data provider tuo è un servizio normale con un tag. L'<code>alias</code> è
+<strong>obbligatorio</strong>: è il nome con cui lo chiami dentro <code>data[…]</code>.</p>
+
+<pre><code>    oro_product.layout.data_provider.single_unit_mode:
+        class: 'Oro\Bundle\ProductBundle\Layout\DataProvider\SingleUnitModeProvider'
+        arguments:
+            - "@oro_product.service.single_unit_mode"
+        tags:
+            - { name: layout.data_provider, alias: oro_product_single_unit_mode }</code></pre>
+
+<div class="box warn">
+  <p class="box-title">Un data provider non è un repository</p>
+  <p>Ci finisce la logica di presentazione: «questo blocco va mostrato?», «quali prodotti
+  correlati?». Non ci va la logica di dominio, e soprattutto non ci vanno query pesanti senza
+  cache: quel codice gira a ogni richiesta dello storefront, sulla pagina più visitata del sito.</p>
+</div>
+
+<h2>Il markup: il block theme</h2>
+
+<p>Il blocco esiste nell'albero anche senza Twig. Il Twig decide solo <em>come</em> appare. La
+convenzione del nome del block è rigida: underscore, id del blocco, <code>_widget</code>.</p>
+
+<pre><code>{% block _training_notice_widget %}
+    &lt;div class="training-notice"&gt;{{ block_widget(block) }}&lt;/div&gt;
+{% endblock %}</code></pre>
+
+<p><code>block_widget(block)</code> rende il contenuto predefinito del tipo di blocco. Lo ometti se
+vuoi rimpiazzare il contenuto invece di avvolgerlo.</p>
+
+<div class="box">
+  <p class="box-title">Verificato eseguendo</p>
+  <p>Con <code>@setBlockTheme</code> la pagina prodotto rende
+  <code>&lt;div class="training-notice"&gt;Blocco aggiunto dal TrainingBundle&lt;/div&gt;</code>.
+  Commentando le due righe di <code>@setBlockTheme</code> e ripulendo la cache, il testo
+  <strong>c'è ancora</strong>, nudo, senza il <code>div</code>. Il block theme non fa esistere il
+  blocco: gli dà il vestito.</p>
+</div>
+
+<h3>I tipi di blocco che userai</h3>
+
+<p><code>container</code> (nessun markup proprio, serve a raggruppare), <code>text</code>,
+<code>link</code>, <code>list</code> e <code>list_item</code>, <code>ordered_list</code>,
+<code>button</code> e <code>button_group</code>, <code>form</code> e la famiglia
+<code>form_*</code>, <code>fieldset</code>, <code>input</code>. Più quelli strutturali che non
+aggiungi mai a mano: <code>root</code>, <code>head</code>, <code>body</code>,
+<code>page_title</code>, <code>meta</code>, <code>script</code>, <code>style</code>.</p>
+
+<h2>Temi</h2>
+
+<p>Un tema è una cartella sotto <code>layouts/</code> con dentro <code>theme.yml</code>. Nel 7.0
+Community il tema storefront predefinito è <code>default</code>, etichettato
+<em>Refreshing Teal</em>, e vive nel customer portal. I temi si ereditano:</p>
+
+<pre><code># CMSBundle/Resources/views/layouts/optimized/theme.yml
+parent: default
+label: Optimized theme</code></pre>
+
+<p>Un tema figlio riceve tutti i layout update del padre e può aggiungerne, spostarne e toglierne.
+È il meccanismo con cui si fa il tema di un progetto: <strong>non</strong> si copia
+<code>default</code>, lo si eredita.</p>
+
+<p class="sidenote">In ambiente <code>dev</code> puoi forzare il tema da URL con
+<code>?_theme=&lt;nome&gt;</code> (<code>ThemeListener</code>, attivo solo con debug). Comodo per
+confrontare due temi sulla stessa pagina.</p>
+
+<h3>Page template</h3>
+
+<p>Alcune pagine hanno varianti scelte da back-office invece che da codice: la pagina prodotto ha
+<code>tabs</code> e <code>wide</code>. Sono cartelle sotto
+<code>&lt;rotta&gt;/page_template/&lt;chiave&gt;/</code>, e la variante attiva arriva nel contesto come
+<code>page_template</code>.</p>
+
+<h2>Da Magento: la mappa, e dove si rompe</h2>
+
+<div class="compare">
+  <figure>
+    <figcaption>Magento 2 — layout XML</figcaption>
+<pre><code>&lt;page&gt;
+  &lt;body&gt;
+    &lt;referenceContainer name="content"&gt;
+      &lt;block class="…\Notice"
+             name="training.notice"
+             before="-"/&gt;
+    &lt;/referenceContainer&gt;
+    &lt;referenceBlock name="old.block" remove="true"/&gt;
+  &lt;/body&gt;
+&lt;/page&gt;</code></pre>
+  </figure>
+  <figure>
+    <figcaption>Oro — layout update YAML</figcaption>
+<pre><code>layout:
+    actions:
+        - '@add':
+            id: training_notice
+            parentId: page_content
+            siblingId: ~
+            prepend: true
+            blockType: text
+        - '@remove':
+            id: old_block</code></pre>
+  </figure>
+</div>
+
+<table>
+  <thead><tr><th>Magento 2</th><th>Oro</th></tr></thead>
+  <tbody>
+    <tr><td>handle (<code>catalog_product_view.xml</code>)</td><td>cartella con il nome della rotta</td></tr>
+    <tr><td><code>&lt;container&gt;</code></td><td><code>blockType: container</code></td></tr>
+    <tr><td><code>&lt;block class="…"&gt;</code></td><td><code>blockType</code> registrato + data provider</td></tr>
+    <tr><td><code>&lt;referenceBlock remove="true"&gt;</code></td><td><code>@remove</code></td></tr>
+    <tr><td><code>&lt;move&gt;</code></td><td><code>@move</code></td></tr>
+    <tr><td>template <code>.phtml</code> del block</td><td>block theme Twig, <code>_&lt;id&gt;_widget</code></td></tr>
+    <tr><td><code>&lt;update handle="…"/&gt;</code></td><td><code>imports</code></td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Dove l'analogia si rompe</p>
+  <ol>
+    <li>In Magento il block è una classe PHP con la logica dentro. In Oro il
+    <code>blockType</code> è quasi sempre generico (<code>container</code>, <code>text</code>) e i
+    dati arrivano da un data provider separato. Non scrivere una classe per ogni blocco: nella
+    maggior parte dei casi non serve.</li>
+    <li>Gli id dei blocchi Oro sono unici in <strong>tutta la pagina</strong>, non per contenitore.
+    Le collisioni sono reali, per questo esiste il <code>namespace</code> negli import.</li>
+    <li>Non c'è un equivalente di <code>default.xml</code> con la cascata per area: la
+    composizione viene da tema padre, tema figlio, e condizioni sul contesto.</li>
+  </ol>
+</div>
+
+<h2>Pratica: un blocco tuo sulla pagina prodotto</h2>
+
+<p>Tutto quello che segue è stato eseguito su un'installazione 7.0 CE prima di finire in questa
+pagina. Il bundle è quello della lezione 2.</p>
+
+<ol class="checklist">
+  <li>
+    <p><strong>Crea la cartella della rotta.</strong> Il nome non si inventa: è il
+    <code>name:</code> della rotta storefront.</p>
+<pre><code>mkdir -p src/Algoritma/Bundle/TrainingBundle/Resources/views/layouts/default/oro_product_frontend_product_view</code></pre>
+  </li>
+  <li>
+    <p><strong>Scrivi il layout update</strong>, in
+    <code>…/oro_product_frontend_product_view/training_notice.yml</code>:</p>
+<pre><code>layout:
+    actions:
+        - '@setBlockTheme':
+            themes: '@AlgoritmaTraining/layouts/default/oro_product_frontend_product_view/training_notice.html.twig'
+
+        - '@add':
+            id: training_notice
+            parentId: page_content
+            siblingId: ~
+            prepend: true
+            blockType: text
+            options:
+                text: 'Blocco aggiunto dal TrainingBundle'</code></pre>
+  </li>
+  <li>
+    <p><strong>Scrivi il block theme</strong>, in
+    <code>…/oro_product_frontend_product_view/training_notice.html.twig</code>:</p>
+<pre><code>{% block _training_notice_widget %}
+    &lt;div class="training-notice"&gt;{{ block_widget(block) }}&lt;/div&gt;
+{% endblock %}</code></pre>
+  </li>
+  <li>
+    <p><strong>Svuota la cache</strong> — i layout si risolvono a freddo, senza questo non vedi
+    nulla.</p>
+<pre><code>orobox console cache:clear --no-warmup</code></pre>
+  </li>
+  <li>
+    <p><strong>Guarda la pagina.</strong> Prendi l'id di un prodotto pubblicato e apri
+    <code>https://&lt;dominio&gt;:&lt;porta&gt;/product/view/&lt;id&gt;</code>. Il blocco deve comparire
+    come prima cosa dentro <code>page-content</code>:</p>
+<pre><code>&lt;section class=" page-content" data-role="page-content"&gt;
+    &lt;div class="training-notice"&gt;Blocco aggiunto dal TrainingBundle&lt;/div&gt;</code></pre>
+  </li>
+  <li>
+    <p><strong>L'esperimento che insegna di più.</strong> Commenta le due righe di
+    <code>@setBlockTheme</code>, svuota di nuovo la cache e ricarica. Il testo è ancora lì, senza il
+    <code>div</code>: il blocco esiste comunque, il block theme gli dava solo il markup. Poi
+    rimetti le righe a posto.</p>
+  </li>
+  <li>
+    <p><strong>Pulisci.</strong> Cancella le due cartelle create e svuota la cache. A differenza
+    delle entità con <code>#[Config]</code> (lezione 3), qui non resta nulla in banca dati: il
+    layout è solo file.</p>
+  </li>
+</ol>
+
+<h2>Diagnosi: quando non si vede niente</h2>
+
+<p>Quattro comandi, in ordine di utilità reale:</p>
+
+<pre><code>orobox console oro:debug:layout                      # contesto e configurazione risolta
+orobox console oro:debug:layout --type=text          # opzioni di un tipo di blocco
+orobox console oro:debug:layout --provider=&lt;alias&gt;   # firma di un data provider
+orobox console oro:debug:layout:block-types          # tutti i tipi disponibili
+orobox console oro:debug:layout:data-providers       # tutti i provider, con i metodi</code></pre>
+
+<p><code>--type=text</code> stampa l'ereditarietà (<code>block &lt;- text</code>) e la tabella delle
+opzioni con i valori predefiniti: è il modo più rapido per scoprire che un'opzione si chiama
+<code>visible</code> e non <code>hidden</code>, o viceversa.</p>
+
+<div class="box">
+  <p class="box-title">La lista dei sospetti, in ordine</p>
+  <ol>
+    <li>Nome della cartella diverso dal nome della rotta. Silenzioso, frequentissimo.</li>
+    <li>Cache non svuotata.</li>
+    <li><code>parentId</code> che non esiste su quella pagina.</li>
+    <li>Tema sbagliato: hai scritto sotto <code>default</code> ma il sito usa un tema figlio che
+    non eredita da lì.</li>
+    <li>Un <code>conditions:</code> falso, che salta tutto il file senza dire niente.</li>
+  </ol>
+</div>
+
+<div class="box win">
+  <p class="box-title">La vittoria di oggi</p>
+  <p>Sai perché lo storefront ha un motore di rendering diverso, sai aggiungere, spostare e togliere
+  un blocco senza toccare <code>vendor/oro</code>, e sai da dove arrivano i dati che un blocco
+  mostra. Da qui in poi «cambiare la pagina prodotto» smette di essere una richiesta che ti fa
+  paura.</p>
+</div>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Come si chiama la cartella di un layout update?</p>
+  <div class="options">
+    <button class="opt" data-correct>Come il name della rotta a cui si applica</button>
+    <button class="opt">Come il controller che rende la pagina</button>
+    <button class="opt">Come il block type del blocco radice</button>
+    <button class="opt">Con un nome libero, dichiarato nel theme.yml</button>
+  </div>
+  <p class="explain" hidden>Il nome della rotta, esatto: <code>oro_product_frontend_product_view/</code>.
+  Se sbagli il nome non arriva nessun errore, semplicemente non succede niente. È il primo sospetto
+  quando «non si vede».</p>
+</div>
+
+<div class="quiz">
+  <p class="q">A cosa serve <code>@setBlockTheme</code>?</p>
+  <div class="options">
+    <button class="opt" data-correct>A dire quale file Twig contiene il markup dei blocchi</button>
+    <button class="opt">A far esistere il blocco nell'albero della pagina</button>
+    <button class="opt">A scegliere il tema storefront attivo</button>
+    <button class="opt">A registrare un nuovo block type nel container</button>
+  </div>
+  <p class="explain" hidden>Solo il markup. Senza <code>@setBlockTheme</code> il blocco esiste lo
+  stesso e rende il contenuto predefinito del suo tipo — verificato togliendolo e ricaricando la
+  pagina. Il tema attivo si sceglie altrove; i block type si registrano con il tag
+  <code>layout.block_type</code>.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Da dove prende i dati un blocco del layout?</p>
+  <div class="options">
+    <button class="opt" data-correct>Da un data provider, servizio taggato layout.data_provider</button>
+    <button class="opt">Dal controller, che li passa al template</button>
+    <button class="opt">Dal repository Doctrine, chiamato dentro il Twig</button>
+    <button class="opt">Dal contesto, unica sorgente disponibile nel layout</button>
+  </div>
+  <p class="explain" hidden>Data provider, richiamati nelle espressioni come
+  <code>'=data["alias"].metodo()'</code>. Il tag richiede l'<code>alias</code>, senza il quale il
+  container solleva un errore in compilazione. Il contesto esiste ma serve ad altro: variabili di
+  pagina, non dati di dominio.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Come si costruisce il tema di un progetto?</p>
+  <div class="options">
+    <button class="opt" data-correct>Ereditando da default con parent nel theme.yml</button>
+    <button class="opt">Copiando la cartella default e rinominandola</button>
+    <button class="opt">Sovrascrivendo i file del tema default in vendor</button>
+    <button class="opt">Dichiarando i template nel bundles.yml del bundle</button>
+  </div>
+  <p class="explain" hidden><code>parent: default</code> nel proprio <code>theme.yml</code>, come fa
+  <code>optimized</code> nel CMSBundle. Copiare significa ereditare i bug e perdere ogni
+  aggiornamento del core: è la stessa regola della lezione 7, applicata al frontend.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: hai un blocco del core che va tolto solo quando una certa opzione di
+  sistema è attiva. Quali due meccanismi usi?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    L'azione <code>@remove</code> con l'id del blocco, dentro un file di layout update che ha un
+    <code>conditions:</code> valutato sul contesto. Se la condizione è falsa l'intero file viene
+    saltato. Niente <code>if</code> nei template, niente override di file del core.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 13 (spaziatura): l'ERP deve ricevere gli ordini appena vengono
+  confermati. Quale dei canali di integrazione scegli, e perché non gli altri?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Message queue: l'evento è puntuale, il volume è basso per singolo messaggio, e il disaccoppiamento
+    protegge il checkout se l'ERP è lento o giù. L'Integration bundle serve al flusso opposto, quando
+    è Oro ad andare a prendere periodicamente; l'admin API va bene se è l'ERP a interrogare Oro, non
+    il contrario; la storefront API non c'entra, non è il suo pubblico.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere dopo questa lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/frontend/storefront/layouts/">Oro — Layouts</a> e
+  <a href="https://doc.oroinc.com/frontend/storefront/theming/">Theming</a>. Leggile con la pagina
+  prodotto aperta accanto: la documentazione si capisce il doppio se hai un albero di blocchi vero
+  davanti.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi un blocco alla pagina di <em>elenco</em> prodotti
+  (<code>oro_product_frontend_product_index</code>) che mostri un testo diverso a seconda di
+  un'opzione: usa <code>conditions:</code> su una variabile di contesto che trovi con
+  <code>oro:debug:layout</code>.</li>
+  <li>Scrivi un data provider tuo — un servizio con il tag <code>layout.data_provider</code> — che
+  restituisca un valore calcolato, e usalo in un <code>@setOption</code>. Verifica la firma con
+  <code>oro:debug:layout --provider=&lt;alias&gt;</code>.</li>
+  <li>Prendi una pagina storefront qualsiasi e ricostruisci su carta il suo albero dei blocchi
+  leggendo solo i file YAML del core. Poi confronta con quello che vedi nel sorgente HTML. Le
+  differenze che trovi sono le cose che ancora non sai del sistema: portale in chat.</li>
+</ol>
+
+<h2>Dove sei arrivato</h2>
+
+<p>Questa è l'ultima lezione del percorso. Hai l'ambiente, il bundle, le entità, il back-office, i
+permessi, l'estensione del core, i quattro canali di integrazione e adesso lo storefront. Quello
+che manca — SCSS e componenti JS dei temi, workflow, test automatici, deploy — non è più materiale
+da corso: sono cose che si imparano sul progetto, con le schede di riferimento aperte.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0013-integrazione-erp.html">Lezione 13</a> ·
+    <a href="0005-datagrid.html">Lezione 5</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/estendere-il-core.html">Reference: estendere il core</a>
+  </p>
+  <p>Il layout è il posto dove si sbaglia in silenzio. Quando non vedi il tuo blocco, non
+  aggiungere codice: controlla il nome della cartella, poi la cache, poi il <code>parentId</code>.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

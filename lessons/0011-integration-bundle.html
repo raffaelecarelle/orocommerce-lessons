@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 11 — Integration bundle: canali, trasporti, connettori</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 11</p>
+  <h1>Integration bundle: canali, trasporti, connettori</h1>
+  <p class="subtitle">Il framework con cui Oro va a prendere i dati da un sistema esterno — con la schermata di configurazione, le credenziali e lo storico già scritti da qualcun altro.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0010-storefront-api.html">Lezione 10</a></span>
+    <span>Obiettivo: una tua integrazione visibile e lanciabile dal back-office</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Nelle due lezioni precedenti hai esposto i dati di Oro: l'ERP chiama, Oro risponde. Adesso si
+gira la freccia. Il catalogo sta nel gestionale, le giacenze stanno nel gestionale, e nessuno ha
+intenzione di scrivere un client HTTP che chiami Oro ogni notte. Tocca a Oro andare a prendere.</p>
+
+<p>La domanda che decide tutto è sempre la stessa: <strong>chi inizia la conversazione?</strong>
+Se è il sistema esterno, il canale è l'API della lezione 9. Se è Oro, il canale è
+l'<code>IntegrationBundle</code>, ed è questa lezione.</p>
+
+<div class="box">
+  <p class="box-title">Cosa ti dà, che altrimenti riscriveresti tu</p>
+  <ul>
+    <li>Una schermata di configurazione in back-office, con la form dei parametri.</li>
+    <li>Le credenziali salvate su un'entità dedicata, non in un file di configurazione.</li>
+    <li>Lo storico di ogni sincronizzazione: quando, quanti record, con quali errori.</li>
+    <li>L'esecuzione manuale con un bottone, e quella schedulata dal cron.</li>
+    <li>La sincronizzazione parziale — solo ciò che è cambiato dall'ultima volta.</li>
+  </ul>
+  <p>Sono cinque cose noiose e indispensabili. È il motivo per cui non si scrive un comando di
+  console «che si collega all'ERP» e lo si schedula a mano: funziona, ma poi l'operatore non ha
+  nessun posto dove guardare.</p>
+</div>
+
+<h2>I tre pezzi, e cosa risponde ciascuno</h2>
+
+<table>
+  <thead><tr><th>Pezzo</th><th>Domanda</th><th>Tag del servizio</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Channel type</strong></td>
+      <td>Che tipo di integrazione è? (etichetta, icona)</td>
+      <td><code>oro_integration.channel</code></td>
+    </tr>
+    <tr>
+      <td><strong>Transport</strong></td>
+      <td>Come ci si arriva, e con quali parametri?</td>
+      <td><code>oro_integration.transport</code></td>
+    </tr>
+    <tr>
+      <td><strong>Connector</strong></td>
+      <td>Che cosa si porta a casa? Uno per tipo di dato.</td>
+      <td><code>oro_integration.connector</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<p>La sintassi dei tag, presa da un'integrazione vera che hai già nell'installazione
+(<code>vendor/oro/crm-dotmailer/Resources/config/services.yml</code>):</p>
+
+<pre><code>    tags:
+        - { name: oro_integration.channel, type: dotmailer }
+        - { name: oro_integration.transport, type: dotmailer_api, channel_type: dotmailer }
+        - { name: oro_integration.connector, type: contact, channel_type: dotmailer }</code></pre>
+
+<p>Nota l'attributo <code>channel_type</code> sui due tag in basso: è quello che lega trasporto e
+connettori al loro canale. Un canale può avere più trasporti (REST oggi, SOAP domani) e quasi
+sempre ha più connettori, uno per entità sincronizzata.</p>
+
+<div class="box source">
+  <p class="box-title">Dove lo fa il core</p>
+  <p>La raccolta dei tag avviene in un compiler pass — lo strumento numero tre della lezione 7:
+  <code>vendor/oro/platform/src/Oro/Bundle/IntegrationBundle/DependencyInjection/CompilerPass/TypesPass.php</code>.
+  Leggilo: sono sessanta righe, e vedere il meccanismo che hai studiato in astratto usato sul serio
+  vale più di qualunque spiegazione.</p>
+</div>
+
+<h2>Le tre interfacce</h2>
+
+<p>Sono minuscole, ed è il punto: il framework chiede poco.</p>
+
+<pre><code>interface ChannelInterface
+{
+    public function getLabel();
+}
+
+interface TransportInterface
+{
+    public function init(Transport $transportEntity);
+    public function getLabel();
+    public function getSettingsFormType();
+    public function getSettingsEntityFQCN();
+}
+
+interface ConnectorInterface
+{
+    public function getLabel(): string;
+    public function getImportEntityFQCN();
+    public function getImportJobName();
+    public function getType();
+}</code></pre>
+
+<p>Due metodi meritano una riga di spiegazione, perché il nome inganna:</p>
+
+<ul>
+  <li><code>getSettingsEntityFQCN()</code> — il trasporto dichiara <em>una propria entità</em> in cui
+  finiscono i parametri: URL, utenza, chiave. Estende
+  <code>Oro\Bundle\IntegrationBundle\Entity\Transport</code>. È lì che vivono le credenziali, e per
+  questo non stanno in un file <code>.env</code>: ogni istanza dell'integrazione ha le sue.</li>
+  <li><code>getImportJobName()</code> — il connettore dichiara il nome del <em>job batch</em> che
+  esegue la sincronizzazione. Il framework riusa l'infrastruttura di batch della piattaforma per
+  eseguire il lavoro a lotti e tenere il conto dei record. A te serve conoscerne il nome, non
+  scriverne uno da zero.</li>
+</ul>
+
+<h2>Le tre entità che vedrai in banca dati</h2>
+
+<table>
+  <thead><tr><th>Entità</th><th>Cos'è</th><th>Chi la crea</th></tr></thead>
+  <tbody>
+    <tr><td><code>Channel</code></td><td>L'integrazione <em>configurata</em>: nome, tipo, connettori attivi, abilitata o no</td><td>L'utente, dal back-office</td></tr>
+    <tr><td><code>Transport</code></td><td>I parametri di quella specifica integrazione</td><td>L'utente, nella stessa form</td></tr>
+    <tr><td><code>Status</code></td><td>L'esito di ogni esecuzione: connettore, data, conteggi, errori</td><td>Il framework, a ogni sync</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Channel: la parola più sovraccarica di Oro</p>
+  <p><code>Channel</code> qui è l'integrazione configurata. Ma <em>channel type</em> è il servizio
+  che ne dichiara il tipo, e nel percorso funzionale «canale» indica tutt'altro. Quando scrivi un
+  documento di analisi, dì «integrazione» per il record e «tipo di integrazione» per il servizio: ti
+  eviterai una riunione di chiarimenti.</p>
+</div>
+
+<h2>Pratica: la tua integrazione nel back-office</h2>
+
+<p>Costruiamo un'integrazione minima che porta dentro le mappature ERP. Il sistema esterno lo
+simuliamo con un file JSON dentro il progetto: il punto della lezione è il framework, non il
+protocollo. Quando al posto del file ci sarà un URL vero, cambierà solo il trasporto.</p>
+
+<ol class="checklist">
+  <li><strong>Il channel type.</strong> Quattro righe, e non serve altro.
+<pre><code>// src/Algoritma/Bundle/TrainingBundle/Integration/ErpChannelType.php
+namespace Algoritma\Bundle\TrainingBundle\Integration;
+
+use Oro\Bundle\IntegrationBundle\Provider\ChannelInterface;
+
+class ErpChannelType implements ChannelInterface
+{
+    public function getLabel(): string
+    {
+        return 'algoritma.training.integration.erp.label';
+    }
+}</code></pre>
+    <p>L'etichetta è una chiave di traduzione, non una stringa: è la convenzione di tutto il core.</p>
+  </li>
+
+  <li><strong>Il trasporto e la sua entità di settings.</strong> L'entità estende
+  <code>Transport</code> del core e aggiunge i campi che l'utente compilerà — qui il percorso del
+  file. Serve anche un form type, che è quello della lezione 4: nessuno strumento nuovo.</li>
+
+  <li><strong>Il connettore.</strong> Estende <code>AbstractConnector</code> e dichiara cosa porta
+  a casa. Il lavoro vero è l'iteratore che restituisce le righe una per volta: il framework le
+  consuma a lotti, così un milione di record non finisce in memoria.</li>
+
+  <li><strong>Registra i tre servizi.</strong> In <code>services.yml</code>, con i tag visti sopra:
+<pre><code>    algoritma_training.integration.erp_channel:
+        class: Algoritma\Bundle\TrainingBundle\Integration\ErpChannelType
+        tags:
+            - { name: oro_integration.channel, type: algoritma_erp }
+
+    algoritma_training.integration.erp_transport:
+        class: Algoritma\Bundle\TrainingBundle\Integration\ErpFileTransport
+        tags:
+            - { name: oro_integration.transport, type: algoritma_erp_file, channel_type: algoritma_erp }
+
+    algoritma_training.integration.erp_mapping_connector:
+        class: Algoritma\Bundle\TrainingBundle\Integration\ErpMappingConnector
+        tags:
+            - { name: oro_integration.connector, type: erp_mapping, channel_type: algoritma_erp }</code></pre>
+  </li>
+
+  <li><strong>Verifica la registrazione prima di aprire il browser.</strong>
+<pre><code>orobox console cache:clear
+orobox console debug:container --tag=oro_integration.channel
+orobox console debug:container --tag=oro_integration.connector</code></pre>
+    <p>Se il tuo canale non compare qui, non comparirà nemmeno in back-office: il problema è nel
+    tag, non nell'interfaccia.</p>
+  </li>
+
+  <li><strong>Creala dal back-office.</strong> <em>Sistema → Integrazioni</em>, nuova integrazione,
+  scegli il tuo tipo, compila i parametri del trasporto, seleziona i connettori, salva. Adesso
+  esiste un record <code>Channel</code>: la configurazione non è nel codice, è un dato.</li>
+
+  <li><strong>Lanciala.</strong> Dal bottone della schermata, e poi da console — perché è così che
+  girerà in produzione.
+<pre><code>orobox console oro:cron:integration:sync --integration=&lt;id&gt;
+orobox console oro:cron:integration:sync --integration=&lt;id&gt; --connector=erp_mapping</code></pre>
+    <p>L'id è quello che leggi nell'URL della schermata. Senza opzioni, il comando sincronizza tutte
+    le integrazioni attive: è la forma con cui gira dal cron.</p>
+  </li>
+
+  <li><strong>Guarda lo storico.</strong> Nella schermata dell'integrazione, la scheda con l'esito
+  delle esecuzioni. Adesso rompi il trasporto apposta — un percorso di file sbagliato — rilancia, e
+  guarda cosa scrive. Quella schermata è l'unico posto in cui un operatore guarderà: se non ci
+  arriva un messaggio comprensibile, l'integrazione non è finita.</li>
+</ol>
+
+<h2>Sincronizzazione completa e parziale</h2>
+
+<p>La prima esecuzione porta tutto. Le successive dovrebbero portare solo ciò che è cambiato,
+altrimenti ogni notte rileggi il catalogo intero per aggiornare tre prodotti. Il framework tiene
+per te la data dell'ultima sincronizzazione riuscita per connettore, nello <code>Status</code>: il
+connettore la legge e la usa per filtrare la richiesta al sistema esterno.</p>
+
+<div class="box warn">
+  <p class="box-title">La trappola della sincronizzazione parziale</p>
+  <p>Filtrare per data di modifica funziona solo se il sistema esterno ha una data di modifica
+  affidabile — e molti gestionali non ce l'hanno, o la aggiornano anche quando non cambia niente.
+  Chiedilo <em>prima</em> di progettare il connettore. Se la risposta è no, la sincronizzazione
+  completa notturna è una scelta legittima: dichiararla è meglio che scoprire in produzione che
+  mancano dei record.</p>
+</div>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Quale tag registra il modo in cui si parla con il sistema esterno?</p>
+  <div class="options">
+    <button class="opt" data-correct>oro_integration.transport, con type e channel_type</button>
+    <button class="opt">oro_integration.channel, con il solo type</button>
+    <button class="opt">oro_integration.connector, con type e channel_type</button>
+    <button class="opt">oro_integration.api, con il nome del canale</button>
+  </div>
+  <p class="explain" hidden>Il trasporto è il «come ci si arriva»: protocollo e parametri. Il
+  <code>channel_type</code> nel tag lo lega al suo canale.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Dove finiscono le credenziali dell'ERP?</p>
+  <div class="options">
+    <button class="opt" data-correct>In un'entità di settings del trasporto, compilata in back-office</button>
+    <button class="opt">In un parametro del container, dentro services.yml</button>
+    <button class="opt">In una variabile d'ambiente letta dal connettore</button>
+    <button class="opt">Nella configurazione di sistema, sezione integrazioni</button>
+  </div>
+  <p class="explain" hidden>Il trasporto dichiara la propria entità con
+  <code>getSettingsEntityFQCN()</code>. Così ogni istanza dell'integrazione ha i suoi parametri, e
+  l'utente li cambia senza toccare un deploy.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">L'ERP chiama Oro per aggiornare un record alla volta. Usi l'IntegrationBundle?</p>
+  <div class="options">
+    <button class="opt" data-correct>No: lì il canale è l'API, Integration serve al flusso opposto</button>
+    <button class="opt">Sì, con un connettore in modalità reverse sync</button>
+    <button class="opt">Sì, è l'unico modo per avere lo storico delle esecuzioni</button>
+    <button class="opt">Dipende dal volume: sopra i mille record al giorno sì</button>
+  </div>
+  <p class="explain" hidden>Integration è per quando è Oro ad andare a prendere. Se è il sistema
+  esterno a iniziare la conversazione, l'API risponde già, con permessi e validazione inclusi.
+  Usarlo al contrario è l'errore architetturale più comune nei primi progetti.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Il tuo canale non compare in «Sistema → Integrazioni». Cosa controlli per primo?</p>
+  <div class="options">
+    <button class="opt" data-correct>Che il servizio risulti dal debug:container sul tag del canale</button>
+    <button class="opt">Che l'entità Channel sia stata creata da una migration</button>
+    <button class="opt">Che il consumer della coda sia in esecuzione</button>
+    <button class="opt">Che il connettore dichiari un job batch esistente</button>
+  </div>
+  <p class="explain" hidden>Prima la registrazione, poi tutto il resto: se
+  <code>debug:container --tag=oro_integration.channel</code> non lo elenca, il compiler pass non lo
+  ha visto, e nessuna schermata potrà mostrarlo.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i tre pezzi di un'integrazione, e a quale domanda risponde ciascuno.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Channel type: <em>che tipo di integrazione è</em> (tag <code>oro_integration.channel</code>).
+    Transport: <em>come ci si arriva e con quali parametri</em>, e possiede l'entità di settings con
+    le credenziali (<code>oro_integration.transport</code>). Connector: <em>che cosa si porta a
+    casa</em>, uno per tipo di dato (<code>oro_integration.connector</code>).
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 10 (spaziatura): cosa distingue la storefront API dall'admin
+  API, oltre al file di configurazione?</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Il <em>request type</em>, e quindi il pubblico: la storefront API risponde ai
+    <code>Customer User</code> con i permessi dello storefront, l'admin API agli utenti interni con
+    gli ACL del back-office. Stessa sintassi JSON:API, due mondi di sicurezza diversi — gli stessi
+    due mondi del percorso funzionale.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/integrations/">Oro — Integrations</a>, in particolare
+  <em>Integration Configuration</em>. Poi trenta minuti su
+  <code>vendor/oro/crm-zendesk/</code>: è l'integrazione più piccola dell'installazione, e si legge
+  per intero. Parti da <code>Provider/ChannelType.php</code> e segui i tag in
+  <code>Resources/config/services.yml</code>.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi un secondo connettore allo stesso canale — anche banale, che porta dentro una sola
+  riga — e verifica che in back-office compaia come casella selezionabile. Poi disattivalo e
+  rilancia la sync: il framework deve saltarlo.</li>
+  <li>Fai fallire il trasporto in modo controllato (percorso inesistente) e fai in modo che il
+  messaggio di errore nello storico dica <em>cosa</em> è andato storto, non «Exception». È la
+  differenza fra un'integrazione consegnabile e una da assistenza continua.</li>
+  <li>Leggi
+  <code>vendor/oro/platform/src/Oro/Bundle/IntegrationBundle/DependencyInjection/CompilerPass/TypesPass.php</code>
+  e portami la risposta a una domanda: cosa succede, esattamente, se dimentichi l'attributo
+  <code>type</code> nel tag? Cerca l'eccezione, e dimmi a quale momento del ciclo di vita
+  appartiene.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 12: message queue.</strong> Topic, producer, processor, consumer: il lavoro in
+background di Oro. È il motore che sta sotto alle sincronizzazioni che hai appena scritto, e lo
+strumento con cui si risponde subito a un webhook senza far aspettare nessuno.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0010-storefront-api.html">Lezione 10</a> ·
+    <a href="0012-message-queue.html">Lezione 12</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, integrazioni</a>
+  </p>
+  <p>Se la sync «non fa niente» e lo storico è vuoto, il connettore non è stato selezionato
+  nell'integrazione: è una casella, e si dimentica sempre.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

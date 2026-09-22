@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lezione 8 — Workflow e process</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+<link rel="stylesheet" href="../assets/compare.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Lezione 08</p>
+  <h1>Workflow e process</h1>
+  <p class="subtitle">Gli stati di un record smettono di essere un campo e diventano configurazione: transizioni, condizioni, azioni. E i process, per reagire a un evento senza scrivere un listener.</p>
+  <p class="meta">
+    <span>Durata: ~70 min</span>
+    <span>Prerequisiti: <a href="0007-estendere-il-core.html">Lezione 7</a></span>
+    <span>Obiettivo: un workflow tuo che gira sulla tua entità</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>Ogni progetto B2B ha la stessa richiesta, formulata in modi diversi: «l'ordine deve passare da
+un'approvazione», «il preventivo sopra i diecimila euro lo vede il direttore commerciale», «quando
+la riga arriva dall'ERP va marcata da verificare». Sono tutte la stessa cosa: un record che
+attraversa degli stati, con regole su chi può farlo passare da uno all'altro.</p>
+
+<p>La risposta sbagliata — quella che chi viene da Magento scrive d'istinto — è un campo
+<code>status</code> più una manciata di <code>if</code> sparsi fra controller, observer e template.
+Funziona il primo mese. Poi arriva la seconda regola, e nessuno sa più dire quali transizioni siano
+possibili senza leggere tutto il codice.</p>
+
+<p>Oro ha un motore dedicato. Gli stati, le transizioni, le condizioni e le azioni stanno in un file
+YAML, e il motore li esegue. Il vantaggio non è scrivere meno codice: è che <strong>il flusso
+diventa leggibile</strong>, e che il cliente può vederlo disegnato in back-office.</p>
+
+<h2>Tre strumenti che sembrano uguali</h2>
+
+<p>Prima di scrivere un rigo di YAML bisogna sapere quale dei tre meccanismi serve, perché si
+somigliano e i tre nomi girano nella documentazione come sinonimi. Non lo sono.</p>
+
+<table>
+  <thead><tr><th>Strumento</th><th>Domanda a cui risponde</th><th>Dove si dichiara</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Workflow</strong></td>
+      <td>«In quale stato è questo record, e dove può andare adesso?»</td>
+      <td><code>Resources/config/oro/workflows.yml</code></td>
+    </tr>
+    <tr>
+      <td><strong>Process</strong></td>
+      <td>«Quando succede <em>questa</em> cosa, fai <em>quest'altra</em>.»</td>
+      <td><code>Resources/config/oro/processes.yml</code></td>
+    </tr>
+    <tr>
+      <td><strong>Operation</strong> (ActionBundle)</td>
+      <td>«Aggiungi un bottone che fa una cosa, senza stati di mezzo.»</td>
+      <td><code>Resources/config/oro/actions.yml</code></td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p class="box-title">Il criterio in una riga</p>
+  <p>Se il record <em>ha degli stati</em>, è un workflow. Se devi solo <em>reagire a un evento</em>,
+  è un process. Se vuoi solo <em>un bottone</em> che esegue un'azione su un record, è un'operation.
+  Usare un workflow per aggiungere un bottone è l'errore di sovradimensionamento più comune.</p>
+</div>
+
+<h2>Anatomia di un workflow</h2>
+
+<p>Nell'installazione ne hai già uno perfetto da leggere, ed è piccolo: il flusso di lavorazione
+dell'ordine. Il file di ingresso non contiene quasi niente — dichiara l'entità e importa i pezzi.</p>
+
+<pre><code># vendor/oro/commerce/src/Oro/Bundle/OrderBundle/Resources/config/oro/workflows/order_processing_flow.yml
+imports:
+    - { resource: 'order_processing_flow/steps.yml' }
+    - { resource: 'order_processing_flow/transitions.yml' }
+    - { resource: 'order_processing_flow/transition_definitions.yml' }
+
+workflows:
+    order_processing_flow:
+        entity: Oro\Bundle\OrderBundle\Entity\Order
+        entity_attribute: order
+        start_step: new
+        force_autostart: true
+        steps_display_ordered: true
+        exclusive_record_groups:
+            - order_processing
+        defaults:
+            active: false</code></pre>
+
+<p>Quattro concetti, e non di più:</p>
+
+<ul>
+  <li><strong>Entity</strong> — su quale entità gira. Un workflow è sempre legato a un'entità: non
+  esistono workflow «di sistema».</li>
+  <li><strong>Step</strong> — gli stati. Ognuno dichiara quali transizioni sono permesse mentre ci
+  si trova dentro.</li>
+  <li><strong>Transition</strong> — il passaggio da uno step all'altro, con il suo bottone.</li>
+  <li><strong>Transition definition</strong> — cosa deve essere vero perché la transizione sia
+  possibile (<code>preconditions</code>, <code>conditions</code>) e cosa succede quando scatta
+  (<code>actions</code>).</li>
+</ul>
+
+<h3>Gli step</h3>
+
+<pre><code>workflows:
+    order_processing_flow:
+        steps:
+            new:
+                order: 10
+                allowed_transitions:
+                    - decline
+                    - confirm
+            confirmed:
+                order: 20
+                allowed_transitions:
+                    - process
+                    - mark_as_shipped</code></pre>
+
+<p><code>allowed_transitions</code> è il punto in cui il flusso diventa leggibile: da
+<code>new</code> si può solo confermare o rifiutare. Nessun altro percorso esiste, e non serve
+leggere del codice per saperlo.</p>
+
+<h3>Le transizioni, e la separazione che conta</h3>
+
+<pre><code>        transitions:
+            confirm:
+                step_to: confirmed
+                frontend_options:
+                    icon: 'fa-check'
+                transition_definition: confirm_definition</code></pre>
+
+<p>La transizione dice <em>dove porta</em> e <em>come si presenta</em>. Il <em>cosa fa</em> sta
+altrove, nella definizione. È una separazione voluta: la stessa definizione può essere riusata da
+più transizioni.</p>
+
+<pre><code>        transition_definitions:
+            confirm_definition:
+                actions:
+                    - '@request_enum_entity':
+                          enum_code: order_internal_status
+                          identifier: order_internal_status.open
+                          attribute: $order.internal_status
+
+            mark_as_shipped_definition:
+                preconditions:
+                    '@not_equal': [$order.shipping_status.internalId, shipped]
+                actions:
+                    # ...</code></pre>
+
+<div class="box">
+  <p class="box-title">Le chiocciole non sono magia, sono servizi</p>
+  <p><code>@request_enum_entity</code>, <code>@not_equal</code>, <code>@assign_value</code>: ogni
+  chiocciola è un'<em>azione</em> o una <em>condizione</em> registrata nel container come servizio.
+  L'elenco di quelle disponibili non va imparato a memoria — si interroga, e vedrai come più
+  avanti. Le tue puoi aggiungerle allo stesso modo.</p>
+</div>
+
+<h3>Precondizioni e condizioni: differenza sottile, effetto visibile</h3>
+
+<table>
+  <thead><tr><th>Chiave</th><th>Quando è valutata</th><th>Effetto se falsa</th></tr></thead>
+  <tbody>
+    <tr><td><code>preconditions</code></td><td>Prima di mostrare il bottone</td><td>Il bottone non compare</td></tr>
+    <tr><td><code>conditions</code></td><td>Quando si tenta la transizione</td><td>Errore all'utente che ha cliccato</td></tr>
+  </tbody>
+</table>
+
+<p>Regola pratica: quello che l'utente non deve nemmeno vedere va in <code>preconditions</code>;
+quello che dipende dai dati che ha appena inserito va in <code>conditions</code>.</p>
+
+<h2>I process: reagire, senza scrivere un listener</h2>
+
+<p>Un process è la versione dichiarativa di quello che nella lezione 7 hai fatto con gli eventi.
+Guarda un esempio reale del core, e conta le righe di PHP che ti risparmia: zero classi, zero
+servizi registrati.</p>
+
+<pre><code># vendor/oro/platform/src/Oro/Bundle/EmailBundle/Resources/config/oro/processes.yml
+processes:
+    definitions:
+        sync_email_flag_after_changed:
+            label:   Sync Email Flag After Changed
+            enabled: true
+            order:   50
+            entity:  Oro\Bundle\EmailBundle\Entity\EmailUser
+            preconditions:
+                '@and':
+                    - '@not_empty': [$origin]
+                    - '@equal': [$origin.active, true]
+            actions_configuration:
+                - '@call_service_method':
+                    service: 'oro_message_queue.client.message_producer'
+                    method: 'send'
+                    # ...
+
+    triggers:
+        sync_email_flag_after_changed:
+            -
+                event: update
+                field: seen</code></pre>
+
+<p>Due blocchi: <strong>definitions</strong> (cosa fare) e <strong>triggers</strong> (quando).
+I trigger si agganciano al ciclo di vita Doctrine — <code>create</code>, <code>update</code>,
+<code>delete</code> — e possono restringersi a un singolo campo, come qui con
+<code>field: seen</code>. Esiste anche il trigger a cron, con <code>cron: '*/5 * * * *'</code>.</p>
+
+<div class="box warn">
+  <p class="box-title">Il process gira dentro la transazione Doctrine</p>
+  <p>Un process sincrono viene eseguito mentre la transazione è aperta. Se ci metti dentro una
+  chiamata HTTP all'ERP, hai appena legato il salvataggio di un ordine alla latenza di un sistema
+  che non controlli. Per quello c'è la coda (lezione 12): il process pubblica un messaggio, e il
+  lavoro vero avviene fuori. La proprietà <code>queued: true</code> sulla definizione fa
+  esattamente questo.</p>
+</div>
+
+<h2>Pratica: un workflow sulla tua entità</h2>
+
+<p>La tua <code>ErpMapping</code> ha un campo <code>syncedAt</code> che oggi è nullo o valorizzato,
+e basta. Trasformiamo quel «o l'uno o l'altro» in un flusso dichiarato, con tre stati.</p>
+
+<ol class="checklist">
+  <li><strong>Scrivi il workflow.</strong> In
+  <code>src/Algoritma/Bundle/TrainingBundle/Resources/config/oro/workflows.yml</code>, tutto in un
+  file solo: per un workflow di tre step la divisione in più file non serve.
+<pre><code>workflows:
+    algoritma_erp_mapping_flow:
+        entity: Algoritma\Bundle\TrainingBundle\Entity\ErpMapping
+        entity_attribute: mapping
+        start_step: da_verificare
+        defaults:
+            active: true
+
+        steps:
+            da_verificare:
+                order: 10
+                allowed_transitions: [verifica, scarta]
+            verificata:
+                order: 20
+                allowed_transitions: [scarta]
+            scartata:
+                order: 30
+                allowed_transitions: []
+
+        transitions:
+            __start__:
+                step_to: da_verificare
+                is_start: true
+                is_hidden: true
+                transition_definition: start_definition
+            verifica:
+                step_to: verificata
+                frontend_options: { icon: 'fa-check' }
+                transition_definition: verifica_definition
+            scarta:
+                step_to: scartata
+                frontend_options: { icon: 'fa-ban' }
+                transition_definition: scarta_definition
+
+        transition_definitions:
+            start_definition: ~
+            verifica_definition:
+                preconditions:
+                    '@not_empty': [$mapping.oroSku]
+                actions:
+                    - '@assign_value': [$mapping.syncedAt, $.date]
+            scarta_definition:
+                actions:
+                    - '@assign_value': [$mapping.syncedAt, ~]</code></pre>
+  </li>
+
+  <li><strong>Carica le definizioni.</strong> I workflow non si ricaricano con un
+  <code>cache:clear</code>: hanno un comando loro, perché finiscono in banca dati.
+<pre><code>orobox console oro:workflow:definitions:load</code></pre>
+  </li>
+
+  <li><strong>Verifica che il motore lo veda.</strong>
+<pre><code>orobox console oro:debug:workflow:definitions | grep -i algoritma</code></pre>
+  </li>
+
+  <li><strong>Guardalo in back-office.</strong> Apri una <code>ErpMapping</code> dalla griglia della
+  lezione 5: in cima alla pagina compaiono i bottoni delle transizioni permesse, e lo stato
+  corrente. Prova il percorso completo, poi prova a <em>tornare indietro</em>: non puoi, perché
+  <code>scartata</code> non dichiara transizioni.</li>
+
+  <li><strong>Rompi la precondizione, apposta.</strong> Crea una mappatura con
+  <code>oroSku</code> vuoto e riapri la pagina: il bottone <em>verifica</em> non c'è. Sposta la
+  regola da <code>preconditions</code> a <code>conditions</code>, ricarica le definizioni, e guarda
+  la differenza: ora il bottone c'è e l'errore arriva al clic. Questa è la lezione che rimane.</li>
+</ol>
+
+<div class="box source">
+  <p class="box-title">Le azioni e le condizioni disponibili</p>
+  <p>Non si imparano a memoria: si interrogano dal container, esattamente come nella lezione 7.</p>
+<pre><code>orobox console debug:container --tag=oro_action.action | head -30
+orobox console debug:container --tag=oro_action.condition | head -30</code></pre>
+</div>
+
+<h2>Quando <em>non</em> usare un workflow</h2>
+
+<ul>
+  <li><strong>Un solo bottone, nessuno stato.</strong> È un'operation
+  (<code>actions.yml</code>): molto più leggera, e non aggiunge righe di stato in banca dati.</li>
+  <li><strong>Regole che cambiano a ogni cliente.</strong> Un workflow è configurazione versionata
+  nel bundle: se il flusso deve essere diverso per cliente, la variabilità va modellata nei dati,
+  non moltiplicando i workflow.</li>
+  <li><strong>Un flusso del core che ti serve quasi uguale.</strong> Non duplicare
+  <code>b2b_flow_checkout</code>: i workflow del core sono estendibili, e gli
+  <code>exclusive_record_groups</code> servono proprio a impedire che due flussi dello stesso
+  gruppo girino insieme sullo stesso record.</li>
+</ul>
+
+<h2>Verifica: rispondi a memoria</h2>
+
+<div class="quiz">
+  <p class="q">Un record deve solo essere «approvato» con un bottone, senza stati. Cosa usi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Una operation, dichiarata in actions.yml</button>
+    <button class="opt">Un workflow con due step e una transizione</button>
+    <button class="opt">Un process con trigger sull'evento di update</button>
+    <button class="opt">Un event listener Doctrine registrato a mano</button>
+  </div>
+  <p class="explain" hidden>Senza stati non serve una macchina a stati. L'operation dà il bottone e
+  l'azione, e non crea righe di stato in banca dati.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Differenza fra preconditions e conditions in una transizione?</p>
+  <div class="options">
+    <button class="opt" data-correct>Le prime decidono se il bottone compare, le seconde se il clic riesce</button>
+    <button class="opt">Le prime valgono per l'admin, le seconde per lo storefront</button>
+    <button class="opt">Le prime girano prima delle azioni, le seconde dopo</button>
+    <button class="opt">Le prime sono sincrone, le seconde vengono messe in coda</button>
+  </div>
+  <p class="explain" hidden><code>preconditions</code> è valutata prima di mostrare la transizione:
+  se è falsa, il bottone non compare. <code>conditions</code> è valutata al tentativo: se è falsa,
+  l'utente riceve un errore.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Hai modificato workflows.yml ma in back-office non cambia niente. Perché?</p>
+  <div class="options">
+    <button class="opt" data-correct>Le definizioni vanno ricaricate con oro:workflow:definitions:load</button>
+    <button class="opt">Il file va messo in config/oro/ e non nel bundle</button>
+    <button class="opt">Serve riavviare il consumer della coda dei messaggi</button>
+    <button class="opt">I workflow si attivano solo dopo un cache:warmup completo</button>
+  </div>
+  <p class="explain" hidden>Le definizioni dei workflow vivono in banca dati, non nella cache del
+  container: il file YAML è la sorgente, il comando è quello che la applica. È l'inciampo numero
+  uno della lezione.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un process deve chiamare l'API dell'ERP a ogni salvataggio di un ordine. Come lo fai?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il process pubblica un messaggio, il lavoro avviene fuori dalla transazione</button>
+    <button class="opt">Direttamente nelle actions_configuration, è il posto previsto</button>
+    <button class="opt">Con un trigger a cron ogni minuto, così non serve il process</button>
+    <button class="opt">In un listener Doctrine postFlush, che è fuori transazione</button>
+  </div>
+  <p class="explain" hidden>Un process sincrono gira dentro la transazione: una chiamata HTTP lì
+  dentro lega il salvataggio alla latenza dell'ERP. Si pubblica un messaggio (o si dichiara il
+  process <code>queued: true</code>) e il lavoro vero lo fa il consumer.</p>
+</div>
+
+<div class="recall">
+  <p class="q">A memoria: i quattro concetti di un workflow e cosa contiene ciascuno.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <strong>Entity</strong>: su quale entità gira. <strong>Step</strong>: gli stati, ognuno con le
+    <code>allowed_transitions</code>. <strong>Transition</strong>: dove porta
+    (<code>step_to</code>) e come si presenta (<code>frontend_options</code>).
+    <strong>Transition definition</strong>: <code>preconditions</code>, <code>conditions</code> e
+    <code>actions</code> — cioè quando è possibile e cosa fa.
+  </div>
+</div>
+
+<div class="recall">
+  <p class="q">Ripasso dalla lezione 7 (spaziatura): i quattro strumenti per estendere il core, in
+  ordine di preferenza, e perché l'ordine è quello.</p>
+  <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    Eventi, decorazione, compiler pass, override del template. L'ordine segue quanto ti leghi al
+    core: un listener sopravvive a un aggiornamento, un template sovrascritto è la prima cosa che si
+    rompe. Ora ne hai un quinto, più in alto di tutti quando il problema è «questo record ha degli
+    stati»: il workflow, che non è codice da mantenere ma configurazione da leggere.
+  </div>
+</div>
+
+<p class="score"></p>
+
+<h2>Da leggere prima della prossima lezione</h2>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria</p>
+  <p><a href="https://doc.oroinc.com/backend/entities-data-management/workflows/">Oro — Workflows</a>
+  e <a href="https://doc.oroinc.com/backend/entities-data-management/processes/">Processes</a>.
+  Della prima leggi <em>Workflow Configuration</em>; della seconda solo l'inizio, fino ai trigger.
+  Il resto si consulta quando serve.</p>
+</div>
+
+<h2>Esercizio fra una sessione e l'altra</h2>
+
+<ol>
+  <li>Aggiungi al workflow un attributo di tipo <code>string</code> chiamato <code>nota</code>, e
+  fallo compilare all'utente durante la transizione <em>scarta</em> con
+  <code>form_options.attribute_fields</code>. Deve essere obbligatorio: se è vuoto, la transizione
+  non passa.</li>
+  <li>Scrivi un process che, alla creazione di una <code>ErpMapping</code>, scriva una riga di log
+  con il codice ERP. Poi dichiaralo <code>queued: true</code> e osserva la differenza: senza
+  consumer attivo, la riga non compare più. È la stessa lezione della coda, in anticipo.</li>
+  <li>Leggi <code>vendor/oro/commerce/src/Oro/Bundle/SaleBundle/Resources/config/oro/workflows/</code>
+  — il flusso di approvazione dei preventivi — e portami la risposta a una domanda: come fa il
+  workflow a sapere <em>chi</em> può approvare? Cerca la condizione, non la classe.</li>
+</ol>
+
+<h2>Prossima lezione</h2>
+
+<p><strong>Lezione 9: REST API amministrativa.</strong> JSON:API, <code>api.yml</code>, esporre la
+tua entità in lettura e scrittura, filtri, e autenticazione OAuth 2.0. È il primo pezzo
+dell'integrazione ERP vera.</p>
+
+</main>
+
+<footer>
+  <p>Materiale collegato:
+    <a href="0007-estendere-il-core.html">Lezione 7</a> ·
+    <a href="0009-api-rest-admin.html">Lezione 9</a> ·
+    <a href="index.html">Indice del corso</a> ·
+    <a href="../reference/estendere-il-core.html">Reference: estendere il core</a>
+  </p>
+  <p>Se un bottone non compare e non capisci perché, la risposta è quasi sempre in
+  <code>preconditions</code>. Se non la trovi, mandami il YAML.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
