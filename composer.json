@@ -62,6 +62,11 @@
   },
   "config": {
     "bin-dir": "bin",
+    "policy": {
+      "advisories": {
+        "block": false
+      }
+    },
     "fxp-asset": {
       "enabled": false
     },
