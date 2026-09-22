@@ -1,0 +1,174 @@
+/* Formazione OroCommerce — deck di presentazione.
+   Usa la palette e i caratteri di lesson.css: caricare prima lesson.css, poi questo file. */
+
+:root {
+  --slide-pad: clamp(1.5rem, 4vmin, 3.5rem);
+  --step: clamp(0.95rem, 1.55vmin + 0.55rem, 1.45rem);
+}
+
+body.deck {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  font-size: var(--step);
+}
+
+body.deck main,
+body.deck header,
+body.deck footer { max-width: none; margin: 0; }
+
+/* --- Una slide --- */
+.slide {
+  display: none;
+  position: absolute;
+  inset: 0;
+  padding: var(--slide-pad) var(--slide-pad) calc(var(--slide-pad) + 2rem);
+  overflow-y: auto;
+  flex-direction: column;
+  /* `safe` evita che una slide densa venga tagliata in alto quando non ci sta */
+  justify-content: safe center;
+}
+.slide.current { display: flex; }
+
+.slide h1 {
+  font-size: 2.6em;
+  line-height: 1.1;
+  margin: 0 0 0.3em;
+}
+.slide h2 {
+  font-size: 1.85em;
+  font-weight: 400;
+  line-height: 1.15;
+  border: 0;
+  margin: 0 0 0.5em;
+  padding: 0;
+}
+.slide h3 {
+  font-size: 1.15em;
+  font-style: normal;
+  color: var(--accent);
+  margin: 1.1em 0 0.3em;
+}
+.slide p, .slide li { font-size: 1em; line-height: 1.5; }
+.slide ul, .slide ol { margin: 0 0 0.8em; padding-left: 1.4em; }
+.slide li { margin: 0.35em 0; }
+.slide .subtitle { font-size: 1.15em; margin-bottom: 1em; }
+.slide table { font-size: 0.86em; margin: 0.6em 0; width: 100%; }
+.slide th, .slide td { padding: 0.35em 0.7em; }
+.slide pre { font-size: 0.82em; margin: 0.5em 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.slide .box { margin: 0.8em 0; }
+.slide .sidenote { font-size: 0.8em; }
+
+/* Slide di sezione: sfondo pieno, testo grande */
+.slide.section-break {
+  background: var(--accent-soft);
+  text-align: center;
+}
+.slide.section-break h2 { font-size: 2.6em; }
+.slide.section-break .kicker { text-align: center; }
+
+/* Slide di pratica: bordo marcato, si riconosce a colpo d'occhio */
+.slide.hands-on { border-left: 0.6rem solid var(--accent); }
+.slide.hands-on h2::before { content: "▶ "; color: var(--accent); }
+
+/* Due colonne, per confronti Magento/Oro e nativo/custom */
+.cols {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: 1.2rem 2rem;
+  align-items: start;
+}
+.cols > div > :first-child { margin-top: 0; }
+
+/* Elenco "perni" numerati in grande */
+.pillars { list-style: none; padding: 0; counter-reset: pillar; }
+.pillars li {
+  counter-increment: pillar;
+  padding-left: 2.4em;
+  position: relative;
+  margin: 0.6em 0;
+}
+.pillars li::before {
+  content: counter(pillar);
+  position: absolute;
+  left: 0;
+  top: -0.05em;
+  font-family: var(--font-code);
+  font-size: 1.5em;
+  color: var(--accent);
+  line-height: 1;
+}
+
+/* Minutaggio nell'agenda */
+.agenda { list-style: none; padding: 0; }
+.agenda li {
+  display: grid;
+  grid-template-columns: 8.5em 1fr;
+  gap: 0 1rem;
+  border-bottom: 1px solid var(--rule);
+  padding: 0.45em 0;
+  margin: 0;
+}
+.agenda .t { font-family: var(--font-code); font-size: 0.85em; color: var(--ink-soft); }
+.agenda .now { color: var(--accent); font-weight: 600; }
+
+/* --- Barra di stato in basso --- */
+.deck-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.4rem var(--slide-pad);
+  font-family: var(--font-code);
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  background: var(--paper);
+  border-top: 1px solid var(--rule);
+}
+.deck-bar .title { flex: 1; }
+.deck-bar .hint { opacity: 0.7; }
+.deck-progress {
+  position: fixed;
+  left: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--accent);
+  transition: width 0.15s linear;
+  z-index: 2;
+}
+
+/* --- Note per il relatore (tasto n) --- */
+.notes {
+  display: none;
+  border-top: 1px dashed var(--rule);
+  margin-top: 1.2em;
+  padding-top: 0.6em;
+  font-size: 0.8em;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+body.show-notes .notes { display: block; }
+
+/* --- Vista lineare: tutte le slide in colonna (tasto l, e in stampa) --- */
+body.linear { overflow: auto; }
+body.linear .slide {
+  display: flex !important;
+  position: static;
+  inset: auto;
+  min-height: auto;
+  border-bottom: 1px solid var(--rule);
+  page-break-after: always;
+  break-after: page;
+}
+body.linear .deck-bar, body.linear .deck-progress { display: none; }
+body.linear .notes { display: block; }
+
+@media print {
+  body.deck { overflow: visible; }
+  .slide { display: flex !important; position: static; inset: auto; page-break-after: always; break-after: page; }
+  .deck-bar, .deck-progress { display: none; }
+  .notes { display: block; }
+}
