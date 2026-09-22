@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 9 — Dal preventivo all'ordine</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 09</p>
+  <h1>Dal preventivo all'ordine</h1>
+  <p class="subtitle">Shopping list, RFQ, preventivo, ordine: i documenti della trattativa B2B, i loro stati e i workflow che li governano.</p>
+  <p class="meta">
+    <span>Durata: ~50 min (20 di lettura, 30 di pratica)</span>
+    <span>Prerequisiti: <a href="0008-checkout.html">Lezione 8</a></span>
+    <span>Obiettivo: portare una trattativa fino all'ordine</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: i tre passi per rendere disponibile un metodo di pagamento.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Configurazione generale (System &gt; Configuration &gt; Commerce &gt; Payment) → integrazione
+    del metodo (System &gt; Integrations) → regola di pagamento (System &gt; Payment Rules).</p>
+  </div>
+</div>
+
+<h2>La catena dei documenti</h2>
+
+<p>In B2B la vendita non è un clic: è una catena di documenti che si trasformano l'uno nell'altro.
+Oro la modella così:</p>
+
+<p><strong>Shopping list</strong> → <strong>RFQ</strong> → <strong>Quote</strong> →
+<strong>Checkout</strong> → <strong>Order</strong> → <strong>Invoice</strong></p>
+
+<p>Non tutti i passaggi sono obbligatori: chi ha già i prezzi va dalla shopping list dritto al
+checkout. La catena serve quando c'è trattativa, ed è il motivo per cui Oro si vende come piattaforma
+B2B e non come e-commerce generico.</p>
+
+<h3>RFQ: la richiesta del compratore</h3>
+<p>Parte da più punti dello storefront: scheda prodotto, menu dell'account, shopping list, quick order
+form. Appena inviata è visibile in back-office, dove il commerciale la lavora. Due workflow la
+governano: <em>RFQ Management Flow</em> (lato back-office) e <em>RFQ Submission Flow</em> (lato
+storefront). Se sono disattivati, le RFQ arrivano lo stesso, ma senza le transizioni di stato.</p>
+
+<h3>Quote: la risposta del venditore</h3>
+<p>Il preventivo nasce in tre modi: da una RFQ, da zero (trattativa diretta), o da un'opportunità del
+CRM. Porta prezzi negoziati, quantità proposte e una validità. Il compratore lo vede nel proprio
+account — se la configurazione dei preventivi storefront è attiva — e può accettarlo e andare a
+checkout. Gli ospiti possono ricevere un link diretto via e-mail e accettare o rifiutare.</p>
+
+<p>Per i preventivi esistono due workflow alternativi: uno semplice, in cui il commerciale invia
+direttamente, e uno con <strong>approvazione</strong> di un responsabile prima dell'invio. Sono
+mutuamente esclusivi: se il cliente chiede l'approvazione, si attiva il secondo — configurazione, non
+sviluppo.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/customers-sales/rfq-quotes/">RFQ and Quote
+Management</a>.</p>
+
+<h2>L'ordine e i suoi due stati</h2>
+
+<p>L'ordine ha <strong>due stati distinti</strong>, e confonderli è un classico dell'analisi:</p>
+
+<table>
+  <thead><tr><th>Stato</th><th>Che cosa dice</th></tr></thead>
+  <tbody>
+    <tr><td><code>Payment status</code></td><td>Dove sta il pagamento: autorizzato, incassato, in attesa di cattura</td></tr>
+    <tr><td><code>Internal status</code></td><td>Dove sta l'ordine nel processo interno: aperto, in lavorazione, spedito, chiuso</td></tr>
+  </tbody>
+</table>
+
+<p>Il primo dipende dal metodo di pagamento e dalle catture manuali; il secondo dal processo aziendale,
+e quasi sempre è l'ERP a dettarlo. Quando un cliente chiede «gli stati ordine devono essere i nostri»,
+sta parlando dell'internal status, ed è una richiesta normale.</p>
+
+<h3>Da dove nascono gli ordini</h3>
+<ul>
+  <li>checkout dello storefront (da shopping list o quick order);</li>
+  <li>creazione manuale in back-office da parte del commerciale;</li>
+  <li>preventivo accettato;</li>
+  <li>shopping list del cliente trasformata in ordine dal back-office;</li>
+  <li>import da un sistema esterno (ERP).</li>
+</ul>
+
+<div class="box">
+  <p class="box-title">Il valore da raccontare in demo</p>
+  <p>Tutta la trattativa resta dentro un unico sistema, collegata: dalla shopping list si risale alla
+  RFQ, dalla RFQ al preventivo, dal preventivo all'ordine. Le <strong>conversation</strong> agganciano
+  i messaggi fra compratore e venditore al documento. È l'argomento contro la trattativa via e-mail, e
+  va mostrato con i documenti collegati aperti, non raccontato.</p>
+</div>
+
+<h2>I workflow: dove si tocca il processo</h2>
+
+<p>In System &gt; Workflows si attivano e disattivano i flussi, si vedono i gruppi esclusivi (un solo
+workflow attivo per gruppo) e si modificano <strong>passi</strong> e <strong>transizioni</strong>:
+etichette, icone, messaggi, permessi per ruolo. Il limite è dichiarato: i workflow con condizioni e
+azioni nelle transizioni non si modificano completamente dall'interfaccia — lì si passa al percorso
+tecnico.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/back-office/system/workflows/">Workflows</a>.</p>
+
+<h2>Pratica: una trattativa completa</h2>
+
+<ol class="checklist">
+  <li><strong>Da storefront</strong>, con l'utente della lezione 6: crea una shopping list e invia una
+  RFQ con una quantità alta.</li>
+  <li><strong>Da back-office</strong>, apri la RFQ in Sales &gt; Requests for Quote e segui le
+  transizioni disponibili.</li>
+  <li><strong>Crea il preventivo</strong> dalla RFQ, cambia un prezzo e una quantità, imposta la
+  validità e invialo.</li>
+  <li><strong>Torna nello storefront</strong>: accetta il preventivo e vai a checkout fino
+  all'ordine.</li>
+  <li><strong>In Sales &gt; Orders</strong> apri l'ordine e trova i collegamenti al preventivo e alla
+  RFQ di origine. Annota i due stati.</li>
+  <li><strong>Guarda i workflow</strong> attivi per RFQ e preventivi in System &gt; Workflows, e prova
+  ad attivare quello di preventivo con approvazione. Poi riporta la configurazione com'era.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — mappa il processo di un cliente</p>
+  <p>Prendi il processo di vendita di un cliente reale, scritto in cinque righe da lui. Mappalo sui
+  documenti Oro: quali servono, quali salta, dove serve un'approvazione, quali stati interni gli
+  servono davvero. Segna le richieste che non entrano nei workflow nativi: sono i candidati a sviluppo,
+  e vanno stimate a parte. La scheda <a href="../reference-business/flusso-vendita.html">Flusso di
+  vendita</a> ti dà i nomi esatti.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Da quanti punti dello storefront può partire una RFQ?</p>
+  <div class="options">
+    <button class="opt" data-correct>Da più punti: prodotto, account, lista, quick order</button>
+    <button class="opt">Da un punto solo: il menu dell'account cliente</button>
+    <button class="opt">Da due punti: la shopping list e il checkout</button>
+  </div>
+  <p class="explain" hidden>Scheda prodotto, menu dell'account, shopping list e quick order form sono
+  tutti punti di ingresso previsti.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Approvazione del preventivo prima dell'invio: come si ottiene?</p>
+  <div class="options">
+    <button class="opt" data-correct>Attivando il workflow di preventivo con approvazione</button>
+    <button class="opt">Sviluppando una regola di approvazione su misura</button>
+    <button class="opt">Assegnando al commerciale un ruolo senza permessi</button>
+  </div>
+  <p class="explain" hidden>Esistono due workflow alternativi per i preventivi: semplice e con
+  approvazione. Si sceglie da System &gt; Workflows.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">«Gli stati ordine devono essere i nostri»: di quale stato parla?</p>
+  <div class="options">
+    <button class="opt" data-correct>Dell'internal status, il processo interno dell'ordine</button>
+    <button class="opt">Del payment status, lo stato del pagamento ricevuto</button>
+    <button class="opt">Dello stato del workflow di checkout dello storefront</button>
+  </div>
+  <p class="explain" hidden>Internal status e payment status sono distinti. Il primo segue il processo
+  aziendale, spesso dettato dall'ERP.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/customers-sales/orders/">Order Management</a>
+  e <a href="https://doc.oroinc.com/user/concept-guides/customers-sales/rfq-quotes/">RFQ and Quote
+  Management</a> — due pagine corte che insieme descrivono tutta la catena.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Inventario e disponibilità</strong>: giacenze, stato di inventario, backorder e quantità
+  minime — cioè quando un prodotto si può comprare e quando no.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/flusso-vendita.html">Flusso di vendita</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a></p>
+  <p>Un processo di vendita che non sembra entrare nei documenti nativi? Portalo in chat: spesso entra
+  cambiando i nomi, non il sistema.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

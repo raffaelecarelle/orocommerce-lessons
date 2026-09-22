@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 8 — Checkout</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 08</p>
+  <h1>Checkout</h1>
+  <p class="subtitle">I sette passi, i metodi di pagamento e spedizione con le loro regole, le tasse. Tutto ciò che sta fra la shopping list e l'ordine.</p>
+  <p class="meta">
+    <span>Durata: ~55 min (25 di lettura, 30 di pratica)</span>
+    <span>Prerequisiti: <a href="0007-contenuti-e-navigazione.html">Lezione 7</a></span>
+    <span>Obiettivo: configurare un checkout completo</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: differenza fra restrizione di un nodo e visibilità di un prodotto.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>La restrizione toglie la voce dal menu; il prodotto resta raggiungibile da ricerca e URL. La
+    visibilità toglie il prodotto dallo storefront.</p>
+  </div>
+</div>
+
+<h2>Il checkout è un workflow, non una pagina</h2>
+
+<p>Il checkout standard ha sette passi: consensi, indirizzo di fatturazione, indirizzo di spedizione,
+metodo di spedizione, pagamento, riepilogo, conferma. Non è codice fisso: è un
+<strong>workflow</strong> configurabile. Senza sviluppo si può togliere un passo che non serve (la
+spedizione per prodotti digitali), passare alla versione a <strong>pagina unica</strong>, abilitare il
+<strong>guest checkout</strong>, e assegnare workflow diversi a siti diversi.</p>
+
+<p>I workflow di checkout disponibili sono mutuamente esclusivi: uno solo attivo per organizzazione.
+Il checkout parziale viene salvato: il compratore può riprenderlo.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/administration/checkout/">Checkout
+Configuration</a>. L'attivazione si fa in System &gt; Workflows.</p>
+
+<h2>Pagamento: tre pezzi, in quest'ordine</h2>
+
+<table>
+  <thead><tr><th>Passo</th><th>Dove</th><th>Che cosa si decide</th></tr></thead>
+  <tbody>
+    <tr><td>1. Configurazione generale</td><td>System &gt; Configuration &gt; Commerce &gt; Payment</td><td>Dati del venditore, valuta, opzioni globali</td></tr>
+    <tr><td>2. Integrazione del metodo</td><td>System &gt; Integrations</td><td>Credenziali e parametri del metodo</td></tr>
+    <tr><td>3. Regola di pagamento</td><td>System &gt; Payment Rules</td><td>A chi e quando quel metodo compare</td></tr>
+  </tbody>
+</table>
+
+<p>I metodi nativi sono tre: <strong>payment term</strong> (pagamento differito: 30, 60, 90 giorni —
+il metodo B2B per eccellenza), <strong>check/money order</strong> e <strong>PayPal</strong>. Altri
+(Stripe, Authorize.Net e simili) arrivano dalle estensioni. Le regole valutano condizioni su
+indirizzo, sito web ed espressioni sull'ordine, hanno un ordinamento, e il flag «stop further rule
+processing» ferma la valutazione delle successive.</p>
+
+<div class="box">
+  <p class="box-title">Payment term: la domanda da fare al cliente</p>
+  <p>«Chi ha il fido, e chi paga subito?» Il payment term si assegna al cliente o al gruppo, e la
+  regola di pagamento decide se compare al checkout. Il controllo del fido residuo, invece, di norma
+  vive nell'ERP: sapere se quel controllo deve essere in tempo reale cambia completamente la stima
+  dell'integrazione.</p>
+</div>
+
+<h2>Spedizione: stessa struttura</h2>
+
+<p>Metodi nativi: <strong>flat rate</strong> (costo fisso), <strong>fixed product shipping cost</strong>
+(costo per attributo di prodotto), e le integrazioni <strong>UPS</strong>, <strong>FedEx</strong>,
+<strong>DPD</strong> con account del corriere. Le tariffe calcolate dai corrieri richiedono peso e
+unità di peso sui prodotti: senza quei dati, niente tariffa.</p>
+
+<p>Le <strong>shipping rule</strong> funzionano come quelle di pagamento: condizioni su indirizzo,
+prodotti ed espressioni, ordinamento, stop. Il <strong>multi-shipping</strong> permette metodi diversi
+per righe diverse dello stesso ordine.</p>
+
+<h2>Tasse: quattro pezzi che si incrociano</h2>
+
+<ol>
+  <li><strong>Product Tax Code</strong> — il codice fiscale del prodotto</li>
+  <li><strong>Customer Tax Code</strong> — il codice fiscale del cliente, inclusa l'esenzione</li>
+  <li><strong>Tax Jurisdiction</strong> — l'area geografica</li>
+  <li><strong>Tax Rate</strong> — l'aliquota, legata alla giurisdizione</li>
+</ol>
+
+<p>La <strong>tax rule</strong> incrocia i quattro e produce l'imposta. Si sceglie se calcolare sulla
+sede del venditore (<em>origin based</em>) o su quella del compratore (<em>destination based</em>), se
+mostrare i prezzi con o senza imposta, e come trattare i prodotti digitali. Per scenari complessi
+esistono le integrazioni con provider esterni.</p>
+
+<p class="sidenote">Fonti:
+<a href="https://doc.oroinc.com/user/concept-guides/administration/payment-configuration/">Payment
+Configuration</a>,
+<a href="https://doc.oroinc.com/user/concept-guides/administration/shipping-configuration/">Shipping
+Configuration</a>,
+<a href="https://doc.oroinc.com/user/concept-guides/administration/taxes/">Tax Management</a>.</p>
+
+<h2>Pratica: dal carrello all'ordine, configurato da te</h2>
+
+<ol class="checklist">
+  <li><strong>Guarda quale workflow di checkout è attivo.</strong> System &gt; Workflows: filtra sui
+  workflow di checkout e annota quello attivo.</li>
+  <li><strong>Crea un metodo di spedizione flat rate</strong> e una regola che lo mostri solo per il
+  tuo paese.</li>
+  <li><strong>Crea un payment term</strong> a 30 giorni, assegnalo al cliente della lezione 6 e scrivi
+  la regola di pagamento che lo rende disponibile.</li>
+  <li><strong>Imposta i codici fiscali</strong>: uno di prodotto, uno di cliente, una giurisdizione,
+  un'aliquota e la regola che li lega.</li>
+  <li><strong>Completa un ordine</strong> dallo storefront con quel cliente e verifica i totali:
+  imponibile, spedizione, imposta.</li>
+  <li><strong>Prova con un cliente diverso</strong>, fuori dal gruppo: i metodi disponibili devono
+  cambiare. Se non cambiano, rileggi le condizioni della regola.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — il checkout di un cliente reale</p>
+  <p>Scrivi, per un cliente che conosci: quali metodi di pagamento servono e a chi, quali metodi di
+  spedizione e con quali condizioni, se le imposte sono sull'origine o sulla destinazione, quali passi
+  del checkout toglieresti. Poi segna con un asterisco le righe che non sai configurare con quello che
+  hai visto: quelle sono le domande da portare alla prossima sessione — o, se restano, il primo
+  candidato a diventare sviluppo.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Come si toglie un passo dal checkout standard?</p>
+  <div class="options">
+    <button class="opt" data-correct>Configurando il workflow di checkout da back-office</button>
+    <button class="opt">Modificando il template della pagina di checkout</button>
+    <button class="opt">Creando una regola di pagamento senza quel passo</button>
+  </div>
+  <p class="explain" hidden>Il checkout è un workflow: passi e transizioni si configurano. Il template
+  riguarda l'aspetto, la regola di pagamento riguarda i metodi disponibili.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quale metodo di pagamento è il più B2B dei tre nativi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il payment term, cioè il pagamento differito</button>
+    <button class="opt">Il money order, cioè il bonifico anticipato</button>
+    <button class="opt">Il PayPal, con le sue due varianti gateway</button>
+  </div>
+  <p class="explain" hidden>Il pagamento a 30/60/90 giorni si assegna a cliente o gruppo ed è la norma
+  fra aziende. Gli altri due esistono ma coprono casi diversi.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Che cosa incrocia una tax rule per calcolare l'imposta?</p>
+  <div class="options">
+    <button class="opt" data-correct>Codice prodotto, codice cliente, giurisdizione, aliquota</button>
+    <button class="opt">Codice prodotto, listino applicato, giurisdizione, aliquota</button>
+    <button class="opt">Codice cliente, metodo di pagamento, giurisdizione, aliquota</button>
+  </div>
+  <p class="explain" hidden>Quattro pezzi: product tax code, customer tax code, tax jurisdiction e tax
+  rate. La regola li mette insieme.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/administration/checkout/">Checkout
+  Configuration</a> — i sette passi, le varianti e ciò che si cambia senza codice. Poi, se il progetto
+  lo richiede, le due pagine su pagamenti e spedizioni.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Dal preventivo all'ordine</strong>: shopping list, RFQ, quote, ordine — stati, documenti e
+  workflow della trattativa B2B.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Una regola di pagamento o spedizione che non si comporta come previsto? Portala in chat con le
+  sue condizioni: quasi sempre è l'ordinamento o lo stop.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

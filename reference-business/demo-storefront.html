@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Script di demo — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/glossary.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Scheda</p>
+  <h1>Script di demo</h1>
+  <p class="subtitle">Venti minuti di storefront B2B, otto passaggi, un beneficio per passaggio. Con la preparazione da fare prima e le domande che arrivano sempre.</p>
+  <p class="meta">
+    <span>Durata: 20 minuti</span>
+    <span>Due sessioni browser: compratore e back-office</span>
+    <span>Dati demo installati</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Prima di cominciare</h2>
+
+<ul class="checklist">
+  <li>Un utente cliente funzionante, con password che conosci, appartenente a un cliente con listino
+  proprio.</li>
+  <li>Un secondo utente di un cliente diverso, per mostrare prezzi e catalogo differenti.</li>
+  <li>Tre SKU scritti su un foglio, per il quick order form.</li>
+  <li>Back-office già aperto in una seconda finestra, sulla pagina degli ordini.</li>
+  <li>Un preventivo già preparato, se vuoi mostrare l'accettazione senza aspettare.</li>
+  <li>Cache e indice di ricerca aggiornati: le sorprese in demo nascono quasi sempre da lì.</li>
+</ul>
+
+<h2>Gli otto passaggi</h2>
+
+<table class="glossary">
+  <thead><tr><th>#</th><th>Che cosa mostri</th><th>Che cosa dici (beneficio)</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">1</td>
+      <td>Login del compratore, e la sua home personalizzata</td>
+      <td>Ogni azienda entra nel proprio negozio: catalogo, prezzi e condizioni sono i suoi, non quelli del listino pubblico.</td>
+    </tr>
+    <tr>
+      <td class="term">2</td>
+      <td>Navigazione e ricerca con filtri per attributo</td>
+      <td>I vostri clienti trovano per codice, per attributo tecnico, come cercano davvero.</td>
+    </tr>
+    <tr>
+      <td class="term">3</td>
+      <td>Scheda prodotto: unità di misura, scaglioni di prezzo, disponibilità</td>
+      <td>Vendete a confezioni e a scaglioni come nel listino cartaceo, senza spiegazioni al telefono.</td>
+    </tr>
+    <tr>
+      <td class="term">4</td>
+      <td>Due shopping list in parallelo, con spostamento di una riga</td>
+      <td>Una lista per cantiere o per reparto: chi prepara non mischia gli ordini di chi decide.</td>
+    </tr>
+    <tr>
+      <td class="term">5</td>
+      <td>Quick order form con i tre SKU incollati</td>
+      <td>Il riordino di ottanta righe richiede trenta secondi, non una mail al commerciale.</td>
+    </tr>
+    <tr>
+      <td class="term">6</td>
+      <td>Invio di una RFQ, poi il back-office che la riceve e risponde con un preventivo</td>
+      <td>La trattativa resta dentro il sistema, tracciata: niente più offerte perse nelle caselle di posta.</td>
+    </tr>
+    <tr>
+      <td class="term">7</td>
+      <td>Accettazione del preventivo e checkout con pagamento differito</td>
+      <td>Il cliente conferma da solo alle condizioni concordate, con il suo pagamento a 30 giorni.</td>
+    </tr>
+    <tr>
+      <td class="term">8</td>
+      <td>Back-office: l'ordine con i collegamenti a preventivo e RFQ</td>
+      <td>Dal singolo ordine risalite a tutta la storia commerciale, e da qui parte l'ERP.</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p class="box-title">Il colpo di scena da tenere per la fine</p>
+  <p>Fai login con il secondo utente e mostra lo stesso prodotto a un prezzo diverso, o una sezione
+  che sparisce. Poi apri il back-office e fai vedere dove è configurato: due minuti, nessuna riga di
+  codice. È il momento in cui la piattaforma smette di sembrare un sito e comincia a sembrare uno
+  strumento di vendita.</p>
+</div>
+
+<h2>Le domande che arrivano sempre</h2>
+
+<table>
+  <thead><tr><th>Domanda</th><th>Risposta breve</th></tr></thead>
+  <tbody>
+    <tr><td>«Si collega al nostro gestionale?»</td><td>Sì, via API e import/export. È sviluppo, e la stima dipende da quali dati e con quale frequenza.</td></tr>
+    <tr><td>«I prezzi restano nel gestionale?»</td><td>Possono arrivare da lì: in Oro si caricano come listini, anche generati da regole.</td></tr>
+    <tr><td>«Possiamo avere due siti?»</td><td>Con l'edizione Enterprise sì. Con Community si differenzia per gruppo cliente: spesso basta.</td></tr>
+    <tr><td>«Chi approva gli ordini?»</td><td>Si configura con i ruoli; se servono soglie e deleghe si disegna un workflow.</td></tr>
+    <tr><td>«Quanto è personalizzabile la grafica?»</td><td>Contenuti e struttura si configurano; il tema è sviluppo frontend.</td></tr>
+    <tr><td>«I clienti si registrano da soli?»</td><td>Sì, con conferma e approvazione manuale: la norma in B2B.</td></tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">Tre errori che affondano una demo</p>
+  <ol>
+    <li>Mostrare il flusso B2C (catalogo, carrello, carta) e lasciare le funzioni B2B per ultime.</li>
+    <li>Parlare di funzioni invece che di benefici: «shopping list multiple» non dice niente, «una
+    lista per cantiere» sì.</li>
+    <li>Promettere senza verificare l'edizione: multi-sito e multi-magazzino sono Enterprise.</li>
+  </ol>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="../lessons-business/index.html">Indice delle lezioni</a> ·
+  <a href="../lessons-business/0002-giro-del-compratore.html">Lezione 2</a> ·
+  <a href="griglia-analisi.html">Griglia di analisi</a> ·
+  <a href="glossario.html">Glossario</a></p>
+</footer>
+
+</body>
+</html>

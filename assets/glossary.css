@@ -1,0 +1,63 @@
+/* Componente glossario: voci in tabella a tre colonne, ottimizzate per la stampa.
+   Richiede lesson.css per le variabili colore.
+
+   Markup atteso:
+
+   <table class="glossary">
+     <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+     <tbody>
+       <tr><td class="term">Customer</td><td>...</td><td class="where">Customers &gt; Customers</td></tr>
+     </tbody>
+   </table>
+*/
+
+.glossary { font-size: 0.88rem; }
+
+.glossary td.term {
+  font-family: var(--font-code);
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  padding-right: 0.9rem;
+  width: 1%;
+}
+
+.glossary td.where {
+  font-family: var(--font-code);
+  font-size: 0.74rem;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  padding-left: 0.9rem;
+}
+
+.glossary td .it {
+  display: block;
+  font-style: italic;
+  color: var(--ink-soft);
+}
+
+/* Indice delle sezioni del glossario, in cima alla pagina. */
+.toc {
+  font-family: var(--font-code);
+  font-size: 0.78rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 0.6rem 0;
+  margin: 0 0 2rem;
+  list-style: none;
+}
+.toc li { margin: 0; }
+
+@media (max-width: 34rem) {
+  .glossary td.term, .glossary td.where { white-space: normal; }
+  .glossary td.where { padding-left: 0; }
+}
+
+@media print {
+  .glossary { font-size: 9.5pt; }
+  .glossary tr { break-inside: avoid; }
+  .toc { break-after: avoid; }
+}

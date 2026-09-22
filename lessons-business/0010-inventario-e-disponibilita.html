@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 10 — Inventario e disponibilità</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 10</p>
+  <h1>Inventario e disponibilità</h1>
+  <p class="subtitle">Giacenze, stato di inventario, soglie, backorder e quantità minime. Quando un prodotto si compra, e quando no.</p>
+  <p class="meta">
+    <span>Durata: ~40 min (15 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0009-dal-preventivo-all-ordine.html">Lezione 9</a></span>
+    <span>Obiettivo: governare l'acquistabilità</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: i due stati di un ordine e che cosa dicono.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p><code>Payment status</code>: dove sta il pagamento. <code>Internal status</code>: dove sta
+    l'ordine nel processo interno, quasi sempre dettato dall'ERP.</p>
+  </div>
+</div>
+
+<h2>Quantità e stato sono due cose diverse</h2>
+
+<p>La <strong>giacenza</strong> (<code>Inventory Level</code>) è un numero: quanti pezzi ci sono in
+magazzino, per unità di misura. Lo <strong>stato di inventario</strong>
+(<code>Inventory Status</code>) è un'etichetta dichiarata: <em>in stock</em>, <em>out of stock</em>,
+<em>discontinued</em>. Non coincidono: si può avere giacenza zero e stato «in stock» (si vende su
+ordinazione), o magazzino pieno e stato «discontinued» (si sta smaltendo fuori dal sito).</p>
+
+<p>Lo stato di inventario incide sulla vetrina e su tutta la catena della
+<a href="0009-dal-preventivo-all-ordine.html">lezione 9</a>: può bloccare shopping list, RFQ,
+preventivi e ordini, non solo nascondere il prodotto.</p>
+
+<div class="box warn">
+  <p class="box-title">Magazzini: Community contro Enterprise</p>
+  <p>In <strong>Community</strong> il magazzino è uno. I magazzini multipli, con assegnazione a siti
+  web e sincronizzazione, sono <strong>Enterprise</strong>. È una delle domande che in gara cambia
+  l'edizione proposta: chiedila presto, non alla fine.</p>
+</div>
+
+<h2>Le leve che decidono l'acquistabilità</h2>
+
+<table>
+  <thead><tr><th>Leva</th><th>Che cosa fa</th></tr></thead>
+  <tbody>
+    <tr><td><code>Inventory Threshold</code></td><td>Sotto questa soglia il prodotto passa automaticamente a «out of stock»</td></tr>
+    <tr><td><code>Low Inventory Threshold</code></td><td>Sotto questa soglia compare l'avviso di scorte in esaurimento al compratore</td></tr>
+    <tr><td><code>Backorder</code></td><td>Permette di ordinare oltre la disponibilità; il pagamento procede comunque</td></tr>
+    <tr><td><code>Decrement Inventory</code></td><td>Scala la giacenza quando l'ordine viene inviato</td></tr>
+    <tr><td><code>Manage Inventory</code></td><td>Se disattivato, il prodotto non è soggetto a controllo di giacenza</td></tr>
+    <tr><td>Quantità minima e massima</td><td>Limita quanto si può ordinare per volta</td></tr>
+  </tbody>
+</table>
+
+<p>La quantità minima è la leva B2B che si dimentica sempre: insieme all'unità di misura della
+<a href="0004-catalogo.html">lezione 4</a> è ciò che impone «si vende a confezioni intere da dodici».</p>
+
+<h2>La cascata, di nuovo</h2>
+
+<p>Ognuna di queste impostazioni si dichiara a più livelli, e vince il più specifico:</p>
+
+<p><strong>Prodotto</strong> → <strong>categoria del master catalog</strong> → <strong>sito
+web</strong> → <strong>organizzazione</strong> → <strong>globale</strong></p>
+
+<p>È la stessa struttura vista per prezzi e visibilità. Quando un prodotto si comporta diversamente
+dagli altri, la prima ipotesi è sempre un'impostazione a livello di prodotto o categoria che
+sovrascrive la regola generale.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/inventory/">Inventory and
+Warehouse Management</a>.</p>
+
+<div class="box">
+  <p class="box-title">Dove finisce Oro e comincia l'ERP</p>
+  <p>Nella maggior parte dei progetti la giacenza <strong>non si gestisce in Oro</strong>: arriva
+  dall'ERP, con una frequenza da concordare. Le domande da fare in analisi sono tre: ogni quanto si
+  aggiorna, che cosa succede fra un aggiornamento e l'altro, e chi ha ragione se i due numeri
+  divergono. Senza risposte, l'integrazione non è stimabile.</p>
+</div>
+
+<h2>Pratica: rompi e ripara la disponibilità</h2>
+
+<ol class="checklist">
+  <li><strong>Inventory &gt; Manage Inventory</strong>: trova il prodotto creato nella lezione 4 e
+  guarda la sua giacenza.</li>
+  <li><strong>Porta la giacenza a zero</strong> e guarda la scheda nello storefront: cosa cambia per
+  il compratore?</li>
+  <li><strong>Cambia lo stato di inventario</strong> in «out of stock» e riprova ad aggiungere alla
+  shopping list.</li>
+  <li><strong>Attiva il backorder</strong> per quel prodotto e riprova: ora deve essere ordinabile
+  anche senza giacenza.</li>
+  <li><strong>Imposta una quantità minima</strong> di dodici e prova a ordinarne cinque.</li>
+  <li><strong>Sposta un'impostazione a livello di categoria</strong> e verifica che il prodotto la
+  erediti quando non ha un valore proprio.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — tre requisiti di disponibilità</p>
+  <p>Traduci in configurazione: (a) «gli articoli a magazzino si vendono, quelli da ordinare si
+  possono comunque comprare con consegna a quattro settimane»; (b) «sotto le dieci unità il cliente
+  deve vedere l'avviso»; (c) «i ricambi si vendono anche singoli, il resto solo a confezioni». Per
+  ognuno scrivi quale leva usi e a quale livello la imposti.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Giacenza zero e stato «in stock»: è una situazione possibile?</p>
+  <div class="options">
+    <button class="opt" data-correct>Sì: quantità e stato sono due cose distinte</button>
+    <button class="opt">No: lo stato segue sempre la quantità reale</button>
+    <button class="opt">Sì, ma soltanto se il backorder è attivo</button>
+  </div>
+  <p class="explain" hidden>Lo stato è dichiarato, la giacenza è contata. La soglia di inventario è ciò
+  che, se impostata, li fa cambiare insieme.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quanti magazzini gestisce l'edizione Community?</p>
+  <div class="options">
+    <button class="opt" data-correct>Uno soltanto: i magazzini multipli sono Enterprise</button>
+    <button class="opt">Uno per sito web configurato nell'organizzazione</button>
+    <button class="opt">Quanti se ne creano, senza limiti di edizione</button>
+  </div>
+  <p class="explain" hidden>Community: un magazzino. È una domanda da fare presto, perché cambia
+  l'edizione da proporre.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un prodotto si comporta diversamente dagli altri: prima ipotesi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Un valore impostato su prodotto o categoria che sovrascrive</button>
+    <button class="opt">Un difetto nel calcolo della giacenza di magazzino</button>
+    <button class="opt">Un ritardo dell'indice di ricerca del sito web</button>
+  </div>
+  <p class="explain" hidden>Prodotto → categoria → sito → organizzazione → globale: il livello più
+  specifico vince, ed è quasi sempre lì che sta la differenza.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/inventory/">Inventory and
+  Warehouse Management</a> — soglie, backorder, decremento, limiti di quantità e la cascata dei
+  livelli.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Configurazione a livelli</strong>: la cascata completa delle impostazioni, cosa è comune
+  e cosa è per sito, e la localizzazione.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Domande sull'allineamento delle giacenze con l'ERP? Portale in chat: è il punto dove le stime
+  saltano più spesso.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

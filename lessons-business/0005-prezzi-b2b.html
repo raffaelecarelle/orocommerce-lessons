@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 5 — Prezzi B2B</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 05</p>
+  <h1>Prezzi B2B</h1>
+  <p class="subtitle">Listini per cliente e per gruppo, prezzi a scaglioni, listini generati da regole. E la schermata che dice da dove arriva un prezzo.</p>
+  <p class="meta">
+    <span>Durata: ~50 min (20 di lettura, 30 di pratica)</span>
+    <span>Prerequisiti: <a href="0004-catalogo.html">Lezione 4</a></span>
+    <span>Obiettivo: far vedere due prezzi diversi a due clienti</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: differenza fra master catalog e web catalog, in una riga.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Master catalog: la struttura dei dati, una per organizzazione, un prodotto in una sola
+    categoria. Web catalog: la vetrina e la navigazione, più d'una, con lo stesso prodotto in più
+    punti.</p>
+  </div>
+</div>
+
+<h2>Il prezzo non è un campo del prodotto</h2>
+
+<p>È l'inversione mentale più importante di tutto il percorso. In Oro il prezzo non sta sul prodotto:
+sta in un <strong>listino</strong> (<code>Price List</code>), e il listino viene assegnato a un
+livello. Lo stesso articolo ha quindi tanti prezzi quante sono le combinazioni di listino, quantità,
+unità e valuta. È esattamente ciò che serve in B2B, e non si può simulare con un campo prezzo.</p>
+
+<h2>La cascata dei listini</h2>
+
+<p>Un listino si assegna a quattro livelli. Dal più specifico al più generale:</p>
+
+<ol>
+  <li><strong>Customer</strong> — il singolo cliente</li>
+  <li><strong>Customer Group</strong> — il gruppo di clienti</li>
+  <li><strong>Website</strong> — il sito web</li>
+  <li><strong>Global</strong> — il sistema</li>
+</ol>
+
+<p>Se al livello del cliente manca il prezzo di un prodotto, il sistema scende di livello
+(<em>fallback</em>): cliente → gruppo → sito → globale. A ogni livello si possono assegnare
+<strong>più listini con una priorità</strong>, e questo introduce la scelta più delicata della
+configurazione: la <strong>strategia</strong>.</p>
+
+<table>
+  <thead><tr><th>Strategia</th><th>Come sceglie il prezzo</th></tr></thead>
+  <tbody>
+    <tr><td><code>Minimal prices</code> (predefinita)</td><td>Unisce tutti i listini disponibili e mostra, per ogni scaglione, il prezzo più basso</td></tr>
+    <tr><td><code>Merge by priority</code></td><td>Parte dal listino a priorità più alta; il flag «merge allowed» decide se i buchi vengono riempiti dai listini sotto</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/pricing/">Price Management</a>.
+La logica di fallback per gli utenti registrati è: listini del cliente → del gruppo → del sito →
+globali.</p>
+
+<div class="box warn">
+  <p class="box-title">Dove nascono i «prezzi sbagliati»</p>
+  <p>Nove segnalazioni su dieci del tipo «questo cliente vede un prezzo che non doveva vedere» non
+  sono difetti: sono la strategia <code>minimal prices</code> che pesca il prezzo più basso da un
+  listino generico ancora assegnato. Prima di aprire un ticket, guarda quali listini sono assegnati a
+  quel cliente e con quale strategia.</p>
+</div>
+
+<h2>Prezzi a scaglioni, unità e valuta</h2>
+
+<p>Ogni riga di listino è la combinazione prodotto + unità + quantità minima + valuta + prezzo. Le
+quantità crescenti danno gli <strong>scaglioni</strong>: 1 pezzo a 10, da 10 pezzi a 9, da 100 a 8.
+È la meccanica commerciale B2B di base, ed è nativa: nessuno sviluppo.</p>
+
+<h2>Listini generati da regole</h2>
+
+<p>Un listino non deve per forza essere caricato riga per riga. Può essere generato:</p>
+
+<ul>
+  <li>con una <strong>regola di assegnazione prodotti</strong> — un'espressione che seleziona i
+  prodotti (per categoria, per attributo);</li>
+  <li>con una <strong>regola di calcolo</strong> — una formula sul prezzo base, per esempio uno sconto
+  percentuale su un altro listino, o una conversione di valuta.</li>
+</ul>
+
+<p>È lo strumento che regge i casi reali: «tutti i clienti del gruppo rivenditori pagano il listino
+base meno il 15%». Si configura, non si sviluppa. Va però ricalcolato, e il ricalcolo su cataloghi
+grandi non è istantaneo: in analisi va detto.</p>
+
+<h3>Price attribute: i valori economici che non vendono</h3>
+<p>Il prezzo di listino ufficiale, il costo, il prezzo consigliato al pubblico sono
+<strong>price attribute</strong>: valori economici del prodotto usati nei confronti e nelle formule,
+non per vendere. Servono per mostrare «prezzo pieno barrato» o per calcolare i margini.</p>
+
+<h2>Quando il prezzo non torna: la schermata che lo spiega</h2>
+
+<p>Sales &gt; <strong>Price Calculation Details</strong> mostra, per una combinazione cliente + sito +
+prodotto, quale listino e quale regola hanno prodotto il prezzo mostrato. È lo strumento diagnostico
+da conoscere prima di dire «è un bug» — e da mostrare in demo quando il cliente teme di perdere il
+controllo dei prezzi.</p>
+
+<h2>Pratica: due clienti, due prezzi</h2>
+
+<ol class="checklist">
+  <li><strong>Guarda i listini esistenti.</strong> Sales &gt; Price Lists: annota quali sono assegnati
+  a livello globale e quali a gruppi o clienti.</li>
+  <li><strong>Crea un listino</strong> nuovo con un prodotto e tre scaglioni di quantità.</li>
+  <li><strong>Assegnalo a un solo cliente</strong> dei dati demo.</li>
+  <li><strong>Verifica dallo storefront</strong> con un utente di quel cliente e con un utente di un
+  altro cliente: i prezzi devono essere diversi.</li>
+  <li><strong>Apri Price Calculation Details</strong> per quel prodotto e quel cliente, e leggi da
+  dove arriva il prezzo.</li>
+  <li><strong>Cambia la strategia</strong> globale da minimal prices a merge by priority e rifai la
+  verifica. Riporta poi l'impostazione com'era.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — traduci una politica commerciale</p>
+  <p>«Listino base pubblico. I rivenditori hanno il 15% di sconto. Tre clienti storici hanno prezzi
+  negoziati riga per riga. Sopra il pallet, sconto ulteriore per tutti.» Scrivi quanti listini servono,
+  a quale livello vanno assegnati, quali sono generati da regole e quali caricati a mano, e quale
+  strategia scegli. Questa è, parola per parola, la domanda che ti farà un cliente reale.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Dove vive il prezzo di un prodotto in Oro?</p>
+  <div class="options">
+    <button class="opt" data-correct>In un listino, assegnato a un livello preciso</button>
+    <button class="opt">In un campo della scheda prodotto stessa</button>
+    <button class="opt">In un attributo della famiglia di prodotto</button>
+  </div>
+  <p class="explain" hidden>Il prezzo sta nel listino. Sul prodotto ci sono semmai i price attribute,
+  che non servono a vendere ma a confrontare e calcolare.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Manca il prezzo nel listino del cliente: cosa fa Oro?</p>
+  <div class="options">
+    <button class="opt" data-correct>Scende di livello: gruppo, poi sito, poi globale</button>
+    <button class="opt">Mostra il prodotto senza prezzo e non acquistabile</button>
+    <button class="opt">Applica il prezzo medio dei listini attivi disponibili</button>
+  </div>
+  <p class="explain" hidden>Il fallback è cliente → gruppo → sito → globale. Il prodotto resta senza
+  prezzo solo se nessun livello ne ha uno.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Cosa fa la strategia predefinita quando ci sono più listini?</p>
+  <div class="options">
+    <button class="opt" data-correct>Unisce i listini e prende il prezzo più basso</button>
+    <button class="opt">Prende il listino con la priorità più alta</button>
+    <button class="opt">Prende il listino assegnato per ultimo in ordine</button>
+  </div>
+  <p class="explain" hidden><code>Minimal prices</code> è la strategia predefinita: per ogni scaglione
+  vince il prezzo più basso disponibile. È la causa più comune dei prezzi «inattesi».</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/pricing/">Price
+  Management</a> — livelli di assegnazione, fallback, strategie, listini a regole. È la pagina più
+  densa di tutto il percorso funzionale: leggila due volte.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Clienti e permessi</strong>: gerarchia dei clienti, gruppi, utenti, ruoli storefront e i
+  quattro livelli di accesso che decidono chi vede gli ordini di chi.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Hai una politica prezzi che sembra non entrare nel modello? Portala in chat: quasi sempre entra,
+  ma cambia il numero di listini.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

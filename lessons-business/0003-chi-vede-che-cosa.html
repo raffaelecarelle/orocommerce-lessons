@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 3 — Chi vede che cosa</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 03</p>
+  <h1>Chi vede che cosa</h1>
+  <p class="subtitle">Visibilità di prodotti e categorie per sito, gruppo e singolo cliente. È la domanda numero uno di ogni analisi B2B, e in Oro ha una risposta nativa.</p>
+  <p class="meta">
+    <span>Durata: ~40 min (15 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0002-giro-del-compratore.html">Lezione 2</a></span>
+    <span>Obiettivo: nascondere e mostrare senza codice</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: le sette tappe del giro del compratore. Quante ne ricordi in ordine?</p>
+  <textarea placeholder="Elencale a memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Login → catalogo e ricerca → scheda prodotto → shopping list → quick order form → RFQ e
+    preventivo → checkout e ordine.</p>
+  </div>
+</div>
+
+<h2>Perché il B2B nasconde</h2>
+
+<p>In B2C si mostra tutto a tutti. In B2B no: il rivenditore non deve vedere la linea riservata al
+distributore, il cliente estero non deve vedere articoli non vendibili nel suo paese, il prospect non
+deve vedere il catalogo prima di essere qualificato. «Questo cliente lo vede?» è la domanda che
+ritorna in ogni riunione di analisi. Oro la gestisce con un sistema di <strong>visibilità a
+cascata</strong>, configurabile e senza sviluppo.</p>
+
+<h2>Quattro valori, tre livelli</h2>
+
+<p>La visibilità di un prodotto o di una categoria prende uno di quattro valori:</p>
+
+<table>
+  <thead><tr><th>Valore</th><th>Significato</th></tr></thead>
+  <tbody>
+    <tr><td><code>Visible</code></td><td>Visibile nello storefront</td></tr>
+    <tr><td><code>Hidden</code></td><td>Nascosto nello storefront</td></tr>
+    <tr><td><code>Category</code></td><td>Eredita dalla categoria del master catalog a cui il prodotto appartiene</td></tr>
+    <tr><td><code>Config</code></td><td>Eredita dall'impostazione globale di sistema</td></tr>
+  </tbody>
+</table>
+
+<p>Lo stesso valore si può dichiarare a tre livelli, dal più generale al più specifico:</p>
+
+<ol>
+  <li><strong>Visibilità per tutti</strong>, sul sito web: la regola di base.</li>
+  <li><strong>Visibilità per gruppo clienti</strong>: sovrascrive quella di base, sullo stesso sito.</li>
+  <li><strong>Visibilità per singolo cliente</strong>: sovrascrive entrambe.</li>
+</ol>
+
+<div class="box">
+  <p class="box-title">Le due regole che risolvono i casi strani</p>
+  <p>Primo: <strong>il livello più specifico vince</strong>, come per tutta la configurazione Oro.
+  Secondo: <strong>la visibilità del prodotto sovrascrive quella della categoria</strong>. Un prodotto
+  dichiarato <code>Visible</code> resta visibile anche se la sua categoria è nascosta. Chi si aspetta
+  che nascondere la categoria nasconda tutto quello che c'è dentro, sbaglia previsione.</p>
+</div>
+
+<p class="sidenote">Fonti:
+<a href="https://doc.oroinc.com/user/back-office/products/products/managing-product-visibility/">Manage
+Product Visibility</a> e
+<a href="https://doc.oroinc.com/user/back-office/system/configuration/commerce/customer/visibility/">Configure
+Global Visibility Settings</a>.</p>
+
+<h2>Non è l'unico modo di nascondere</h2>
+
+<p>La visibilità di catalogo è il livello più grosso, ma il risultato «il cliente non lo vede» si
+ottiene per almeno altre quattro strade, e in analisi vanno distinte perché hanno conseguenze
+diverse:</p>
+
+<table>
+  <thead><tr><th>Strumento</th><th>Nasconde</th><th>Effetto collaterale</th></tr></thead>
+  <tbody>
+    <tr><td>Visibilità prodotto/categoria</td><td>L'articolo dallo storefront</td><td>Nessuno: è il meccanismo previsto</td></tr>
+    <tr><td>Assenza di prezzo nel listino</td><td>Di fatto il prodotto non è acquistabile</td><td>Dipende dalla configurazione: può restare visibile senza prezzo</td></tr>
+    <tr><td>Restrizioni sul nodo del web catalog</td><td>La voce di navigazione</td><td>L'URL diretto può restare raggiungibile, se il prodotto è visibile</td></tr>
+    <tr><td>Stato di inventario</td><td>L'acquistabilità, e anche la vista se configurato</td><td>Cambia anche RFQ, preventivi e shopping list</td></tr>
+    <tr><td>Permessi del ruolo utente cliente</td><td>Intere funzioni (ordini, RFQ, checkout)</td><td>Non riguarda il catalogo, ma cosa si può fare</td></tr>
+  </tbody>
+</table>
+
+<p>Quando un cliente dice «questi articoli non li devono vedere», la domanda giusta è: non devono
+<em>trovarli</em>, non devono <em>comprarli</em>, o non devono <em>vederne il prezzo</em>? Tre
+richieste diverse, tre configurazioni diverse.</p>
+
+<h2>Pratica: nascondi e verifica</h2>
+
+<ol class="checklist">
+  <li><strong>Guarda la regola globale.</strong> System &gt; Configuration &gt; Commerce &gt; Customer
+  &gt; Visibility: qui si decide il valore che <code>Config</code> eredita.</li>
+  <li><strong>Scegli un prodotto</strong> dei dati demo e apri la sezione di visibilità nella sua
+  scheda. Annota il valore attuale e da dove arriva.</li>
+  <li><strong>Nascondi il prodotto a un gruppo clienti</strong> e lascialo visibile a tutti gli altri.</li>
+  <li><strong>Verifica dallo storefront</strong> con un utente di quel gruppo, e poi con un utente di
+  un gruppo diverso. Due browser o due sessioni separate.</li>
+  <li><strong>Nascondi una categoria</strong> a tutti, ma lascia un prodotto dentro dichiarato
+  <code>Visible</code>: cercalo nello storefront. È la prova pratica della seconda regola.</li>
+  <li><strong>Rimetti tutto com'era</strong> e annota quanti clic è costato: in una demo questa è la
+  differenza fra «si configura» e «si sviluppa».</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — tre requisiti, tre configurazioni</p>
+  <p>Scrivi come realizzeresti questi tre requisiti, usando solo gli strumenti della tabella:
+  (a) il catalogo è invisibile a chi non ha fatto login; (b) la linea «professional» è riservata a
+  tre clienti su cento; (c) un cliente vede tutto il catalogo ma può comprare solo dieci articoli.
+  Il terzo è quello che smaschera chi ha capito: la visibilità non è l'unica leva.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Categoria nascosta, prodotto dentro dichiarato visibile: cosa succede?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il prodotto resta visibile: vince l'impostazione del prodotto</button>
+    <button class="opt">Il prodotto sparisce: vince l'impostazione della categoria madre</button>
+    <button class="opt">Il prodotto resta visibile soltanto agli utenti già registrati</button>
+  </div>
+  <p class="explain" hidden>La visibilità del prodotto sovrascrive quella della categoria. Il valore
+  <code>Category</code> serve proprio a dire «eredita», quando invece lo vuoi.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Visibilità per tutti, per gruppo e per cliente in conflitto: chi vince?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il singolo cliente, poi il gruppo, poi tutti</button>
+    <button class="opt">Il valore impostato per tutti, sempre e comunque</button>
+    <button class="opt">Il primo valore salvato in ordine cronologico</button>
+  </div>
+  <p class="explain" hidden>Stessa cascata di tutta la configurazione Oro: dal generale allo
+  specifico, vince il più specifico.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">«Il cliente non deve comprarlo, ma può vederlo»: cosa usi?</p>
+  <div class="options">
+    <button class="opt" data-correct>Listino senza prezzo o permessi, non la visibilità</button>
+    <button class="opt">Visibilità nascosta per il gruppo di quel cliente</button>
+    <button class="opt">Stato di inventario impostato su prodotto discontinuo</button>
+  </div>
+  <p class="explain" hidden>Nascondere e impedire l'acquisto sono richieste diverse. Se deve vederlo,
+  la visibilità resta; agisci su prezzi, permessi o regole d'acquisto.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/back-office/products/products/managing-product-visibility/">Manage
+  Product Visibility</a> — breve, con l'elenco esatto dei valori e dei livelli. Leggila con la scheda
+  prodotto aperta accanto.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Catalogo</strong>: master catalog, prodotti, famiglie e attributi, unità di misura — e
+  perché un prodotto sta in una sola categoria ma in quanti nodi vuoi.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Un caso di visibilità che non torna? Portalo in chat: quasi sempre è un livello più specifico
+  che sta vincendo di nascosto.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

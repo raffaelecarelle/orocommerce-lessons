@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glossario funzionale — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/glossary.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Scheda</p>
+  <h1>Glossario funzionale</h1>
+  <p class="subtitle">I termini Oro che servono per configurare, fare demo e scrivere analisi — con la traduzione e il punto esatto del back-office in cui vivono.</p>
+  <p class="meta">
+    <span>Riferimento: OroCommerce 7.0 Community</span>
+    <span>Nomi di menu in inglese, come nell'interfaccia</span>
+    <span><a href="https://doc.oroinc.com/user/glossary/">Glossario ufficiale</a></span>
+  </p>
+</header>
+
+<main>
+
+<p>Il vocabolario è il primo ostacolo, soprattutto per chi viene da Magento: molte parole esistono in
+entrambi i prodotti con significati diversi. <strong>Customer</strong> è il caso peggiore — in Magento
+è una persona, in Oro è un'azienda. Questa scheda è la fonte unica: le lezioni del percorso funzionale
+usano questi termini e nessun sinonimo.</p>
+
+<ul class="toc">
+  <li><a href="#struttura">Struttura</a></li>
+  <li><a href="#clienti">Clienti</a></li>
+  <li><a href="#catalogo">Catalogo</a></li>
+  <li><a href="#prezzi">Prezzi</a></li>
+  <li><a href="#inventario">Inventario</a></li>
+  <li><a href="#contenuti">Contenuti</a></li>
+  <li><a href="#vendita">Flusso di vendita</a></li>
+  <li><a href="#pagamenti">Pagamenti, spedizioni, tasse</a></li>
+  <li><a href="#governo">Automazione e governo</a></li>
+  <li><a href="#magento">Trappole Magento</a></li>
+</ul>
+
+<h2 id="struttura">Struttura: chi possiede che cosa</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Organization</td>
+      <td>Il livello più alto del raggruppamento dei permessi: l'azienda che usa Oro. Tutto — siti web, clienti, prodotti — appartiene a un'organizzazione.<span class="it">Organizzazione</span></td>
+      <td class="where">System &gt; User Management &gt; Organizations</td>
+    </tr>
+    <tr>
+      <td class="term">Business Unit</td>
+      <td>Sottoinsieme organizzativo dentro l'organizzazione (filiale, divisione, team commerciale). Si annida ad albero e serve a decidere chi vede i dati di chi.<span class="it">Unità organizzativa</span></td>
+      <td class="where">System &gt; User Management &gt; Business Units</td>
+    </tr>
+    <tr>
+      <td class="term">User</td>
+      <td>Persona che lavora nel <em>back-office</em>. Appartiene a una business unit e a un'organizzazione. Non è un compratore.<span class="it">Utente di back-office</span></td>
+      <td class="where">System &gt; User Management &gt; Users</td>
+    </tr>
+    <tr>
+      <td class="term">Role</td>
+      <td>Insieme di permessi di back-office, per entità e per azione (view, create, edit, delete) e per livello (proprio, business unit, organizzazione, globale).<span class="it">Ruolo</span></td>
+      <td class="where">System &gt; User Management &gt; Roles</td>
+    </tr>
+    <tr>
+      <td class="term">Website</td>
+      <td>Lo storefront: l'interfaccia rivolta al compratore. Appartiene a un'organizzazione. Più siti web con linee prodotto e localizzazioni diverse sono una funzione Enterprise.<span class="it">Sito web</span></td>
+      <td class="where">System &gt; Websites</td>
+    </tr>
+    <tr>
+      <td class="term">Localization</td>
+      <td>Combinazione di lingua e formati (data, numeri, valuta) usata per tradurre e adattare lo storefront.<span class="it">Localizzazione</span></td>
+      <td class="where">System &gt; Localization</td>
+    </tr>
+    <tr>
+      <td class="term">Configuration level</td>
+      <td>Le impostazioni esistono a più livelli — globale, organizzazione, sito web, gruppo clienti, cliente, utente — e il livello più specifico vince su quello più generale.<span class="it">Livello di configurazione</span></td>
+      <td class="where">System &gt; Configuration</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="clienti">Clienti: chi compra</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Customer</td>
+      <td><strong>Un'azienda che compra</strong>, non una persona. Si annida ad albero: capogruppo e filiali, con ereditarietà di listini e impostazioni.<span class="it">Cliente (azienda)</span></td>
+      <td class="where">Customers &gt; Customers</td>
+    </tr>
+    <tr>
+      <td class="term">Customer User</td>
+      <td>La persona che compra per conto di un customer, con proprie credenziali per lo storefront e un proprio insieme di permessi.<span class="it">Utente cliente</span></td>
+      <td class="where">Customers &gt; Customer Users</td>
+    </tr>
+    <tr>
+      <td class="term">Customer Group</td>
+      <td>Insieme di customer che condividono listini, impostazioni di pagamento e regole fiscali. Lo strumento di segmentazione principale del B2B.<span class="it">Gruppo di clienti</span></td>
+      <td class="where">Customers &gt; Customer Groups</td>
+    </tr>
+    <tr>
+      <td class="term">Customer User Role</td>
+      <td>Permessi del compratore nello storefront: chi può ordinare, chi solo preparare shopping list, chi vede gli ordini di tutta l'azienda.<span class="it">Ruolo utente cliente</span></td>
+      <td class="where">Customers &gt; Customer User Roles</td>
+    </tr>
+    <tr>
+      <td class="term">Account</td>
+      <td>Entità CRM che raggruppa customer e contatti attorno alla stessa realtà commerciale. Serve alla vendita, non all'e-commerce.<span class="it">Account CRM</span></td>
+      <td class="where">Customers &gt; Accounts</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="catalogo">Catalogo: che cosa si vende</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Master Catalog</td>
+      <td>L'albero unico che classifica <em>tutti</em> i prodotti in categorie. È la struttura dei dati, non il menu dello storefront.<span class="it">Catalogo principale</span></td>
+      <td class="where">Products &gt; Master Catalog</td>
+    </tr>
+    <tr>
+      <td class="term">Product</td>
+      <td>L'articolo: SKU, tipo (simple, configurable, kit), unità di misura, stato di inventario, immagini, attributi.<span class="it">Prodotto</span></td>
+      <td class="where">Products &gt; Products</td>
+    </tr>
+    <tr>
+      <td class="term">Product Attribute</td>
+      <td>Campo aggiuntivo del prodotto, definito da chi configura. Può essere filtrabile, ricercabile e usato nelle varianti.<span class="it">Attributo prodotto</span></td>
+      <td class="where">Products &gt; Product Attributes</td>
+    </tr>
+    <tr>
+      <td class="term">Product Family</td>
+      <td>L'insieme di attributi che descrive completamente una tipologia di prodotto. Ogni prodotto appartiene a una famiglia.<span class="it">Famiglia di prodotto</span></td>
+      <td class="where">Products &gt; Product Families</td>
+    </tr>
+    <tr>
+      <td class="term">Product Unit</td>
+      <td>Unità di misura di vendita (pezzo, scatola, pallet), con fattore di conversione e precisione. Cardine del B2B: si vende a multipli, non a pezzi singoli.<span class="it">Unità di misura</span></td>
+      <td class="where">Scheda del prodotto, sezione Inventory</td>
+    </tr>
+    <tr>
+      <td class="term">Product Kit</td>
+      <td>Prodotto composto da più articoli scelti dal compratore al momento dell'acquisto.<span class="it">Kit di prodotto</span></td>
+      <td class="where">Products &gt; Products (tipo Kit)</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="prezzi">Prezzi</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Price List</td>
+      <td>Insieme di prezzi assegnabile a livello globale, di sito web, gruppo clienti o singolo cliente. Un cliente può averne più d'uno, con priorità.<span class="it">Listino</span></td>
+      <td class="where">Sales &gt; Price Lists</td>
+    </tr>
+    <tr>
+      <td class="term">Product Price</td>
+      <td>Riga di listino: prodotto, unità, quantità minima, valuta, prezzo. Le quantità crescenti danno i prezzi a scaglioni.<span class="it">Prezzo a scaglioni</span></td>
+      <td class="where">Dentro il listino, scheda Product Prices</td>
+    </tr>
+    <tr>
+      <td class="term">Price Attribute</td>
+      <td>Valore economico aggiuntivo del prodotto (prezzo di listino ufficiale, costo, MSRP) usato per confronti e regole, non per vendere.<span class="it">Attributo di prezzo</span></td>
+      <td class="where">Products &gt; Price Attributes</td>
+    </tr>
+    <tr>
+      <td class="term">Promotion</td>
+      <td>Sconto applicato a condizioni definite: su riga d'ordine, sull'ordine intero, sulla spedizione, o con omaggio.<span class="it">Promozione</span></td>
+      <td class="where">Marketing &gt; Promotions</td>
+    </tr>
+    <tr>
+      <td class="term">Price Calculation Details</td>
+      <td>Schermata diagnostica che spiega da quale listino e da quale regola arriva il prezzo mostrato a un dato cliente.<span class="it">Debug dei prezzi</span></td>
+      <td class="where">Sales &gt; Price Calculation Details</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="inventario">Inventario</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Warehouse</td>
+      <td>Magazzino in cui il prodotto è stoccato. In Community ce n'è uno; i magazzini multipli sono Enterprise.<span class="it">Magazzino</span></td>
+      <td class="where">Inventory &gt; Warehouses</td>
+    </tr>
+    <tr>
+      <td class="term">Inventory Level</td>
+      <td>Quantità disponibile di un prodotto in un magazzino, per unità di misura.<span class="it">Giacenza</span></td>
+      <td class="where">Inventory &gt; Manage Inventory</td>
+    </tr>
+    <tr>
+      <td class="term">Inventory Status</td>
+      <td>Stato dichiarato del prodotto: in stock, out of stock, discontinued. Indipendente dalla quantità reale, e può nascondere il prodotto dallo storefront.<span class="it">Stato di inventario</span></td>
+      <td class="where">Scheda del prodotto, sezione Inventory</td>
+    </tr>
+    <tr>
+      <td class="term">Backorder</td>
+      <td>Possibilità di ordinare oltre la disponibilità. Si imposta per prodotto o a livello di configurazione.<span class="it">Ordine con giacenza negativa</span></td>
+      <td class="where">System &gt; Configuration &gt; Commerce &gt; Inventory</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="contenuti">Contenuti dello storefront</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Web Catalog</td>
+      <td>La struttura di navigazione dello storefront: mescola categorie, prodotti, landing page e pagine di sistema. È il menu, mentre il master catalog è l'archivio.<span class="it">Catalogo web</span></td>
+      <td class="where">Marketing &gt; Web Catalogs</td>
+    </tr>
+    <tr>
+      <td class="term">Content Node</td>
+      <td>Nodo dell'albero del web catalog: una voce di navigazione con il suo contenuto.<span class="it">Nodo di contenuto</span></td>
+      <td class="where">Dentro il web catalog, scheda Edit Content Tree</td>
+    </tr>
+    <tr>
+      <td class="term">Content Variant</td>
+      <td>Contenuto alternativo dello stesso nodo, mostrato a un segmento specifico di clienti.<span class="it">Variante di contenuto</span></td>
+      <td class="where">Dentro il nodo di contenuto</td>
+    </tr>
+    <tr>
+      <td class="term">Landing Page</td>
+      <td>Pagina di contenuto libero costruita con l'editor visuale.<span class="it">Pagina statica</span></td>
+      <td class="where">Marketing &gt; Landing Pages</td>
+    </tr>
+    <tr>
+      <td class="term">Content Block</td>
+      <td>Blocco di contenuto riusabile, collocato in punti prestabiliti del layout e filtrabile per cliente o sito.<span class="it">Blocco di contenuto</span></td>
+      <td class="where">Marketing &gt; Content Blocks</td>
+    </tr>
+    <tr>
+      <td class="term">Content Widget</td>
+      <td>Elemento dinamico da inserire nei contenuti (slider, elenco prodotti, form).<span class="it">Widget di contenuto</span></td>
+      <td class="where">Marketing &gt; Content Widgets</td>
+    </tr>
+    <tr>
+      <td class="term">Digital Asset</td>
+      <td>File multimediale gestito centralmente, con versioni, riusabile in più contenuti.<span class="it">Asset digitale</span></td>
+      <td class="where">Marketing &gt; Digital Assets</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="vendita">Flusso di vendita</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Shopping List</td>
+      <td>Il carrello B2B: se ne tengono più d'uno in parallelo, si condividono nell'azienda, si trasformano in RFQ o in ordine.<span class="it">Lista d'acquisto</span></td>
+      <td class="where">Sales &gt; Shopping Lists</td>
+    </tr>
+    <tr>
+      <td class="term">Quick Order Form</td>
+      <td>Inserimento rapido per SKU o per incollaggio di un elenco, senza navigare il catalogo. Funzione tipica del ricompratore B2B.<span class="it">Ordine rapido</span></td>
+      <td class="where">Storefront, voce Quick Order</td>
+    </tr>
+    <tr>
+      <td class="term">RFQ</td>
+      <td>Request for Quote: la richiesta di offerta del compratore su prezzo, quantità o servizi.<span class="it">Richiesta di offerta</span></td>
+      <td class="where">Sales &gt; Requests for Quote</td>
+    </tr>
+    <tr>
+      <td class="term">Quote</td>
+      <td>L'offerta del venditore, con validità, prezzi negoziati e quantità proposte. Il compratore la accetta e diventa ordine.<span class="it">Preventivo</span></td>
+      <td class="where">Sales &gt; Quotes</td>
+    </tr>
+    <tr>
+      <td class="term">Checkout</td>
+      <td>Il processo guidato che porta da shopping list o quote all'ordine: indirizzi, spedizione, pagamento, conferma. È un workflow, quindi si modifica.<span class="it">Cassa</span></td>
+      <td class="where">Storefront; configurazione in System &gt; Workflows</td>
+    </tr>
+    <tr>
+      <td class="term">Order</td>
+      <td>L'ordine registrato: righe, indirizzi, metodo di pagamento e spedizione, stato interno e stato di pagamento.<span class="it">Ordine</span></td>
+      <td class="where">Sales &gt; Orders</td>
+    </tr>
+    <tr>
+      <td class="term">Invoice</td>
+      <td>Documento di fatturazione collegato all'ordine.<span class="it">Fattura</span></td>
+      <td class="where">Sales &gt; Invoices</td>
+    </tr>
+    <tr>
+      <td class="term">Recurring Order</td>
+      <td>Ordine che si ripete su pianificazione, senza reinserimento manuale.<span class="it">Ordine ricorrente</span></td>
+      <td class="where">Sales &gt; Recurring Orders</td>
+    </tr>
+    <tr>
+      <td class="term">Conversation</td>
+      <td>Scambio di messaggi tra compratore e venditore agganciato a un documento (RFQ, quote, ordine).<span class="it">Conversazione</span></td>
+      <td class="where">Activities &gt; Conversations</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="pagamenti">Pagamenti, spedizioni, tasse</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Payment Term</td>
+      <td>Condizione di pagamento differito tipica del B2B (30 giorni, 60 giorni). Si assegna al cliente o al gruppo.<span class="it">Termine di pagamento</span></td>
+      <td class="where">Sales &gt; Payment Terms</td>
+    </tr>
+    <tr>
+      <td class="term">Payment Rule</td>
+      <td>Regola che decide quali metodi di pagamento compaiono al checkout, in base a cliente, importo, destinazione.<span class="it">Regola di pagamento</span></td>
+      <td class="where">System &gt; Payment Rules</td>
+    </tr>
+    <tr>
+      <td class="term">Shipping Rule</td>
+      <td>L'equivalente per la spedizione: quali metodi e quali costi, a quali condizioni.<span class="it">Regola di spedizione</span></td>
+      <td class="where">System &gt; Shipping Rules</td>
+    </tr>
+    <tr>
+      <td class="term">Tax Code</td>
+      <td>Codice fiscale applicato al prodotto e al cliente; l'incrocio dei due, con la giurisdizione, determina l'aliquota.<span class="it">Codice fiscale</span></td>
+      <td class="where">Taxes &gt; Product/Customer Tax Codes</td>
+    </tr>
+    <tr>
+      <td class="term">Tax Rule</td>
+      <td>La regola che lega codice prodotto, codice cliente, giurisdizione e aliquota.<span class="it">Regola fiscale</span></td>
+      <td class="where">Taxes &gt; Tax Rules</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="governo">Automazione e governo</h2>
+
+<table class="glossary">
+  <thead><tr><th>Termine</th><th>Che cos'è</th><th>Dove si trova</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Workflow</td>
+      <td>Sequenza di stati e transizioni applicata a un'entità (checkout, RFQ, quote, ordine). Si configura da back-office: è il punto in cui il processo del cliente entra in Oro.<span class="it">Flusso di lavoro</span></td>
+      <td class="where">System &gt; Workflows</td>
+    </tr>
+    <tr>
+      <td class="term">Process</td>
+      <td>Automazione più semplice del workflow: al verificarsi di un evento esegue un'azione.<span class="it">Processo automatico</span></td>
+      <td class="where">System &gt; Processes</td>
+    </tr>
+    <tr>
+      <td class="term">Visibility</td>
+      <td>Regole che decidono quali prodotti e categorie un cliente vede nello storefront. Si impostano a livello globale, di sito, gruppo o singolo cliente.<span class="it">Visibilità</span></td>
+      <td class="where">Scheda prodotto/categoria, sezione Visibility</td>
+    </tr>
+    <tr>
+      <td class="term">Segment</td>
+      <td>Insieme dinamico di record definito da condizioni; si usa per contenuti personalizzati, marketing e report.<span class="it">Segmento</span></td>
+      <td class="where">Reports &amp; Segments &gt; Segments</td>
+    </tr>
+    <tr>
+      <td class="term">Data Audit</td>
+      <td>Registro di chi ha modificato cosa e quando.<span class="it">Storico delle modifiche</span></td>
+      <td class="where">System &gt; Data Audit</td>
+    </tr>
+    <tr>
+      <td class="term">Consent</td>
+      <td>Consenso raccolto dal compratore (GDPR), collegabile a una landing page e obbligatorio o facoltativo.<span class="it">Consenso</span></td>
+      <td class="where">System &gt; Consent Management</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2 id="magento">Le cinque trappole per chi viene da Magento</h2>
+
+<table>
+  <thead><tr><th>Parola</th><th>In Magento</th><th>In Oro</th></tr></thead>
+  <tbody>
+    <tr><td><code>Customer</code></td><td>La persona che compra</td><td>L'<strong>azienda</strong> che compra. La persona è il <code>Customer User</code></td></tr>
+    <tr><td><code>Customer Group</code></td><td>Segmento di persone per prezzi e tasse</td><td>Segmento di <strong>aziende</strong>, con listini e condizioni condivise</td></tr>
+    <tr><td><code>Catalogo</code></td><td>Categorie = struttura dati e menu insieme</td><td>Due cose distinte: <code>Master Catalog</code> (dati) e <code>Web Catalog</code> (navigazione)</td></tr>
+    <tr><td><code>Website / Store View</code></td><td>Gerarchia website → store → store view</td><td><code>Website</code> più <code>Localization</code>; il multi-sito è Enterprise</td></tr>
+    <tr><td><code>Carrello</code></td><td>Uno solo, anonimo o del cliente</td><td><code>Shopping List</code>, più d'una, condivisibile e convertibile in RFQ</td></tr>
+  </tbody>
+</table>
+
+<div class="box source">
+  <p class="box-title">Fonti</p>
+  <p><a href="https://doc.oroinc.com/user/glossary/">Glossary</a> ·
+  <a href="https://doc.oroinc.com/master/user/solution-architect/concepts/">OroCommerce Concepts</a> ·
+  <a href="https://doc.oroinc.com/user/back-office/">Back-Office Documentation</a> ·
+  <a href="https://doc.oroinc.com/user/storefront/">Storefront Documentation</a>.
+  I percorsi di menu sono quelli dell'installazione 7.0 Community usata nel corso: se una voce non
+  compare, spesso manca il permesso o la funzione è Enterprise.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="../lessons-business/index.html">Indice delle lezioni</a> ·
+  <a href="../MISSION-BUSINESS.md">Mission</a> ·
+  <a href="../RESOURCES-BUSINESS.md">Risorse</a></p>
+  <p>Un termine manca o è tradotto male? Chiedilo: il glossario si aggiorna, e le lezioni lo seguono.</p>
+</footer>
+
+</body>
+</html>

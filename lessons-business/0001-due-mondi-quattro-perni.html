@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 1 — I due mondi e i quattro perni</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 01</p>
+  <h1>I due mondi e i quattro perni</h1>
+  <p class="subtitle">Back-office e storefront non sono due schermate della stessa cosa: sono due mondi con utenti, permessi e regole diversi. Chi li confonde sbaglia la demo e sbaglia l'analisi.</p>
+  <p class="meta">
+    <span>Durata: ~35 min (15 di lettura, 20 di pratica)</span>
+    <span>Prerequisiti: Oro 7.0 con dati demo</span>
+    <span>Obiettivo: orientarsi e non sbagliare vocabolario</span>
+  </p>
+</header>
+
+<main>
+
+<h2>Perché si parte da qui</h2>
+
+<p>La domanda più frequente durante un'analisi Oro è: «questo cliente lo vede o no?». Prezzi diversi
+per azienda, cataloghi diversi per filiale, un buyer che può preparare l'ordine ma non confermarlo:
+in B2B quasi tutto dipende da <em>chi guarda</em>. Oro risponde a questa domanda con una struttura
+precisa, e se non hai quella struttura in testa ogni schermata sembra arbitraria.</p>
+
+<p>Alla fine di questa lezione, preso un record qualsiasi dell'installazione, sai dire a quale mondo
+appartiene, chi lo possiede e chi lo vede. È poco, ed è la base di tutto il resto.</p>
+
+<h2>Due mondi, non due menu</h2>
+
+<p>Oro ha due applicazioni sopra lo stesso database. Il <strong>back-office</strong> è dove lavora
+l'azienda che vende: catalogo, prezzi, ordini, configurazione. Lo <strong>storefront</strong> è dove
+compra il cliente. Hanno login separati, utenti di tipo diverso e sistemi di ruoli distinti.</p>
+
+<table>
+  <thead><tr><th></th><th>Back-office</th><th>Storefront</th></tr></thead>
+  <tbody>
+    <tr><td>Chi entra</td><td>Chi vende: commerciali, category manager, amministratori</td><td>Chi compra: i dipendenti delle aziende clienti</td></tr>
+    <tr><td>Entità utente</td><td><code>User</code></td><td><code>Customer User</code></td></tr>
+    <tr><td>Permessi</td><td><code>Role</code>, per entità e per livello organizzativo</td><td><code>Customer User Role</code>, sul perimetro della propria azienda</td></tr>
+    <tr><td>Appartenenza</td><td>Business unit &rarr; organizzazione</td><td>Customer (azienda) &rarr; gruppo clienti</td></tr>
+    <tr><td>Indirizzo</td><td><code>/admin</code> (o il percorso configurato)</td><td>La radice del sito web</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Fonte: <a href="https://doc.oroinc.com/master/user/solution-architect/concepts/">OroCommerce
+Concepts</a>. La documentazione utente è divisa esattamente così:
+<a href="https://doc.oroinc.com/user/back-office/">Back-Office</a> e
+<a href="https://doc.oroinc.com/user/storefront/">Commerce Storefront</a>.</p>
+
+<div class="box warn">
+  <p class="box-title">La trappola del vocabolario</p>
+  <p>In Oro <strong>Customer è un'azienda</strong>, non una persona. La persona è il
+  <strong>Customer User</strong>. Chi arriva da Magento inverte i due termini per settimane, e
+  ogni documento di analisi scritto con l'inversione va riscritto. Il
+  <a href="../reference-business/glossario.html">glossario</a> è la fonte unica del corso: usalo.</p>
+</div>
+
+<h2>I quattro perni</h2>
+
+<p>Ogni record in Oro appende a uno di quattro contenitori. Due reggono il mondo di chi vende, due il
+mondo di chi compra.</p>
+
+<svg viewBox="0 0 640 290" role="img" aria-label="Schema: organizzazione e business unit reggono il back-office; sito web, customer e customer user reggono lo storefront." style="width:100%;height:auto;margin:0 0 1.4rem;font-family:inherit">
+  <g fill="none" stroke="currentColor" stroke-width="1.2">
+    <rect x="170" y="10" width="300" height="42" rx="3"/>
+    <rect x="30" y="100" width="250" height="42" rx="3"/>
+    <rect x="360" y="100" width="250" height="42" rx="3"/>
+    <rect x="30" y="185" width="250" height="42" rx="3"/>
+    <rect x="360" y="185" width="250" height="42" rx="3"/>
+    <rect x="360" y="245" width="250" height="35" rx="3"/>
+    <path d="M280 52 L155 100"/>
+    <path d="M360 52 L485 100"/>
+    <path d="M155 142 L155 185"/>
+    <path d="M485 142 L485 185"/>
+    <path d="M485 227 L485 245"/>
+  </g>
+  <g fill="currentColor" font-size="13">
+    <text x="320" y="30" text-anchor="middle" font-weight="600">Organization</text>
+    <text x="320" y="45" text-anchor="middle" font-size="11">l'azienda che usa Oro — possiede tutto</text>
+    <text x="155" y="120" text-anchor="middle" font-weight="600">Business Unit</text>
+    <text x="155" y="135" text-anchor="middle" font-size="11">divisioni, filiali, team di vendita</text>
+    <text x="485" y="120" text-anchor="middle" font-weight="600">Website</text>
+    <text x="485" y="135" text-anchor="middle" font-size="11">lo storefront rivolto ai compratori</text>
+    <text x="155" y="205" text-anchor="middle" font-weight="600">User</text>
+    <text x="155" y="220" text-anchor="middle" font-size="11">chi lavora in back-office</text>
+    <text x="485" y="205" text-anchor="middle" font-weight="600">Customer</text>
+    <text x="485" y="220" text-anchor="middle" font-size="11">l'azienda cliente (ad albero)</text>
+    <text x="485" y="266" text-anchor="middle" font-weight="600">Customer User</text>
+  </g>
+  <g fill="currentColor" font-size="11" opacity="0.7">
+    <text x="90" y="170" text-anchor="middle">mondo di chi vende</text>
+    <text x="550" y="170" text-anchor="middle">mondo di chi compra</text>
+  </g>
+</svg>
+
+<h3>1. Organization — chi possiede tutto</h3>
+<p>Il livello più alto. Ogni cosa creata in Oro appartiene a un'organizzazione: prodotti, listini,
+ordini, siti web, clienti. In un progetto normale ce n'è una sola e si dimentica che esista, finché
+non arriva un gruppo con più società e tutto torna a galla.</p>
+
+<h3>2. Business Unit — come si divide chi vende</h3>
+<p>Albero di unità organizzative dentro l'organizzazione: sede, filiali, team commerciali. Serve a
+una cosa sola ma importante: i permessi. Un ruolo può dare accesso ai propri record, a quelli della
+propria business unit, di tutta l'organizzazione o di tutto il sistema. È qui che si risponde a
+«il commerciale del Nord vede gli ordini del Sud?».</p>
+
+<h3>3. Website — dove compra il cliente</h3>
+<p>Lo storefront. Appartiene a un'organizzazione e porta con sé le proprie impostazioni: valuta,
+localizzazioni, catalogo web, metodi di pagamento e spedizione. Più siti web con linee prodotto
+diverse sono una funzione <strong>Enterprise</strong>: in Community si lavora con uno.</p>
+
+<h3>4. Customer &rarr; Customer User — chi compra</h3>
+<p>Il <code>Customer</code> è l'azienda cliente e si annida ad albero: capogruppo e filiali, con
+ereditarietà di listini e impostazioni. Il <code>Customer User</code> è la persona che entra nello
+storefront. Il <code>Customer Group</code> taglia trasversalmente: raggruppa aziende che condividono
+listini e condizioni. Quasi ogni regola commerciale in Oro si aggancia a uno di questi tre.</p>
+
+<div class="box">
+  <p class="box-title">La regola che risolve metà dei dubbi</p>
+  <p>Le impostazioni esistono a più livelli — globale, organizzazione, sito web, gruppo clienti,
+  cliente, utente — e <strong>il livello più specifico vince</strong>. Quando un cliente vede un
+  prezzo o un metodo di pagamento «sbagliato», nove volte su dieci non è un difetto: è una
+  configurazione a un livello più specifico di quello che stai guardando.</p>
+</div>
+
+<h2>Pratica: venti minuti nella tua installazione</h2>
+
+<p>Serve l'installazione con i dati demo. L'indirizzo dello storefront e quello del back-office li
+stampa <code>orobox up</code>; con la configurazione di default sono
+<code>https://&lt;dominio&gt;:&lt;porta&gt;</code> e lo stesso indirizzo con <code>/admin</code>.</p>
+
+<ol class="checklist">
+  <li><strong>Guarda i due mondi affiancati.</strong> Apri il back-office in una finestra e lo
+  storefront in un'altra. Sono due applicazioni: la sessione dell'una non vale per l'altra.</li>
+  <li><strong>System &gt; User Management &gt; Business Units.</strong> Annota quante ce ne sono e a
+  quale organizzazione appartengono. Apri un utente in <em>Users</em> e guarda a quale business unit
+  e a quale ruolo è legato.</li>
+  <li><strong>System &gt; Websites.</strong> Quanti siti web ci sono? Apri quello attivo e guarda
+  quali impostazioni porta con sé.</li>
+  <li><strong>Customers &gt; Customers.</strong> Apri un cliente dei dati demo. Annota tre cose: il
+  gruppo a cui appartiene, se ha un cliente padre, quali utenti cliente ha.</li>
+  <li><strong>Customers &gt; Customer User Roles.</strong> Apri un ruolo e leggi che cosa concede.
+  Questo è ciò che il compratore potrà fare nello storefront — non ha niente a che vedere con i
+  ruoli di back-office.</li>
+  <li><strong>Entra nello storefront come compratore.</strong> Se non conosci la password di un
+  utente demo, dal back-office apri l'utente cliente e usa l'azione per impostarne una nuova o per
+  inviare il reset. Poi guarda la voce <em>My Account</em>: è lo stesso cliente che hai appena
+  aperto in back-office, visto da dentro.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — la mappa dei record</p>
+  <p>Per ognuno di questi cinque record, scrivi (a mano, non cercando in Oro) <em>chi lo possiede</em>
+  e <em>chi lo vede</em>: un prodotto, un listino assegnato a un gruppo clienti, un ordine, un utente
+  di back-office, un utente cliente. Poi verifica in applicazione. Le differenze fra ciò che hai
+  scritto e ciò che hai trovato sono l'elenco delle domande da portare alla prossima sessione.</p>
+</div>
+
+<h2>Verifica a memoria</h2>
+
+<div class="recall">
+  <p class="q">Senza guardare sopra: quali sono i quattro perni, e a quale mondo appartiene ciascuno?</p>
+  <textarea placeholder="Scrivi qui, poi scopri la risposta."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p><strong>Organization</strong> regge tutto. <strong>Business Unit</strong> e
+    <strong>User</strong> sono il mondo di chi vende (back-office). <strong>Website</strong> è il
+    punto di contatto, <strong>Customer</strong> e <strong>Customer User</strong> sono il mondo di
+    chi compra (storefront). Sopra tutti: il livello più specifico di configurazione vince.</p>
+  </div>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Su che cosa si appoggia lo storefront per esistere?</p>
+  <div class="options">
+    <button class="opt" data-correct>Su un sito web collegato a una organizzazione</button>
+    <button class="opt">Su una business unit collegata a una organizzazione</button>
+    <button class="opt">Su un gruppo clienti collegato a una organizzazione</button>
+  </div>
+  <p class="explain" hidden>Il <code>Website</code> è lo storefront e appartiene a un'organizzazione.
+  La business unit divide chi vende, il gruppo clienti raggruppa chi compra: nessuno dei due crea
+  una vetrina.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Chi entra nello storefront con le proprie credenziali?</p>
+  <div class="options">
+    <button class="opt" data-correct>Un utente cliente, che appartiene a un cliente</button>
+    <button class="opt">Un utente back-office, che appartiene a un cliente</button>
+    <button class="opt">Un utente cliente, collegato a una business unit</button>
+  </div>
+  <p class="explain" hidden>Il <code>Customer User</code> appartiene a un <code>Customer</code>, cioè
+  a un'azienda. Gli <code>User</code> di back-office e le business unit stanno nell'altro mondo.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Stesso parametro configurato a due livelli: quale vince?</p>
+  <div class="options">
+    <button class="opt" data-correct>Quello del livello più specifico, cliente prima di sito</button>
+    <button class="opt">Quello del livello più generale, sistema prima di sito</button>
+    <button class="opt">Quello modificato per ultimo, a prescindere dal livello</button>
+  </div>
+  <p class="explain" hidden>I livelli sono a cascata e il più specifico sovrascrive. È il primo posto
+  dove guardare quando un cliente vede qualcosa di diverso dagli altri.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/master/user/solution-architect/concepts/">OroCommerce Concepts</a>
+  — una pagina sola, la più densa della documentazione utente. Leggi le sezioni <em>Access Control</em>,
+  <em>Customer Management</em> e <em>Multiple Websites</em>: coprono esattamente questa lezione, con
+  il vocabolario ufficiale.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Il giro del compratore</strong>: lo storefront dall'inizio alla fine — catalogo, shopping
+  list, quick order, RFQ, preventivo, checkout, ordine — e per ogni passaggio il punto di back-office
+  che lo governa. È lo scheletro di ogni demo.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../MISSION-BUSINESS.md">Mission</a> ·
+  <a href="../lessons/index.html">Percorso tecnico</a></p>
+  <p>Qualcosa non torna, o vuoi vedere il caso del tuo cliente su questo schema? Chiedilo al tuo
+  insegnante in chat: la lezione si riscrive, i dubbi valgono più delle pagine.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

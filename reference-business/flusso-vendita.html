@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Flusso di vendita — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/glossary.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Scheda</p>
+  <h1>Flusso di vendita</h1>
+  <p class="subtitle">I documenti della trattativa B2B, come si trasformano l'uno nell'altro, e quale workflow governa ciascun passaggio.</p>
+  <p class="meta">
+    <span>OroCommerce 7.0</span>
+    <span>Da usare in analisi e in demo</span>
+    <span><a href="https://doc.oroinc.com/user/concept-guides/customers-sales/orders/">Order Management</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>La catena</h2>
+
+<svg viewBox="0 0 660 200" role="img" aria-label="Catena dei documenti: shopping list, RFQ, quote, checkout, order, invoice." style="width:100%;height:auto;margin:0 0 1.4rem">
+  <g fill="none" stroke="currentColor" stroke-width="1.2">
+    <rect x="10" y="60" width="110" height="46" rx="3"/>
+    <rect x="150" y="60" width="110" height="46" rx="3"/>
+    <rect x="290" y="60" width="110" height="46" rx="3"/>
+    <rect x="430" y="60" width="110" height="46" rx="3"/>
+    <rect x="430" y="130" width="110" height="40" rx="3"/>
+    <rect x="570" y="60" width="80" height="46" rx="3"/>
+    <path d="M120 83 L150 83"/><path d="M260 83 L290 83"/><path d="M400 83 L430 83"/>
+    <path d="M540 83 L570 83"/>
+    <path d="M65 106 C65 160, 420 170, 430 150"/>
+  </g>
+  <g fill="currentColor" font-size="12.5">
+    <text x="65" y="80" text-anchor="middle" font-weight="600">Shopping list</text>
+    <text x="65" y="96" text-anchor="middle" font-size="10.5">il carrello B2B</text>
+    <text x="205" y="80" text-anchor="middle" font-weight="600">RFQ</text>
+    <text x="205" y="96" text-anchor="middle" font-size="10.5">richiesta d'offerta</text>
+    <text x="345" y="80" text-anchor="middle" font-weight="600">Quote</text>
+    <text x="345" y="96" text-anchor="middle" font-size="10.5">preventivo</text>
+    <text x="485" y="80" text-anchor="middle" font-weight="600">Order</text>
+    <text x="485" y="96" text-anchor="middle" font-size="10.5">ordine</text>
+    <text x="485" y="147" text-anchor="middle" font-size="10.5">checkout diretto,</text>
+    <text x="485" y="161" text-anchor="middle" font-size="10.5">senza trattativa</text>
+    <text x="610" y="86" text-anchor="middle" font-weight="600">Invoice</text>
+  </g>
+</svg>
+
+<p>La trattativa è facoltativa: chi ha già i prezzi va dalla shopping list al checkout. La catena
+completa serve quando si negozia, ed è il motivo per cui Oro è una piattaforma B2B e non un
+e-commerce generico.</p>
+
+<h2>Tappa per tappa</h2>
+
+<table class="glossary">
+  <thead><tr><th>Documento</th><th>Chi lo crea, e da dove</th><th>Back-office</th></tr></thead>
+  <tbody>
+    <tr>
+      <td class="term">Shopping list</td>
+      <td>Il compratore, dallo storefront. Più d'una in parallelo, condivisibile secondo i permessi. Da qui parte l'ordine o la RFQ.</td>
+      <td class="where">Sales &gt; Shopping Lists</td>
+    </tr>
+    <tr>
+      <td class="term">RFQ</td>
+      <td>Il compratore, da scheda prodotto, menu account, shopping list o quick order form. Visibile subito in back-office.</td>
+      <td class="where">Sales &gt; Requests for Quote</td>
+    </tr>
+    <tr>
+      <td class="term">Quote</td>
+      <td>Il venditore: da una RFQ, da zero, o da un'opportunità. Con prezzi negoziati e validità. L'ospite può riceverlo per link.</td>
+      <td class="where">Sales &gt; Quotes</td>
+    </tr>
+    <tr>
+      <td class="term">Checkout</td>
+      <td>Il compratore: da shopping list, da preventivo accettato o da un ordine esistente. È un workflow in sette passi, salvato se interrotto.</td>
+      <td class="where">System &gt; Workflows</td>
+    </tr>
+    <tr>
+      <td class="term">Order</td>
+      <td>Storefront, back-office, preventivo accettato, shopping list convertita, import da ERP.</td>
+      <td class="where">Sales &gt; Orders</td>
+    </tr>
+    <tr>
+      <td class="term">Invoice</td>
+      <td>Documento di fatturazione collegato all'ordine.</td>
+      <td class="where">Sales &gt; Invoices</td>
+    </tr>
+  </tbody>
+</table>
+
+<h2>Gli stati da non confondere</h2>
+
+<table>
+  <thead><tr><th>Stato</th><th>Che cosa dice</th><th>Chi lo detta</th></tr></thead>
+  <tbody>
+    <tr><td><code>Payment status</code></td><td>Autorizzato, incassato, in attesa di cattura</td><td>Il metodo di pagamento e le catture manuali</td></tr>
+    <tr><td><code>Internal status</code></td><td>Dove sta l'ordine nel processo interno</td><td>Il processo aziendale, quasi sempre l'ERP</td></tr>
+  </tbody>
+</table>
+
+<h2>I workflow che governano la catena</h2>
+
+<table>
+  <thead><tr><th>Workflow</th><th>Governa</th><th>Nota</th></tr></thead>
+  <tbody>
+    <tr><td>Checkout (più varianti)</td><td>I passi dal carrello all'ordine</td><td>Mutuamente esclusivi: uno attivo per organizzazione</td></tr>
+    <tr><td>RFQ Management Flow</td><td>La lavorazione della RFQ in back-office</td><td>Se spento, le RFQ arrivano senza transizioni</td></tr>
+    <tr><td>RFQ Submission Flow</td><td>L'invio e la vista lato storefront</td><td>Lavora in coppia con il precedente</td></tr>
+    <tr><td>Quote (semplice o con approvazione)</td><td>L'invio del preventivo al cliente</td><td>Alternativi: si sceglie quello con approvazione se serve un visto</td></tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p class="box-title">Che cosa si cambia da interfaccia</p>
+  <p>Attivazione e disattivazione, passi, transizioni, etichette, messaggi, permessi per ruolo. I
+  workflow con condizioni e azioni dentro le transizioni non si modificano completamente da
+  back-office: lì comincia il percorso tecnico.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonti</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/customers-sales/orders/">Order Management</a> ·
+  <a href="https://doc.oroinc.com/user/concept-guides/customers-sales/rfq-quotes/">RFQ and Quote Management</a> ·
+  <a href="https://doc.oroinc.com/user/back-office/system/workflows/">Workflows</a>.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="../lessons-business/index.html">Indice delle lezioni</a> ·
+  <a href="glossario.html">Glossario</a> ·
+  <a href="percorsi-back-office.html">Percorsi di back-office</a></p>
+</footer>
+
+</body>
+</html>

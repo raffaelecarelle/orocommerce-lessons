@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Percorsi di back-office — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/glossary.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Scheda</p>
+  <h1>Dove si configura che cosa</h1>
+  <p class="subtitle">La mappa dei menu di back-office, ordinata per domanda invece che per interfaccia. Da tenere aperta durante la pratica.</p>
+  <p class="meta">
+    <span>OroCommerce 7.0 Community</span>
+    <span>Voci di menu in inglese</span>
+    <span><a href="https://doc.oroinc.com/user/back-office/">Documentazione back-office</a></span>
+  </p>
+</header>
+
+<main>
+
+<p>La documentazione ufficiale è organizzata come i menu. Questa scheda è organizzata come le domande
+che arrivano davvero: «dove si imposta X». Se una voce non compare nel tuo back-office, le cause sono
+due: permessi del tuo ruolo, o funzione disponibile solo in Enterprise.</p>
+
+<h2>Domande frequenti, percorso esatto</h2>
+
+<table class="glossary">
+  <thead><tr><th>Domanda</th><th>Che cosa cerchi</th><th>Percorso</th></tr></thead>
+  <tbody>
+    <tr><td class="term">Prezzi</td><td>Listini, righe di prezzo, scaglioni, regole</td><td class="where">Sales &gt; Price Lists</td></tr>
+    <tr><td class="term">Prezzo strano</td><td>Da quale listino arriva un prezzo</td><td class="where">Sales &gt; Price Calculation Details</td></tr>
+    <tr><td class="term">Prodotti</td><td>Anagrafica, attributi, immagini, unità</td><td class="where">Products &gt; Products</td></tr>
+    <tr><td class="term">Struttura catalogo</td><td>Albero delle categorie</td><td class="where">Products &gt; Master Catalog</td></tr>
+    <tr><td class="term">Campi prodotto</td><td>Attributi e famiglie</td><td class="where">Products &gt; Product Attributes / Product Families</td></tr>
+    <tr><td class="term">Navigazione</td><td>Menu e contenuti dello storefront</td><td class="where">Marketing &gt; Web Catalogs</td></tr>
+    <tr><td class="term">Pagine e blocchi</td><td>Landing page, blocchi, widget, media</td><td class="where">Marketing &gt; Landing Pages / Content Blocks / Content Widgets / Digital Assets</td></tr>
+    <tr><td class="term">Promozioni</td><td>Sconti, coupon, buy X get Y</td><td class="where">Marketing &gt; Promotions</td></tr>
+    <tr><td class="term">Clienti</td><td>Aziende, gerarchia, gruppi</td><td class="where">Customers &gt; Customers / Customer Groups</td></tr>
+    <tr><td class="term">Utenti cliente</td><td>Persone che entrano nello storefront</td><td class="where">Customers &gt; Customer Users</td></tr>
+    <tr><td class="term">Permessi storefront</td><td>Cosa può fare il compratore</td><td class="where">Customers &gt; Customer User Roles</td></tr>
+    <tr><td class="term">Permessi back-office</td><td>Cosa può fare chi vende</td><td class="where">System &gt; User Management &gt; Roles</td></tr>
+    <tr><td class="term">Trattativa</td><td>Richieste d'offerta e preventivi</td><td class="where">Sales &gt; Requests for Quote / Quotes</td></tr>
+    <tr><td class="term">Ordini</td><td>Ordini, fatture, ordini ricorrenti</td><td class="where">Sales &gt; Orders / Invoices / Recurring Orders</td></tr>
+    <tr><td class="term">Carrelli</td><td>Shopping list dei clienti</td><td class="where">Sales &gt; Shopping Lists</td></tr>
+    <tr><td class="term">Pagamento differito</td><td>Termini di pagamento</td><td class="where">Sales &gt; Payment Terms</td></tr>
+    <tr><td class="term">Metodi di pagamento</td><td>Integrazione e visibilità</td><td class="where">System &gt; Integrations · System &gt; Payment Rules</td></tr>
+    <tr><td class="term">Spedizioni</td><td>Metodi, costi, condizioni</td><td class="where">System &gt; Integrations · System &gt; Shipping Rules</td></tr>
+    <tr><td class="term">Imposte</td><td>Codici, aliquote, giurisdizioni, regole</td><td class="where">Taxes &gt; …</td></tr>
+    <tr><td class="term">Giacenze</td><td>Quantità e magazzini</td><td class="where">Inventory &gt; Manage Inventory / Warehouses</td></tr>
+    <tr><td class="term">Processi</td><td>Checkout, RFQ, preventivi, ordini</td><td class="where">System &gt; Workflows</td></tr>
+    <tr><td class="term">Automazioni semplici</td><td>Evento → azione</td><td class="where">System &gt; Processes</td></tr>
+    <tr><td class="term">Siti web</td><td>Storefront e loro impostazioni</td><td class="where">System &gt; Websites</td></tr>
+    <tr><td class="term">Lingue</td><td>Localizzazioni e traduzioni</td><td class="where">System &gt; Localization</td></tr>
+    <tr><td class="term">Impostazioni</td><td>Tutta la configurazione a livelli</td><td class="where">System &gt; Configuration</td></tr>
+    <tr><td class="term">Visibilità globale</td><td>Valore ereditato da «Config»</td><td class="where">System &gt; Configuration &gt; Commerce &gt; Customer &gt; Visibility</td></tr>
+    <tr><td class="term">Chi ha cambiato cosa</td><td>Storico delle modifiche</td><td class="where">System &gt; Data Audit</td></tr>
+    <tr><td class="term">Import ed export</td><td>Caricamenti CSV e loro esito</td><td class="where">Pulsanti nelle griglie · System &gt; Jobs</td></tr>
+    <tr><td class="term">Segmenti e report</td><td>Insiemi dinamici e analisi</td><td class="where">Reports &amp; Segments &gt; …</td></tr>
+    <tr><td class="term">Consensi</td><td>GDPR e informative</td><td class="where">System &gt; Consent Management</td></tr>
+  </tbody>
+</table>
+
+<h2>I tre passi che si ripetono sempre uguali</h2>
+
+<div class="box">
+  <p class="box-title">Pagamenti e spedizioni</p>
+  <ol>
+    <li>Configurazione generale: System &gt; Configuration &gt; Commerce &gt; Payment (o Shipping)</li>
+    <li>Integrazione del metodo: System &gt; Integrations</li>
+    <li>Regola di visibilità: System &gt; Payment Rules (o Shipping Rules)</li>
+  </ol>
+  <p>Se un metodo non compare al checkout, il problema è quasi sempre al passo 3.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Un prodotto non si vede nello storefront: controlla in quest'ordine</p>
+  <ol>
+    <li>Stato del prodotto (abilitato) e stato di inventario</li>
+    <li>Visibilità: prodotto, categoria, gruppo, cliente</li>
+    <li>Prezzo presente in un listino attivo per quel cliente</li>
+    <li>Presenza in un nodo del web catalog assegnato al sito</li>
+    <li>Indice di ricerca aggiornato</li>
+  </ol>
+</div>
+
+<div class="box warn">
+  <p class="box-title">Solo Enterprise</p>
+  <p>Più siti web, più magazzini, Elasticsearch come motore di ricerca, RabbitMQ per le code. In
+  Community le funzioni ci sono ma in versione singola o su PostgreSQL. Da verificare prima di
+  promettere, non dopo.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="../lessons-business/index.html">Indice delle lezioni</a> ·
+  <a href="glossario.html">Glossario</a> ·
+  <a href="flusso-vendita.html">Flusso di vendita</a> ·
+  <a href="griglia-analisi.html">Griglia di analisi</a></p>
+</footer>
+
+</body>
+</html>

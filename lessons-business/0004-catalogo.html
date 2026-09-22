@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 4 — Catalogo</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 04</p>
+  <h1>Catalogo</h1>
+  <p class="subtitle">Master catalog, prodotti, famiglie e attributi, unità di misura. Il magazzino dei dati prima della vetrina.</p>
+  <p class="meta">
+    <span>Durata: ~50 min (20 di lettura, 30 di pratica)</span>
+    <span>Prerequisiti: <a href="0003-chi-vede-che-cosa.html">Lezione 3</a></span>
+    <span>Obiettivo: creare un prodotto vendibile</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: i quattro valori della visibilità di un prodotto.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p><code>Visible</code>, <code>Hidden</code>, <code>Category</code> (eredita dalla categoria),
+    <code>Config</code> (eredita dalla configurazione globale).</p>
+  </div>
+</div>
+
+<h2>Magazzino e vetrina</h2>
+
+<p>Un'organizzazione ha <strong>un solo master catalog</strong>, e ogni prodotto sta in
+<strong>una sola categoria</strong> di quell'albero. La documentazione usa un'immagine efficace: il
+master catalog è il magazzino, il web catalog è la vetrina — e di vetrine se ne possono avere più
+d'una. Chi arriva da Magento fa fatica proprio qui, perché là la categoria è insieme struttura e
+menu.</p>
+
+<p>Conseguenza pratica per l'analisi: se il cliente dice «lo stesso articolo deve stare sotto tre
+sezioni del sito», non è un problema di master catalog — è il web catalog che lo risolve
+(<a href="0007-contenuti-e-navigazione.html">lezione 7</a>).</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/master-catalog/">Master Catalog
+Management</a>.</p>
+
+<h2>I tre tipi di prodotto</h2>
+
+<table>
+  <thead><tr><th>Tipo</th><th>Che cos'è</th><th>Quando si usa</th></tr></thead>
+  <tbody>
+    <tr><td><code>Simple</code></td><td>Articolo singolo, uno SKU</td><td>Il caso normale</td></tr>
+    <tr><td><code>Configurable</code></td><td>Prodotto padre più varianti, che sono prodotti semplici, distinte per attributi (colore, taglia)</td><td>Articoli con varianti dichiarate a catalogo</td></tr>
+    <tr><td><code>Kit</code></td><td>Insieme di articoli, ognuno con il proprio SKU; i componenti possono essere obbligatori o facoltativi</td><td>Composizioni scelte dal compratore all'acquisto</td></tr>
+  </tbody>
+</table>
+
+<h2>Attributi e famiglie: la parte che si progetta</h2>
+
+<p>Un <strong>attributo</strong> è un campo del prodotto definito da chi configura: può essere
+filtrabile nella ricerca, usato per generare le varianti, o solo descrittivo. Una
+<strong>famiglia di prodotto</strong> è l'insieme di attributi che descrive una tipologia: la
+famiglia «televisori» ha la risoluzione, quella «fotocamere» i megapixel. Ogni prodotto appartiene a
+una famiglia, e la famiglia decide com'è fatta la sua scheda.</p>
+
+<p>È la parte del catalogo che va disegnata prima di caricare i dati: cambiare famiglia a diecimila
+prodotti dopo il caricamento è sempre più costoso che pensarci prima. In analisi, la domanda da fare
+al cliente è: «quante tipologie di prodotto avete, e quali campi cambiano fra una e l'altra?».</p>
+
+<h3>Unità di misura: la funzione B2B che si dimentica sempre</h3>
+
+<p>Un prodotto può avere più <strong>unità di misura</strong> (pezzo, scatola, pallet), ognuna con un
+fattore di conversione e una <strong>precisione</strong> — cioè quante cifre decimali sono ammesse.
+È ciò che permette di vendere a multipli, imporre confezioni intere o accettare quantità frazionarie
+per prodotti a peso. In demo si mostra in dieci secondi e cambia la percezione del prodotto.</p>
+
+<h3>Prodotti collegati</h3>
+<p>Oro distingue <em>related products</em> (correlati, scelti a mano), <em>up-sell</em> (alternative
+di fascia superiore), <em>similar products</em> (simili, calcolati dall'indice di ricerca) e le
+raccolte in vetrina costruite su segmenti. Sono quattro leve diverse: in analisi vanno nominate con
+precisione, perché il cliente le chiama tutte «prodotti correlati».</p>
+
+<h2>Caricare i dati: l'ordine conta</h2>
+
+<p>Il caricamento massivo si fa da back-office con file CSV, e le dipendenze vanno rispettate:
+attributi → famiglie → categorie → prodotti → prezzi → giacenze. Importare i prodotti prima degli
+attributi fa fallire l'import. Ogni schermata di import mette a disposizione il proprio
+<strong>template</strong>: si scarica sempre prima di preparare il file.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/administration/data-import/">Data Import</a>.
+L'import automatico e ricorrente da un ERP è un'altra cosa e vive nel
+<a href="../lessons/0010-import-export.html">percorso tecnico</a>.</p>
+
+<h2>Pratica: dal niente a un prodotto acquistabile</h2>
+
+<ol class="checklist">
+  <li><strong>Guarda l'albero.</strong> Products &gt; Master Catalog: apri una categoria dei dati
+  demo e osserva quali impostazioni porta con sé.</li>
+  <li><strong>Crea una categoria</strong> tua, sotto la radice.</li>
+  <li><strong>Guarda una famiglia esistente.</strong> Products &gt; Product Families: apri quella dei
+  dati demo e osserva i gruppi di attributi.</li>
+  <li><strong>Crea un prodotto semplice</strong> nella tua categoria: SKU, nome, famiglia, stato,
+  stato di inventario, unità di misura principale.</li>
+  <li><strong>Aggiungi una seconda unità</strong> (per esempio «scatola» con fattore 12) e osserva
+  come cambia la scheda nello storefront.</li>
+  <li><strong>Cercalo nello storefront.</strong> Se non compare, la causa è quasi sempre una di tre:
+  visibilità, assenza di prezzo, o indice di ricerca non ancora aggiornato.</li>
+</ol>
+
+<div class="box warn">
+  <p class="box-title">Se il prodotto non si vede</p>
+  <p>Prima di pensare a un difetto, controlla in ordine: stato del prodotto (abilitato), stato di
+  inventario, visibilità, presenza in un listino attivo per quel cliente, e infine l'indice di
+  ricerca. In Community la ricerca gira su PostgreSQL e l'aggiornamento dell'indice può richiedere
+  qualche minuto o un ciclo di coda.</p>
+</div>
+
+<div class="box win">
+  <p class="box-title">Esercizio — disegna le famiglie</p>
+  <p>Prendi un cliente reale, anche solo dal suo sito pubblico. Scrivi le sue tipologie di prodotto e,
+  per ognuna, i cinque attributi che il compratore usa per scegliere. Poi raggruppale in famiglie:
+  quante ne servono davvero? Questo foglio è il primo allegato serio di un'analisi di catalogo.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">In quante categorie del master catalog sta un prodotto?</p>
+  <div class="options">
+    <button class="opt" data-correct>In una soltanto, per tutta la sua vita</button>
+    <button class="opt">In quante categorie del catalogo servono</button>
+    <button class="opt">In una per ogni sito web configurato</button>
+  </div>
+  <p class="explain" hidden>Il master catalog è la struttura dei dati: una casa sola per prodotto. La
+  presenza in più punti della navigazione la dà il web catalog.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">A che cosa serve la famiglia di prodotto?</p>
+  <div class="options">
+    <button class="opt" data-correct>Raccoglie gli attributi che descrivono una tipologia</button>
+    <button class="opt">Raccoglie i prezzi applicati a una tipologia</button>
+    <button class="opt">Raccoglie le categorie che ospitano una tipologia</button>
+  </div>
+  <p class="explain" hidden>La famiglia è l'insieme di attributi, organizzati in gruppi, che compone
+  la scheda prodotto di quella tipologia.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Qual è l'ordine corretto di un caricamento massivo?</p>
+  <div class="options">
+    <button class="opt" data-correct>Attributi, famiglie, categorie, prodotti, prezzi, giacenze</button>
+    <button class="opt">Prodotti, attributi, famiglie, categorie, prezzi, giacenze</button>
+    <button class="opt">Categorie, prodotti, attributi, famiglie, prezzi, giacenze</button>
+  </div>
+  <p class="explain" hidden>Le dipendenze vanno rispettate: un prodotto non può riferirsi a un
+  attributo o a una famiglia che ancora non esistono.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/catalog-promotions/product-management/">Product
+  Management</a> — tipi di prodotto, attributi, famiglie, unità, prodotti collegati. È la pagina da
+  rileggere prima di ogni analisi di catalogo.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Prezzi B2B</strong>: listini per cliente e per gruppo, prezzi a scaglioni, listini
+  generati da regole, e la schermata che spiega da dove arriva un prezzo.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Dubbi sul disegno delle famiglie di un cliente vero? Portalo in chat: è la decisione più costosa
+  da correggere dopo.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

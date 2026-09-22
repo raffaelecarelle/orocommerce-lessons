@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 2 — Il giro del compratore</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 02</p>
+  <h1>Il giro del compratore</h1>
+  <p class="subtitle">Lo storefront dall'inizio alla fine, e per ogni tappa il punto di back-office che la governa. È lo scheletro di ogni demo.</p>
+  <p class="meta">
+    <span>Durata: ~45 min (20 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0001-due-mondi-quattro-perni.html">Lezione 1</a></span>
+    <span>Obiettivo: percorrere e commentare il flusso B2B</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: chi entra nello storefront, a che cosa appartiene, e chi possiede il sito web?</p>
+  <textarea placeholder="A memoria, prima di continuare."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Entra il <code>Customer User</code>, che appartiene a un <code>Customer</code> (l'azienda) e,
+    tramite questo, a un <code>Customer Group</code>. Il <code>Website</code> appartiene
+    all'<code>Organization</code>.</p>
+  </div>
+</div>
+
+<h2>Il B2B non è un B2C con l'IVA esposta</h2>
+
+<p>Il compratore B2B non naviga per scoprire: sa già cosa gli serve, ricompra, chiede sconti su
+quantità, spesso non è chi firma. Da qui nascono le funzioni che in un e-commerce B2C non esistono:
+più carrelli in parallelo, inserimento per codice articolo, richiesta d'offerta, preventivo negoziato,
+pagamento a 30 giorni. Chi conduce una demo e mostra «catalogo, carrello, carta di credito» sta
+mostrando un B2C: il cliente non vede il valore e la demo cade.</p>
+
+<h2>Le sette tappe, e chi le governa</h2>
+
+<table>
+  <thead><tr><th>#</th><th>Tappa nello storefront</th><th>Dove si governa in back-office</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Login o registrazione</td><td>Customers &gt; Customer Users · System &gt; Configuration &gt; Commerce &gt; Customer</td></tr>
+    <tr><td>2</td><td>Navigazione e ricerca del catalogo</td><td>Marketing &gt; Web Catalogs · Products &gt; Master Catalog</td></tr>
+    <tr><td>3</td><td>Scheda prodotto: prezzi, unità, disponibilità</td><td>Products &gt; Products · Sales &gt; Price Lists · Inventory</td></tr>
+    <tr><td>4</td><td>Shopping list (il carrello B2B)</td><td>Sales &gt; Shopping Lists · Customer User Roles</td></tr>
+    <tr><td>5</td><td>Quick order form: ordine per SKU</td><td>System &gt; Configuration &gt; Commerce &gt; Sales &gt; Quick Order Form</td></tr>
+    <tr><td>6</td><td>RFQ e preventivo</td><td>Sales &gt; Requests for Quote · Sales &gt; Quotes · System &gt; Workflows</td></tr>
+    <tr><td>7</td><td>Checkout e ordine</td><td>System &gt; Workflows · Payment Rules · Shipping Rules</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">La documentazione ufficiale dello
+<a href="https://doc.oroinc.com/user/storefront/">storefront</a> è organizzata quasi con lo stesso
+ordine: <em>Register and Log In</em>, <em>My Account</em>, <em>Orders</em>, <em>Quotes</em>,
+<em>Quick Order Form</em>, <em>Checkout</em>.</p>
+
+<h3>1. Login: il compratore arriva già riconosciuto</h3>
+<p>Il compratore B2B non è anonimo: appartiene a un'azienda registrata, e da quella eredita prezzi,
+condizioni di pagamento, catalogo visibile e permessi. Chi entra senza account è un
+<strong>guest</strong>: si può decidere se possa vedere i prezzi, creare una shopping list o
+concludere un ordine. In B2B spesso il guest non vede nemmeno i prezzi.</p>
+
+<h3>2 e 3. Catalogo e scheda prodotto</h3>
+<p>La navigazione dello storefront è il <strong>web catalog</strong>, non il master catalog: il primo
+è la vetrina, il secondo il magazzino dei dati (<a href="0004-catalogo.html">lezione 4</a>). Sulla
+scheda prodotto compaiono tre cose che il B2C non ha: l'<strong>unità di misura</strong> con la sua
+precisione (pezzo, scatola, pallet), i <strong>prezzi a scaglioni</strong> per quantità crescenti, e
+la <strong>disponibilità</strong>, che può essere nascosta o mostrata come soglia.</p>
+
+<h3>4. Shopping list: non è il carrello</h3>
+<p>Il compratore ne tiene più d'una in parallelo — per commessa, per cantiere, per reparto — le
+condivide con i colleghi della stessa azienda secondo i permessi, e da lì fa partire l'ordine oppure
+la richiesta d'offerta. In back-office il commerciale le vede tutte: sapere che cosa un cliente sta
+preparando <em>prima</em> che ordini è uno degli argomenti di vendita più forti di Oro.</p>
+
+<h3>5. Quick order form: la funzione che vende la piattaforma</h3>
+<p>Chi ricompra non naviga: incolla un elenco di codici e quantità, o carica un file, e riempie la
+shopping list in dieci secondi. In demo va mostrata presto, perché è il momento in cui il cliente
+riconosce il proprio lavoro quotidiano.</p>
+
+<h3>6. RFQ e preventivo: la trattativa dentro il sistema</h3>
+<p>Il compratore chiede un'offerta (<code>RFQ</code>) su prezzo, quantità o servizi. Il commerciale
+risponde con un <code>Quote</code>, con validità e prezzi negoziati. Il compratore accetta e va a
+checkout. Tutto resta tracciato: è la differenza fra una trattativa via e-mail e una trattativa
+governata. Il dettaglio degli stati è nella <a href="0009-dal-preventivo-all-ordine.html">lezione 9</a>.</p>
+
+<h3>7. Checkout e ordine</h3>
+<p>Il checkout standard ha sette passi — consensi, fatturazione, spedizione, metodo di spedizione,
+pagamento, riepilogo, conferma — ed è un <strong>workflow</strong>: si possono togliere passi,
+passare alla versione a pagina unica, abilitare il guest checkout. Non serve codice, serve capire
+quale workflow è attivo (<a href="0008-checkout.html">lezione 8</a>).</p>
+
+<div class="box">
+  <p class="box-title">Da dove può partire un ordine</p>
+  <p>Non solo dal checkout dello storefront: anche dal back-office (creato dal commerciale), da un
+  preventivo accettato, da una shopping list del cliente, o da un import dall'ERP. Quando un cliente
+  chiede «i nostri ordini arrivano dal gestionale», la risposta è che quella è una delle sorgenti
+  previste, non un'eccezione.</p>
+</div>
+
+<h2>Pratica: fai il giro due volte</h2>
+
+<ol class="checklist">
+  <li><strong>Primo giro, da compratore.</strong> Entra nello storefront con un utente cliente dei
+  dati demo e percorri le sette tappe senza fermarti a configurare niente. Annota ogni cosa che ti
+  sorprende.</li>
+  <li><strong>Aggiungi a due shopping list diverse.</strong> Creane una seconda e sposta un articolo
+  da una all'altra: è la funzione che in demo spiazza chi conosce solo il B2C.</li>
+  <li><strong>Usa il quick order form.</strong> Prendi tre SKU dal back-office e inseriscili
+  incollando codice e quantità.</li>
+  <li><strong>Chiedi un'offerta.</strong> Da una shopping list, invia una RFQ. Poi apri il
+  back-office in Sales &gt; Requests for Quote e guardala arrivata.</li>
+  <li><strong>Secondo giro, da venditore.</strong> Per ognuna delle sette tappe, apri in back-office
+  la voce di menu della tabella qui sopra e guarda il record corrispondente.</li>
+  <li><strong>Completa un ordine</strong> con i metodi di pagamento e spedizione già configurati nei
+  dati demo, e ritrovalo in Sales &gt; Orders.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — lo script della demo in otto righe</p>
+  <p>Scrivi otto righe, una per passaggio, nel formato «<em>cosa mostro</em> → <em>cosa dico</em>».
+  Vincolo: ogni riga deve nominare un beneficio per il cliente, non una funzione. «Shopping list
+  multiple» è una funzione; «tenete separate le liste per cantiere e le passate al responsabile che
+  approva» è un beneficio. Portalo alla prossima sessione: diventa la base della scheda
+  <a href="../reference-business/demo-storefront.html">Script di demo</a>.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Che cosa costruisce la navigazione vista dal compratore?</p>
+  <div class="options">
+    <button class="opt" data-correct>Il web catalog, con i suoi nodi di contenuto</button>
+    <button class="opt">Il master catalog, con le sue categorie prodotto</button>
+    <button class="opt">Il gruppo clienti, con le sue regole di prezzo</button>
+  </div>
+  <p class="explain" hidden>Il master catalog è il magazzino dei dati: un prodotto sta in una sola
+  categoria. Il web catalog è la vetrina: nodi di contenuto, riusabili e restringibili per cliente.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quante shopping list può tenere aperte un compratore?</p>
+  <div class="options">
+    <button class="opt" data-correct>Più di una, e può spostare righe fra loro</button>
+    <button class="opt">Una sola, come il carrello dei negozi</button>
+    <button class="opt">Una per ogni sito web a cui accede</button>
+  </div>
+  <p class="explain" hidden>Le shopping list multiple sono una funzione nativa: si usano per
+  commessa, reparto o cantiere, e da ognuna parte un ordine o una RFQ.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un ordine in Oro può nascere anche fuori dal checkout?</p>
+  <div class="options">
+    <button class="opt" data-correct>Sì: back-office, preventivo accettato, import ERP</button>
+    <button class="opt">No: solo il checkout dello storefront genera ordini</button>
+    <button class="opt">Sì, ma soltanto se il workflow è disattivato</button>
+  </div>
+  <p class="explain" hidden>Le sorgenti previste sono più d'una: storefront, creazione manuale in
+  back-office, conversione da preventivo o shopping list, import da sistemi esterni.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/storefront/">Commerce Storefront Documentation</a> — leggi
+  <em>Quick Order Form</em>, <em>My Account &gt; Shopping Lists</em> e <em>Checkout</em>. Sono tre
+  pagine corte e descrivono esattamente ciò che mostrerai in demo.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Chi vede che cosa</strong>: la visibilità di prodotti e categorie per sito, gruppo e
+  singolo cliente — la domanda numero uno di ogni analisi B2B.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Hai un dubbio su una tappa, o vuoi provare il giro sul caso di un cliente reale? Chiedilo al tuo
+  insegnante in chat.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

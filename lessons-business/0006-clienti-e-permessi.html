@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 6 — Clienti e permessi</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 06</p>
+  <h1>Clienti e permessi</h1>
+  <p class="subtitle">Aziende clienti ad albero, gruppi, utenti, ruoli storefront. Chi ordina, chi approva, chi vede gli ordini di chi.</p>
+  <p class="meta">
+    <span>Durata: ~45 min (20 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0005-prezzi-b2b.html">Lezione 5</a></span>
+    <span>Obiettivo: modellare un cliente con più sedi</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: i quattro livelli di assegnazione di un listino, dal più specifico.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Cliente → gruppo clienti → sito web → globale. Il fallback scende in quest'ordine.</p>
+  </div>
+</div>
+
+<h2>L'azienda cliente è un albero</h2>
+
+<p>Un <code>Customer</code> può avere un cliente padre: capogruppo e filiali, casa madre e punti
+vendita, holding e società operative. Lungo l'albero si ereditano le impostazioni — listini, termini
+di pagamento, visibilità — con la solita regola: <strong>il livello più specifico vince</strong>.</p>
+
+<p>Il <code>Customer Group</code> taglia trasversalmente: raggruppa aziende che condividono
+condizioni (rivenditori, clienti diretti, pubblica amministrazione) indipendentemente dalla gerarchia.
+Gerarchia e gruppo rispondono a due domande diverse: «di chi fa parte» e «a quali condizioni compra».</p>
+
+<div class="box">
+  <p class="box-title">Domanda di analisi da fare sempre</p>
+  <p>«Le filiali comprano per conto proprio o passano dalla sede?» La risposta decide se le sedi sono
+  clienti figli (con listini propri e ordini separati) o semplici indirizzi di spedizione di un unico
+  cliente. Sbagliare qui significa rifare l'anagrafica dopo il go-live.</p>
+</div>
+
+<h2>Gli utenti cliente e i loro ruoli</h2>
+
+<p>Il <code>Customer User</code> è la persona. Il suo <code>Customer User Role</code> decide che cosa
+può fare nello storefront. I permessi hanno quattro livelli di accesso:</p>
+
+<table>
+  <thead><tr><th>Livello</th><th>Che cosa vede o tocca</th></tr></thead>
+  <tbody>
+    <tr><td><code>Corporate</code></td><td>Tutti i record della propria azienda e delle sue sedi sottostanti</td></tr>
+    <tr><td><code>Department</code></td><td>I record dei colleghi del proprio livello organizzativo</td></tr>
+    <tr><td><code>User</code></td><td>Solo i propri record</td></tr>
+    <tr><td><code>None</code></td><td>Nessun accesso a quel dato</td></tr>
+  </tbody>
+</table>
+
+<p>Né <code>Department</code> né <code>Corporate</code> danno visibilità verso l'alto della gerarchia:
+una filiale non vede i dati della capogruppo. I ruoli possono essere condivisi fra clienti oppure
+specifici di un singolo cliente: due clienti possono avere entrambi un ruolo chiamato «Buyer» con
+permessi diversi.</p>
+
+<p class="sidenote">Fonti:
+<a href="https://doc.oroinc.com/user/concept-guides/customers-sales/customers/">Customer Management</a>
+e <a href="https://doc.oroinc.com/user/concept-guides/administration/customer-permissions/">Customer
+Permissions</a>. I ruoli storefront e quelli di back-office si assomigliano nella forma, ma sono due
+sistemi distinti.</p>
+
+<h3>Il caso che vende: buyer e approvatore</h3>
+<p>Il magazziniere prepara la shopping list ma non può concludere l'ordine; il responsabile acquisti
+la vede e la conferma. Si ottiene con due ruoli: uno senza il permesso di checkout, uno con permesso
+a livello <code>Corporate</code>. È configurazione, non sviluppo, e in demo è il momento in cui il
+cliente riconosce la propria procedura interna.</p>
+
+<div class="box warn">
+  <p class="box-title">Fin dove arriva la configurazione</p>
+  <p>Un'approvazione semplice si fa con i permessi. Un'approvazione con soglie di importo, deleghe e
+  notifiche a più livelli è un <strong>workflow</strong>: si costruisce sempre da back-office, ma va
+  disegnata (<a href="0009-dal-preventivo-all-ordine.html">lezione 9</a>). Se poi servono condizioni
+  calcolate su dati esterni, si entra nello sviluppo. In analisi, questi tre casi vanno separati e
+  stimati in modo diverso.</p>
+</div>
+
+<h3>Registrazione, approvazione e ospiti</h3>
+<p>La registrazione di un nuovo utente cliente può richiedere conferma via e-mail e approvazione
+manuale in back-office: è la norma in B2B, dove non si vende a chiunque. L'utente
+<strong>guest</strong> è chi non ha fatto login: quanto può vedere e fare si configura (prezzi,
+shopping list, checkout).</p>
+
+<h2>Pratica: costruisci un cliente con due sedi</h2>
+
+<ol class="checklist">
+  <li><strong>Crea un gruppo clienti</strong> nuovo, per esempio «Rivenditori formazione».</li>
+  <li><strong>Crea un cliente padre</strong> assegnandolo a quel gruppo, e due clienti figli sotto di
+  lui.</li>
+  <li><strong>Assegna al padre un listino</strong> (quello della lezione 5) e verifica se i figli lo
+  ereditano.</li>
+  <li><strong>Crea due utenti cliente</strong>: uno sul padre, uno su un figlio.</li>
+  <li><strong>Crea un ruolo</strong> che non permetta di concludere il checkout, e assegnalo a uno
+  dei due.</li>
+  <li><strong>Verifica dallo storefront</strong>: con l'utente limitato prepara una shopping list e
+  prova a concludere; con l'altro completa l'ordine. Poi controlla chi dei due vede l'ordine
+  dell'altro.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — modella un cliente vero</p>
+  <p>Prendi un'azienda con più sedi che conosci. Disegna: quanti <code>Customer</code>, in che albero,
+  in quale gruppo, quanti ruoli e con quali livelli di accesso. Poi scrivi le tre domande che faresti
+  al cliente per confermare il modello. Le domande valgono quanto il disegno.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Gerarchia dei clienti e gruppo clienti a cosa rispondono?</p>
+  <div class="options">
+    <button class="opt" data-correct>Di chi fa parte, e a quali condizioni compra</button>
+    <button class="opt">A quali condizioni compra, e in quale sito</button>
+    <button class="opt">Di chi fa parte, e in quale lingua naviga</button>
+  </div>
+  <p class="explain" hidden>L'albero dice l'appartenenza societaria, il gruppo raccoglie condizioni
+  commerciali condivise. Sono ortogonali: servono entrambi.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un utente con accesso <code>Corporate</code> che cosa vede?</p>
+  <div class="options">
+    <button class="opt" data-correct>I record della sua azienda e delle sedi sotto</button>
+    <button class="opt">I record di tutte le aziende del suo gruppo</button>
+    <button class="opt">I record della sua azienda e della capogruppo</button>
+  </div>
+  <p class="explain" hidden>L'accesso guarda verso il basso della gerarchia, mai verso l'alto: la
+  filiale non vede la capogruppo.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">«Chi prepara non conclude l'ordine»: come si realizza?</p>
+  <div class="options">
+    <button class="opt" data-correct>Con due ruoli utente cliente e permessi diversi</button>
+    <button class="opt">Con due clienti distinti nella stessa gerarchia</button>
+    <button class="opt">Con due siti web distinti nella stessa organizzazione</button>
+  </div>
+  <p class="explain" hidden>È configurazione di ruoli. Serve un workflow solo quando entrano soglie,
+  deleghe o passaggi di stato con notifiche.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/customers-sales/customers/">Customer
+  Management</a> — gerarchia, gruppi, ereditarietà delle impostazioni, utenti e ruoli. Da leggere con
+  la scheda di un cliente demo aperta accanto.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Contenuti e navigazione</strong>: web catalog, nodi, varianti e restrizioni — come si
+  costruisce una vetrina diversa per ogni tipo di cliente.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Un'anagrafica cliente complicata da modellare? Portala in chat prima di disegnarla due volte.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

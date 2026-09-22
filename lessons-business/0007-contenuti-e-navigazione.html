@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 7 — Contenuti e navigazione</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 07</p>
+  <h1>Contenuti e navigazione</h1>
+  <p class="subtitle">Il web catalog è la vetrina: nodi, varianti, restrizioni per cliente. Una sola installazione, tante storefront diverse.</p>
+  <p class="meta">
+    <span>Durata: ~45 min (20 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0006-clienti-e-permessi.html">Lezione 6</a></span>
+    <span>Obiettivo: costruire una navigazione personalizzata</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: i quattro livelli di accesso di un ruolo utente cliente.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p><code>Corporate</code>, <code>Department</code>, <code>User</code>, <code>None</code>. Nessuno
+    guarda verso l'alto della gerarchia.</p>
+  </div>
+</div>
+
+<h2>La vetrina si costruisce, non si eredita</h2>
+
+<p>Il menu dello storefront non è l'albero del master catalog: è un <strong>web catalog</strong>,
+costruito a mano con nodi di contenuto. Ogni nodo è una voce di navigazione, e dentro il nodo si
+sceglie che cosa mostrare tramite una <strong>variante di contenuto</strong>:</p>
+
+<ul>
+  <li>una categoria del master catalog;</li>
+  <li>una singola scheda prodotto;</li>
+  <li>una raccolta di prodotti costruita con filtri e attributi;</li>
+  <li>una landing page;</li>
+  <li>una pagina di sistema (login, ordini, RFQ);</li>
+  <li>la pagina «tutti i prodotti».</li>
+</ul>
+
+<p>Un'organizzazione può avere più web catalog, e a ogni sito web se ne assegna uno. Lo stesso
+prodotto può comparire in quanti nodi si vuole: è la risposta alla richiesta «lo stesso articolo deve
+stare sotto tre sezioni» che nel master catalog non si può soddisfare.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/content-management/web-catalog/">Web Catalog</a>.
+Il web catalog si sincronizza con il menu storefront <code>commerce_main_menu</code>: le modifiche
+manuali al menu hanno la precedenza e non toccano il catalogo.</p>
+
+<h2>Le restrizioni: la stessa vetrina, clienti diversi</h2>
+
+<p>Ogni nodo può essere mostrato solo per certe <strong>localizzazioni</strong>, certi <strong>siti
+web</strong>, certi <strong>clienti</strong> o <strong>gruppi di clienti</strong>, mantenendo gli
+stessi URL. È qui che si realizzano richieste come «i rivenditori vedono la sezione ricambi, i clienti
+diretti no» senza duplicare il sito.</p>
+
+<div class="box">
+  <p class="box-title">Restrizione del nodo ≠ visibilità del prodotto</p>
+  <p>Nascondere un nodo toglie la voce dalla navigazione. Se il prodotto sottostante è comunque
+  visibile, resta raggiungibile da ricerca e da URL diretto. Per toglierlo davvero serve la visibilità
+  della <a href="0003-chi-vede-che-cosa.html">lezione 3</a>. In analisi, le due cose vanno scritte
+  separate: «non in menu» e «non accessibile» costano configurazioni diverse.</p>
+</div>
+
+<h2>I mattoni di contenuto</h2>
+
+<table>
+  <thead><tr><th>Elemento</th><th>A cosa serve</th><th>Dove</th></tr></thead>
+  <tbody>
+    <tr><td>Landing page</td><td>Pagina libera costruita con l'editor visuale</td><td>Marketing &gt; Landing Pages</td></tr>
+    <tr><td>Content block</td><td>Blocco riusabile collocato in punti prestabiliti del layout, filtrabile per cliente o sito</td><td>Marketing &gt; Content Blocks</td></tr>
+    <tr><td>Content widget</td><td>Elemento dinamico da inserire nei contenuti: slider, elenco prodotti, form</td><td>Marketing &gt; Content Widgets</td></tr>
+    <tr><td>Digital asset</td><td>File multimediale gestito centralmente, con versioni, riusabile ovunque</td><td>Marketing &gt; Digital Assets</td></tr>
+    <tr><td>Segment</td><td>Insieme dinamico di record, usato per raccolte prodotti e contenuti mirati</td><td>Reports &amp; Segments &gt; Segments</td></tr>
+  </tbody>
+</table>
+
+<p>Con questi cinque si copre quasi tutto il contenuto di uno storefront B2B senza toccare il tema.
+Il confine con lo sviluppo è netto: cambiare <em>dove</em> un blocco appare nel layout, o creare un
+tipo di widget che non esiste, è lavoro da percorso tecnico.</p>
+
+<h2>Pratica: una sezione riservata a un gruppo</h2>
+
+<ol class="checklist">
+  <li><strong>Apri il web catalog attivo.</strong> Marketing &gt; Web Catalogs: guarda quale è
+  assegnato al sito web e scorri l'albero dei nodi.</li>
+  <li><strong>Crea un nodo</strong> di primo livello con la tua categoria della lezione 4 come
+  variante di contenuto.</li>
+  <li><strong>Crea una landing page</strong> corta e agganciala a un secondo nodo.</li>
+  <li><strong>Restringi il primo nodo</strong> al gruppo clienti creato nella lezione 6.</li>
+  <li><strong>Verifica dallo storefront</strong> con un utente di quel gruppo e con uno fuori dal
+  gruppo: il menu deve cambiare.</li>
+  <li><strong>Prova l'URL diretto</strong> del prodotto con l'utente che non vede il nodo: se lo
+  raggiunge, hai visto con i tuoi occhi la differenza fra restrizione e visibilità.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — due vetrine, una installazione</p>
+  <p>Disegna l'albero di navigazione per un cliente che serve due pubblici diversi (per esempio
+  installatori e rivenditori). Segna, per ogni nodo di primo livello, chi lo vede. Poi conta quanti
+  nodi sono comuni: se sono la maggioranza, hai la prova che non serve un secondo sito web — che in
+  Community non avresti comunque.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Che cosa può contenere un nodo del web catalog?</p>
+  <div class="options">
+    <button class="opt" data-correct>Categoria, prodotto, raccolta, landing o pagina</button>
+    <button class="opt">Soltanto una categoria del master catalog scelto</button>
+    <button class="opt">Soltanto pagine di contenuto create a mano</button>
+  </div>
+  <p class="explain" hidden>La variante di contenuto può essere categoria, prodotto, raccolta
+  filtrata, landing page, pagina di sistema o «tutti i prodotti».</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Nodo ristretto a un gruppo: il prodotto sotto è irraggiungibile?</p>
+  <div class="options">
+    <button class="opt" data-correct>No: resta raggiungibile da ricerca e URL diretto</button>
+    <button class="opt">Sì: la restrizione del nodo nasconde anche il prodotto</button>
+    <button class="opt">Sì, ma soltanto se la ricerca è stata reindicizzata</button>
+  </div>
+  <p class="explain" hidden>La restrizione agisce sulla navigazione. Per togliere davvero l'accesso
+  serve la visibilità del prodotto o della categoria.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Quanti web catalog si possono assegnare a un sito web?</p>
+  <div class="options">
+    <button class="opt" data-correct>Uno, ma lo stesso può servire più siti</button>
+    <button class="opt">Tutti quelli creati dentro quell'organizzazione</button>
+    <button class="opt">Uno per ogni localizzazione attiva del sito</button>
+  </div>
+  <p class="explain" hidden>Un sito web ha un web catalog assegnato; lo stesso catalogo può essere
+  riusato da più siti, con le restrizioni a differenziare i contenuti.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/content-management/web-catalog/">Web
+  Catalog</a> — nodi, varianti, restrizioni, rapporto con il menu e con il master catalog.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Checkout</strong>: i sette passi, pagamento e spedizione con le loro regole, e le tasse.
+  Cioè tutto ciò che sta fra il carrello e l'ordine.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Vuoi capire se una richiesta di contenuto sta dentro il configurabile? Portala in chat con lo
+  screenshot: il confine è sottile ma netto.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

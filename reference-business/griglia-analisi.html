@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Griglia di analisi — OroCommerce 7.0</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/glossary.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Scheda</p>
+  <h1>Griglia di analisi</h1>
+  <p class="subtitle">Come classificare un requisito: nativo, configurabile, custom o da spezzare. Con le domande di discovery e i tranelli ricorrenti.</p>
+  <p class="meta">
+    <span>Da stampare e compilare</span>
+    <span>Una riga per requisito</span>
+    <span>Vedi <a href="../lessons-business/0012-nativo-configurabile-custom.html">Lezione 12</a></span>
+  </p>
+</header>
+
+<main>
+
+<h2>Le tre categorie</h2>
+
+<table>
+  <thead><tr><th>Categoria</th><th>Significato</th><th>Che cosa costa</th></tr></thead>
+  <tbody>
+    <tr><td><strong>Nativo</strong></td><td>Esiste e funziona così</td><td>Formazione dell'utente</td></tr>
+    <tr><td><strong>Configurabile</strong></td><td>Esiste, va impostato</td><td>Ore di configurazione e preparazione dati</td></tr>
+    <tr><td><strong>Custom</strong></td><td>Richiede codice</td><td>Sviluppo, test e manutenzione a ogni aggiornamento</td></tr>
+  </tbody>
+</table>
+
+<p>Quando un requisito cade in due categorie, <strong>si spezza</strong>: una riga per ogni parte.
+Un requisito non spezzato finisce stimato per intero come custom.</p>
+
+<h2>Il modulo</h2>
+
+<table>
+  <thead><tr><th>Requisito</th><th>Categoria</th><th>Dove / come</th><th>Se custom: perché no config</th><th>Domanda aperta</th></tr></thead>
+  <tbody>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+    <tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">La colonna «perché no config» è il controllo di qualità della griglia: se non
+riesci a scrivere la frase, quel requisito probabilmente era configurabile.</p>
+
+<h2>Riferimento rapido per classificare</h2>
+
+<table class="glossary">
+  <thead><tr><th>Se il requisito parla di…</th><th>Di norma è…</th><th>Verifica in</th></tr></thead>
+  <tbody>
+    <tr><td class="term">Carrelli multipli</td><td>Nativo</td><td class="where">Shopping list</td></tr>
+    <tr><td class="term">Ordine per codice</td><td>Nativo</td><td class="where">Quick order form</td></tr>
+    <tr><td class="term">Offerte e preventivi</td><td>Nativo</td><td class="where">RFQ e Quote</td></tr>
+    <tr><td class="term">Pagamento a 30 giorni</td><td>Configurabile</td><td class="where">Payment term + payment rule</td></tr>
+    <tr><td class="term">Prezzi per cliente</td><td>Configurabile</td><td class="where">Price list per cliente o gruppo</td></tr>
+    <tr><td class="term">Sconto a quantità</td><td>Configurabile</td><td class="where">Scaglioni di prezzo</td></tr>
+    <tr><td class="term">Sconto a condizioni</td><td>Configurabile</td><td class="where">Promotions con espressioni</td></tr>
+    <tr><td class="term">Catalogo riservato</td><td>Configurabile</td><td class="where">Visibilità per gruppo o cliente</td></tr>
+    <tr><td class="term">Sezioni diverse per cliente</td><td>Configurabile</td><td class="where">Restrizioni sui nodi del web catalog</td></tr>
+    <tr><td class="term">Chi ordina e chi approva</td><td>Configurabile</td><td class="where">Customer user role, poi workflow</td></tr>
+    <tr><td class="term">Stati ordine aziendali</td><td>Configurabile</td><td class="where">Workflow dell'ordine</td></tr>
+    <tr><td class="term">Confezioni e multipli</td><td>Configurabile</td><td class="where">Unità di misura e quantità minima</td></tr>
+    <tr><td class="term">Sito in più lingue</td><td>Configurabile, ma pesante</td><td class="where">Localizzazioni + traduzione contenuti</td></tr>
+    <tr><td class="term">Giacenze dall'ERP</td><td>Custom</td><td class="where">Integrazione</td></tr>
+    <tr><td class="term">Controllo del fido</td><td>Custom</td><td class="where">Integrazione in tempo reale</td></tr>
+    <tr><td class="term">Ordini verso l'ERP</td><td>Custom</td><td class="where">Integrazione</td></tr>
+    <tr><td class="term">Entità nuova</td><td>Custom</td><td class="where">Contratti, commesse, matricole</td></tr>
+    <tr><td class="term">Tema grafico</td><td>Custom</td><td class="where">Sviluppo frontend</td></tr>
+    <tr><td class="term">Più siti web</td><td>Cambio di edizione</td><td class="where">Enterprise</td></tr>
+    <tr><td class="term">Più magazzini</td><td>Cambio di edizione</td><td class="where">Enterprise</td></tr>
+  </tbody>
+</table>
+
+<h2>Le dieci domande di discovery</h2>
+
+<ol>
+  <li>Quante aziende clienti, con quale struttura di sedi e filiali?</li>
+  <li>Chi compra, chi approva, chi vede gli ordini degli altri?</li>
+  <li>Quante tipologie di prodotto, e quali attributi cambiano fra l'una e l'altra?</li>
+  <li>Come si formano i prezzi: listini, sconti per gruppo, prezzi negoziati, scaglioni?</li>
+  <li>Chi tiene l'anagrafica prodotti e chi le giacenze?</li>
+  <li>Quali documenti servono nella trattativa, e dove serve un'approvazione?</li>
+  <li>Come si paga: anticipato, differito, con fido? Chi controlla il fido?</li>
+  <li>Quante lingue e quanti paesi, con quali regole fiscali?</li>
+  <li>Che cosa deve arrivare all'ERP, quando, e chi ha ragione in caso di conflitto?</li>
+  <li>Che cosa fanno oggi che in Oro non si vede da nessuna parte?</li>
+</ol>
+
+<h2>Tranelli ricorrenti</h2>
+
+<table>
+  <thead><tr><th>Quello che dicono</th><th>Quello che va chiesto</th></tr></thead>
+  <tbody>
+    <tr><td>«Il cliente non deve vederlo»</td><td>Non deve trovarlo, non deve comprarlo, o non deve vederne il prezzo?</td></tr>
+    <tr><td>«Serve l'approvazione degli ordini»</td><td>Solo un secondo utente che conferma, o soglie, deleghe e notifiche?</td></tr>
+    <tr><td>«Le filiali comprano da sole»</td><td>Clienti figli con listini e ordini propri, o indirizzi di spedizione?</td></tr>
+    <tr><td>«Il sito è anche in inglese»</td><td>Chi traduce il catalogo, con quale strumento, a ogni nuovo prodotto?</td></tr>
+    <tr><td>«Le giacenze sono in tempo reale»</td><td>Ogni quanto si aggiornano e cosa succede fra un aggiornamento e l'altro?</td></tr>
+    <tr><td>«Vogliamo il nostro flusso d'ordine»</td><td>Stati e transizioni, o anche condizioni calcolate su dati esterni?</td></tr>
+    <tr><td>«Come su Amazon»</td><td>Quale funzione esattamente, e per quale ruolo aziendale?</td></tr>
+  </tbody>
+</table>
+
+<div class="box">
+  <p class="box-title">Come si risponde a una richiesta fuori standard</p>
+  <p>Tre pezzi, in quest'ordine: <strong>come Oro lo fa già</strong>; <strong>che cosa costerebbe
+  farlo esattamente come lo chiedete</strong>; <strong>che cosa si perde adattandosi allo
+  standard</strong>. Poi decide il cliente, con i numeri davanti.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="../lessons-business/index.html">Indice delle lezioni</a> ·
+  <a href="glossario.html">Glossario</a> ·
+  <a href="flusso-vendita.html">Flusso di vendita</a> ·
+  <a href="demo-storefront.html">Script di demo</a></p>
+</footer>
+
+</body>
+</html>

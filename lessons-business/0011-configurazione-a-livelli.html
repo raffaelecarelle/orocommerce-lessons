@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 11 — Configurazione a livelli</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 11</p>
+  <h1>Configurazione a livelli</h1>
+  <p class="subtitle">La cascata completa delle impostazioni, che cosa è comune a tutti i siti e che cosa no, e la localizzazione. Il metodo per non impazzire.</p>
+  <p class="meta">
+    <span>Durata: ~40 min (15 di lettura, 25 di pratica)</span>
+    <span>Prerequisiti: <a href="0010-inventario-e-disponibilita.html">Lezione 10</a></span>
+    <span>Obiettivo: trovare dove è configurata una cosa</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: la cascata dei livelli per le impostazioni di inventario.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Prodotto → categoria del master catalog → sito web → organizzazione → globale. Vince il più
+    specifico.</p>
+  </div>
+</div>
+
+<h2>Una regola sola, ripetuta ovunque</h2>
+
+<p>Dalla lezione 1 hai visto la stessa struttura tornare cinque volte: visibilità, prezzi, contenuti,
+inventario, permessi. È la stessa regola, ed è il cuore del modo di configurare di Oro:</p>
+
+<p><strong>Globale → organizzazione → sito web → gruppo clienti → cliente → utente</strong>, e vince
+sempre il livello più specifico che ha un valore dichiarato.</p>
+
+<p>Non tutte le impostazioni esistono a tutti i livelli: alcune si fermano al sito web, altre scendono
+fino al singolo cliente. Ma il metodo per trovarle è sempre lo stesso — e questo è il vero contenuto
+della lezione.</p>
+
+<h2>Il metodo: dall'alto o dal basso</h2>
+
+<div class="box">
+  <p class="box-title">Quando qualcosa non torna, in tre mosse</p>
+  <ol>
+    <li><strong>Chi sta guardando?</strong> Un cliente preciso, in un gruppo preciso, su un sito
+    preciso. Senza questi tre dati non si diagnostica niente.</li>
+    <li><strong>Quale livello più specifico ha un valore?</strong> Si parte dal cliente e si sale,
+    non il contrario.</li>
+    <li><strong>È configurazione o è un dato?</strong> Un prezzo mancante non è una configurazione
+    sbagliata: è una riga di listino assente. Confondere i due allunga le diagnosi di ore.</li>
+  </ol>
+</div>
+
+<h2>Che cosa è comune e che cosa è per sito</h2>
+
+<p>Dentro un'organizzazione alcune cose valgono per tutti i siti, altre no. Vale la pena impararlo
+perché è il fondamento del multi-sito — e, in Community, la ragione per cui spesso il multi-sito non
+serve.</p>
+
+<table>
+  <thead><tr><th>Comune a tutta l'organizzazione</th><th>Per singolo sito web</th></tr></thead>
+  <tbody>
+    <tr><td>Utenti cliente e credenziali</td><td>Dominio e indirizzo dello storefront</td></tr>
+    <tr><td>Integrazioni di pagamento e spedizione</td><td>Web catalog assegnato</td></tr>
+    <tr><td>Impostazioni fiscali e aliquote</td><td>Listini e visibilità dei prodotti</td></tr>
+    <tr><td>Workflow attivi (checkout, RFQ, preventivi)</td><td>Localizzazioni e valuta esposta</td></tr>
+    <tr><td>Anagrafica prodotti e master catalog</td><td>Metodi di pagamento e spedizione effettivamente proposti</td></tr>
+  </tbody>
+</table>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/business-models/websites/">Multiple Websites</a>.
+Attenzione: <strong>il multi-sito è Enterprise</strong>. In Community il sito è uno, e la
+differenziazione si ottiene con gruppi clienti, restrizioni di contenuto e listini.</p>
+
+<h2>Localizzazione: lingua e formati</h2>
+
+<p>Una <strong>localizzazione</strong> è una combinazione di lingua e formati (date, numeri, valuta).
+Si aggiungono le lingue, si abilitano le localizzazioni e si scelgono quelle attive per il sito, in
+System &gt; Configuration &gt; General Setup &gt; Localization.</p>
+
+<p>Il meccanismo importante è il <strong>fallback</strong>: una localizzazione può ereditare da
+un'altra, così le traduzioni mancanti scendono dalla lingua madre invece di lasciare buchi. Si traduce
+su quattro piani: contenuti (nomi e descrizioni prodotto, categorie), etichette dell'interfaccia,
+opzioni degli attributi, consensi e modelli di e-mail.</p>
+
+<p class="sidenote">Fonte:
+<a href="https://doc.oroinc.com/user/concept-guides/administration/localization/">Localization and
+Translation</a>.</p>
+
+<div class="box warn">
+  <p class="box-title">La stima che sbagliano tutti</p>
+  <p>«Il sito è anche in inglese» non è una voce di configurazione da mezza giornata. Sono quattro
+  piani di traduzione, e il primo — i contenuti di catalogo — cresce con il numero di prodotti e
+  attributi, e va rifatto a ogni nuovo prodotto. In analisi va chiesto chi traduce, con quale
+  strumento e con quale ricorrenza.</p>
+</div>
+
+<h2>Pratica: fai vincere un livello sull'altro</h2>
+
+<ol class="checklist">
+  <li><strong>Apri System &gt; Configuration</strong> e osserva il selettore del livello in alto: è lì
+  che si passa da globale a organizzazione a sito web.</li>
+  <li><strong>Scegli un'impostazione semplice</strong> e osserva il suo valore ai tre livelli, con la
+  spunta «usa valore predefinito».</li>
+  <li><strong>Cambiala a livello di sito</strong> e verifica nello storefront.</li>
+  <li><strong>Scendi al cliente</strong>: apri il cliente della lezione 6 e guarda quali impostazioni
+  può sovrascrivere da sé (listini, termini di pagamento, visibilità).</li>
+  <li><strong>Aggiungi una localizzazione</strong> e abilitala per il sito: guarda cosa compare
+  tradotto e cosa no.</li>
+  <li><strong>Riporta tutto com'era</strong> e scrivi in due righe quale livello ha vinto e perché.</li>
+</ol>
+
+<div class="box win">
+  <p class="box-title">Esercizio — la caccia alla configurazione</p>
+  <p>Fatti dare da un collega tre comportamenti dello storefront («questo cliente non vede i prezzi»,
+  «qui la spedizione è gratis», «questo prodotto non si può ordinare sotto le dieci unità») senza
+  dirti come li ha ottenuti. Per ognuno, trova in back-office il livello esatto in cui è configurato.
+  Cronometra: la velocità in questa caccia è la competenza che distingue chi conosce Oro da chi lo ha
+  solo visto.</p>
+</div>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Qual è l'ordine corretto della cascata di configurazione?</p>
+  <div class="options">
+    <button class="opt" data-correct>Globale, organizzazione, sito, gruppo, cliente, utente</button>
+    <button class="opt">Utente, cliente, gruppo, sito, organizzazione, globale</button>
+    <button class="opt">Globale, sito, organizzazione, cliente, gruppo, utente</button>
+  </div>
+  <p class="explain" hidden>Dal più generale al più specifico. Vince il più specifico che ha un valore
+  dichiarato: le altre due sequenze invertono o scambiano i livelli.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Gli utenti cliente sono comuni ai siti o separati per sito?</p>
+  <div class="options">
+    <button class="opt" data-correct>Comuni: le stesse credenziali valgono nell'organizzazione</button>
+    <button class="opt">Separati: ogni sito ha la propria anagrafica utenti</button>
+    <button class="opt">Comuni, ma soltanto se i siti condividono il catalogo</button>
+  </div>
+  <p class="explain" hidden>Dentro un'organizzazione l'anagrafica clienti è condivisa. Cambiano per
+  sito il catalogo esposto, i listini, la localizzazione e i metodi proposti.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Più siti web con domini diversi: quale edizione serve?</p>
+  <div class="options">
+    <button class="opt" data-correct>Enterprise: in Community il sito web è uno</button>
+    <button class="opt">Community: il numero di siti non ha limiti</button>
+    <button class="opt">Community, purché i siti condividano un catalogo</button>
+  </div>
+  <p class="explain" hidden>Il multi-sito è Enterprise. In Community si differenzia con gruppi
+  clienti, restrizioni di contenuto e listini.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/user/concept-guides/business-models/websites/">Multiple
+  Websites</a> — la tabella di ciò che è condiviso e ciò che è per sito, più la gerarchia di
+  priorità. È la pagina da citare quando qualcuno propone «facciamo due siti».</p>
+</div>
+
+<div class="box">
+  <p class="box-title">Prossima lezione</p>
+  <p><strong>Nativo, configurabile, custom</strong>: la griglia con cui si legge un capitolato e si
+  delimita lo sviluppo. L'ultima lezione, e quella che userai di più.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../reference-business/percorsi-back-office.html">Percorsi di back-office</a></p>
+  <p>Non trovi dove è configurata una cosa? Chiedilo in chat: il percorso di ricerca vale più della
+  risposta.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>

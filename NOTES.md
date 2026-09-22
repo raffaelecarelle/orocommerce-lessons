@@ -73,3 +73,28 @@ Note per chi tiene e aggiorna questo percorso. Non sono materiale didattico: le 
 Il progresso di ciascuna persona (quiz svolti, esercizi, dubbi ricorrenti) non sta qui: va tenuto
 in un file personale non condiviso, per esempio `progress-<nome>.md`, così i materiali restano
 riutilizzabili da chiunque.
+
+## Percorso funzionale (traccia parallela)
+- Aperto il 2026-09-22. Mission in `MISSION-BUSINESS.md`, fonti in `RESOURCES-BUSINESS.md`, lezioni
+  in `lessons-business/`, schede in `reference-business/`. Asset grafici condivisi con il percorso
+  tecnico (`assets/`): stesso foglio di stile, stesso componente quiz.
+- Destinatari doppi: sviluppatori del percorso tecnico e consulenti/analisti. Niente codice nelle
+  lezioni; quando una richiesta esce dal configurabile, va dichiarato il confine e rimandato al
+  percorso tecnico.
+- Le lezioni funzionali 1-12 sono state scritte tutte il 2026-09-22, su richiesta esplicita, dopo
+  aver deciso il contrario poche ore prima: vedi `learning-records/0005-percorso-funzionale-completato-in-blocco.md`.
+  Sono revisionabili: la pratica ha la precedenza sul testo.
+- **Da verificare alla prima esecuzione**: i percorsi di menu citati nelle lezioni e nella scheda
+  `reference-business/percorsi-back-office.html` sono presi dalla documentazione ufficiale, non
+  eseguiti uno per uno sull'installazione. Dove l'interfaccia 7.0 li colloca altrove, correggere la
+  scheda per prima: le lezioni la citano.
+- Schede funzionali disponibili: glossario, percorsi di back-office, flusso di vendita, griglia di
+  analisi, script di demo. `assets/glossary.css` serve a tutte e cinque.
+- Vocabolario: il glossario in `reference-business/glossario.html` è la fonte unica. Nelle lezioni
+  i nomi di menu ed entità restano in inglese, come si leggono nell'interfaccia.
+- Trappola ricorrente da ripetere spesso: in Oro `Customer` è l'azienda, `Customer User` è la
+  persona. È l'inversione che rovina i documenti di analisi di chi viene da Magento.
+- Segnalare sempre cosa è solo Enterprise (multi-sito, magazzini multipli, Elasticsearch): in demo
+  si finisce per promettere funzioni che in Community non ci sono.
+- Componente nuovo aggiunto per il glossario: `assets/glossary.css` (tabella a tre colonne + indice
+  di sezione), riusabile per le prossime schede.

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Funzionale 12 — Nativo, configurabile, custom</title>
+<link rel="stylesheet" href="../assets/lesson.css">
+<link rel="stylesheet" href="../assets/quiz.css">
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Percorso funzionale · Lezione 12</p>
+  <h1>Nativo, configurabile, custom</h1>
+  <p class="subtitle">La griglia con cui si legge un capitolato, si delimita lo sviluppo e si smette di promettere ciò che Oro fa già in modo diverso.</p>
+  <p class="meta">
+    <span>Durata: ~50 min (20 di lettura, 30 di esercizio)</span>
+    <span>Prerequisiti: <a href="0011-configurazione-a-livelli.html">Lezione 11</a></span>
+    <span>Obiettivo: classificare ogni requisito</span>
+  </p>
+</header>
+
+<main>
+
+<div class="recall">
+  <p class="q">Richiamo: le tre mosse quando un comportamento dello storefront non torna.</p>
+  <textarea placeholder="A memoria."></textarea>
+  <button class="reveal">Mostra risposta</button>
+  <div class="answer" hidden>
+    <p>Chi sta guardando (cliente, gruppo, sito) → quale livello più specifico ha un valore →
+    è configurazione o è un dato mancante.</p>
+  </div>
+</div>
+
+<h2>Tre categorie, non due</h2>
+
+<p>La domanda «si può fare?» non ha mai risposta utile: in un sistema estensibile si può fare quasi
+tutto. La domanda giusta è <em>in quale categoria cade</em>, perché le tre categorie hanno costi,
+rischi e tempi di manutenzione diversi.</p>
+
+<table>
+  <thead><tr><th>Categoria</th><th>Che cosa significa</th><th>Costo reale</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><strong>Nativo</strong></td>
+      <td>Esiste già e funziona così: basta usarlo</td>
+      <td>Formazione dell'utente, non sviluppo</td>
+    </tr>
+    <tr>
+      <td><strong>Configurabile</strong></td>
+      <td>Esiste, ma va impostato: listini, regole, workflow, contenuti, permessi</td>
+      <td>Ore di configurazione più i dati da preparare. Zero manutenzione di codice</td>
+    </tr>
+    <tr>
+      <td><strong>Custom</strong></td>
+      <td>Richiede codice: entità nuove, integrazioni, logiche di processo, interfacce su misura</td>
+      <td>Sviluppo, test, e soprattutto manutenzione a ogni aggiornamento di Oro</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="box warn">
+  <p class="box-title">L'errore che costa di più</p>
+  <p>Non è stimare male il custom: è classificare come custom qualcosa che era configurabile, o
+  viceversa. Nel primo caso si vende lavoro inutile e si perde la gara; nel secondo si promette a
+  forfait qualcosa che richiederà settimane. La griglia serve a questo, non a fare la stima.</p>
+</div>
+
+<h2>Che cosa è nativo (e va solo mostrato)</h2>
+
+<ul>
+  <li>Shopping list multiple, quick order form, ordini ricorrenti, riordino.</li>
+  <li>RFQ, preventivi con validità, accettazione dal compratore, conversazioni sul documento.</li>
+  <li>Prezzi a scaglioni, unità di misura multiple, listini per cliente e gruppo.</li>
+  <li>Gerarchia clienti e ruoli storefront con quattro livelli di accesso.</li>
+  <li>Visibilità di prodotti e categorie per sito, gruppo e cliente.</li>
+  <li>Checkout in più passi o a pagina unica, guest checkout, pagamento differito.</li>
+  <li>Import ed export CSV delle entità principali dal back-office.</li>
+  <li>Storico modifiche, segmenti, report, consensi GDPR.</li>
+</ul>
+
+<h2>Che cosa è configurabile (e va impostato)</h2>
+
+<ul>
+  <li>Struttura del catalogo, famiglie e attributi di prodotto.</li>
+  <li>Politica dei prezzi: quanti listini, a quali livelli, con quali regole e strategia.</li>
+  <li>Navigazione e contenuti: web catalog, nodi, restrizioni, landing page, blocchi.</li>
+  <li>Regole di pagamento e spedizione, imposte, termini di pagamento.</li>
+  <li>Workflow: quale checkout, approvazione dei preventivi, stati di RFQ e ordini,
+  passi e transizioni con le loro etichette e permessi.</li>
+  <li>Localizzazioni e traduzioni dei contenuti.</li>
+  <li>Disponibilità: soglie, backorder, quantità minime e massime.</li>
+</ul>
+
+<h2>Che cosa è custom (e va stimato a parte)</h2>
+
+<ul>
+  <li><strong>Integrazioni</strong> con ERP, PIM, CRM esterni: sincronizzazione di anagrafiche,
+  giacenze, prezzi, ordini, fidi. Il candidato numero uno in ogni progetto B2B — vedi
+  <a href="../lessons/0012-integrazione-erp.html">percorso tecnico, lezione 12</a>.</li>
+  <li><strong>Logiche di processo</strong> che i workflow nativi non esprimono: condizioni calcolate
+  su dati esterni, approvazioni a soglie con deleghe, regole di sconto non riconducibili a listini e
+  promozioni.</li>
+  <li><strong>Entità nuove</strong>: oggetti di dominio che in Oro non esistono (contratti, commesse,
+  matricole).</li>
+  <li><strong>Interfaccia</strong>: tema grafico, pagine con layout fuori standard, componenti
+  interattivi nuovi.</li>
+  <li><strong>Automazioni</strong> fuori dalla portata dei process: elaborazioni pianificate, code di
+  lavoro, notifiche complesse.</li>
+</ul>
+
+<div class="box">
+  <p class="box-title">La zona grigia, e come attraversarla</p>
+  <p>Molte richieste stanno in mezzo: configurabili al 70%, custom per il resto. Il modo di gestirle è
+  spezzarle. «Approvazione degli ordini sopra i 5.000 euro» si spezza in: stati e transizioni
+  (configurabile), controllo della soglia (configurabile con espressione), notifica al responsabile
+  (configurabile), verifica del fido sull'ERP (custom). Quattro righe, tre delle quali non costano
+  sviluppo. Un requisito non spezzato finisce sempre stimato per intero come custom.</p>
+</div>
+
+<h2>Le dieci domande di discovery</h2>
+
+<ol>
+  <li>Quante aziende clienti, con quale struttura di sedi e filiali?</li>
+  <li>Chi compra, chi approva, chi vede gli ordini degli altri?</li>
+  <li>Quante tipologie di prodotto, e quali attributi cambiano fra l'una e l'altra?</li>
+  <li>Come si formano i prezzi: listini, sconti per gruppo, prezzi negoziati, scaglioni?</li>
+  <li>Chi tiene l'anagrafica prodotti e chi le giacenze: Oro o un altro sistema?</li>
+  <li>Quali documenti servono nella trattativa: si fanno preventivi, servono approvazioni?</li>
+  <li>Come si paga: anticipato, differito, con fido? Chi controlla il fido?</li>
+  <li>Quante lingue e quanti paesi, con quali regole fiscali?</li>
+  <li>Che cosa deve arrivare all'ERP, in che momento, e chi ha ragione in caso di conflitto?</li>
+  <li>Che cosa fa oggi il cliente che in Oro non si vede da nessuna parte?</li>
+</ol>
+
+<p>L'ultima è la più produttiva: fa emergere il lavoro invisibile — il file Excel, la telefonata al
+commerciale, il modulo firmato — che nessun capitolato scrive ma che deve continuare a funzionare.</p>
+
+<h2>Esercizio principale: compila la griglia</h2>
+
+<div class="box win">
+  <p class="box-title">Esercizio — venti requisiti, tre colonne</p>
+  <p>Prendi un capitolato vero, o l'ultima richiesta di offerta ricevuta. Estrai venti requisiti e
+  classificali con la scheda <a href="../reference-business/griglia-analisi.html">Griglia di
+  analisi</a>: nativo, configurabile, custom, oppure «da spezzare». Per ogni riga custom, scrivi una
+  frase su <em>perché</em> non è configurabile: se non riesci a scriverla, probabilmente era
+  configurabile. Porta la griglia alla sessione di revisione.</p>
+</div>
+
+<h2>Come si dice «no, ma»</h2>
+
+<p>La risposta peggiore a una richiesta fuori standard è «sì, si fa». La seconda peggiore è «no».
+La terza, quella giusta, ha tre pezzi: <strong>come Oro lo fa già</strong>, <strong>che cosa
+costerebbe farlo esattamente come lo chiedete</strong>, <strong>che cosa si perde adattandosi allo
+standard</strong>. Il cliente decide con i numeri davanti, e la decisione resta sua.</p>
+
+<p>Questo è anche il punto in cui il percorso funzionale e quello tecnico si toccano: il confine
+credibile fra configurazione e sviluppo è quello di chi ha visto entrambi i lati.</p>
+
+<p class="score"></p>
+
+<div class="quiz">
+  <p class="q">Qual è l'errore di classificazione che costa di più?</p>
+  <div class="options">
+    <button class="opt" data-correct>Scambiare configurabile e custom, in qualsiasi direzione</button>
+    <button class="opt">Sottostimare le ore di sviluppo di una integrazione</button>
+    <button class="opt">Dimenticare la formazione degli utenti finali del cliente</button>
+  </div>
+  <p class="explain" hidden>Vendere come sviluppo ciò che si configura fa perdere la gara; promettere
+  come configurazione ciò che è sviluppo fa perdere il margine.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Un requisito misto configurabile e custom: come si tratta?</p>
+  <div class="options">
+    <button class="opt" data-correct>Si spezza in righe distinte, ognuna classificata a parte</button>
+    <button class="opt">Si classifica come custom, perché una parte lo è</button>
+    <button class="opt">Si rimanda alla fase tecnica, dopo la firma del contratto</button>
+  </div>
+  <p class="explain" hidden>Spezzare è l'unico modo di non stimare come sviluppo anche le parti già
+  coperte. Quasi sempre le righe custom restano una minoranza.</p>
+</div>
+
+<div class="quiz">
+  <p class="q">Qual è la domanda di discovery più produttiva delle dieci?</p>
+  <div class="options">
+    <button class="opt" data-correct>Che cosa fanno oggi che in Oro non si vede da nessuna parte</button>
+    <button class="opt">Quante aziende clienti hanno, e con quali sedi collegate</button>
+    <button class="opt">Quante lingue servono, e con quali regole fiscali applicate</button>
+  </div>
+  <p class="explain" hidden>Fa emergere il lavoro invisibile — file Excel, telefonate, moduli firmati —
+  che nessun capitolato scrive e che il sistema dovrà comunque reggere.</p>
+</div>
+
+<div class="box source">
+  <p class="box-title">Fonte primaria da leggere</p>
+  <p><a href="https://doc.oroinc.com/master/user/solution-architect/concepts/">OroCommerce Concepts</a>
+  — rileggila ora, dalla prima all'ultima riga. Alla lezione 1 era una mappa di parole nuove; adesso è
+  l'indice di quello che sai fare, ed è il documento con cui si verifica una promessa fatta a un
+  cliente.</p>
+</div>
+
+<div class="box">
+  <p class="box-title">E adesso</p>
+  <p>Il percorso funzionale finisce qui, ma la competenza si costruisce sui progetti veri. Tre modi di
+  continuare: rifare la <a href="../reference-business/demo-storefront.html">demo</a> finché scorre
+  senza esitazioni; compilare la griglia su ogni capitolato che passa; portare in chat i casi che non
+  rientrano, perché ognuno di quelli o diventa una lezione nuova o corregge una vecchia. Per il lato
+  implementativo, c'è il <a href="../lessons/index.html">percorso tecnico</a>.</p>
+</div>
+
+</main>
+
+<footer>
+  <p>Percorso funzionale · <a href="index.html">Indice</a> ·
+  <a href="../reference-business/griglia-analisi.html">Griglia di analisi</a> ·
+  <a href="../reference-business/glossario.html">Glossario</a> ·
+  <a href="../lessons/index.html">Percorso tecnico</a></p>
+  <p>Hai una griglia compilata su un capitolato reale? Portala in chat: revisionarla insieme è
+  l'esercizio più utile di tutto il percorso.</p>
+</footer>
+
+<script src="../assets/quiz.js"></script>
+</body>
+</html>
