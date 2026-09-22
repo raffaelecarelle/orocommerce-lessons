@@ -32,7 +32,7 @@ come l'applicazione <strong>scopre</strong> il tuo codice, e come <strong>costru
 
 <p>Alla fine di questa lezione avrai un comando tuo che gira nel container e stampa una stringa
 prodotta da un servizio tuo. Sembra poco. È l'ossatura di qualunque cosa scriverai dopo:
-import/export, consumer di coda, endpoint API sono tutti servizi registrati allo stesso modo.</p>
+connettori di integrazione, consumer di coda, endpoint API sono tutti servizi registrati allo stesso modo.</p>
 
 <h2>Cos'è un bundle</h2>
 
@@ -152,7 +152,7 @@ accompagnerà per sempre: <em>cambio in un file di configurazione → <code>cach
   <li><code>'@nome.del.servizio'</code> — inietta un altro servizio.</li>
   <li><code>'%nome_parametro%'</code> — inietta un parametro (es. <code>%kernel.environment%</code>, <code>%kernel.project_dir%</code>).</li>
   <li>una stringa qualsiasi — valore letterale.</li>
-  <li><code>tags:</code> — dichiara «questo servizio partecipa a un meccanismo»: comando di console, event listener, processore di import, e così via.</li>
+  <li><code>tags:</code> — dichiara «questo servizio partecipa a un meccanismo»: comando di console, event listener, connettore di integrazione, e così via.</li>
 </ul>
 
 <p>Come <strong>id</strong> del servizio, Oro 7.0 usa quasi sempre il nome completo della classe

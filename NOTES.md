@@ -44,25 +44,41 @@ Note per chi tiene e aggiorna questo percorso. Non sono materiale didattico: le 
   (es. `CronBundle/Command/CronCommand.php` + `Resources/config/commands.yml`).
 - Datagrid: back-office in `Resources/config/oro/datagrids.yml`, storefront a livello di tema in
   `Resources/views/layouts/<tema>/config/datagrids.yml`.
-- Il codice delle lezioni 2, 3, 8, 10 e 11 è stato eseguito su un'installazione 7.0 CE con un
-  bundle usa-e-getta (bundle + servizio + comando + entità + installer + repository + topic +
-  processor + `api.yml` + `importexport.yml`), poi rimosso. Funziona; tre scoperte hanno corretto
-  le lezioni:
+- Il codice delle lezioni 2, 3, 9 e 12 (numerazione attuale) è stato eseguito su un'installazione
+  7.0 CE con un bundle usa-e-getta (bundle + servizio + comando + entità + installer + repository +
+  topic + processor + `api.yml`), poi rimosso. Funziona; due scoperte hanno corretto le lezioni:
   1. **Alias API non prevedibile**: la classe `…\CheckBundle\Entity\SandboxMapping` ha ricevuto
      entity type `checksandboxmappings` (entra anche il nome del bundle). Nei progetti va
      dichiarato a mano in `entity_aliases`.
-  2. **`oro:import:file`**: `--email` obbligatorio; job di validazione
-     `entity_import_validation_from_csv` diverso da `entity_import_from_csv`; il file deve stare
-     dentro la cartella del progetto (il comando gira nel container, `/tmp` dell'host non esiste);
-     il comando **schedula** e basta, serve `oro:message-queue:consume`.
-  3. **Pulizia**: cancellare un bundle con un'entità `#[Config]` rompe `cache:clear`
+  2. **Pulizia**: cancellare un bundle con un'entità `#[Config]` rompe `cache:clear`
      (`Class ... does not exist`). Vanno ripulite a mano, in ordine,
      `oro_entity_config_index_value`, `oro_entity_config_field`, `oro_entity_config`.
-- Import idempotente verificato: con `importexport.identity` sul campo chiave, un secondo import
-  aggiorna la riga invece di duplicarla.
+- Layout storefront (lezione 14), verificato su 7.0 CE con un layout update usa-e-getta nel bundle
+  di training, poi rimosso:
+  1. Lo scheletro dei blocchi (`root` → `head`/`body` → `wrapper` → `page_container` → `page_main`
+     → `page_main_content` → `page_content`) è dichiarato con un solo `@addTree` in
+     `vendor/oro/platform/src/Oro/Bundle/UIBundle/Resources/views/layouts/default/page/layout.yml`.
+     Il blocco `root` lo aggiunge invece il codice: `LayoutBundle/Layout/LayoutManager.php`.
+  2. Senza `@setBlockTheme` il blocco viene comunque reso, con il markup predefinito del suo tipo.
+     Utile come esperimento in aula: dimostra che il block theme non fa esistere il blocco.
+  3. Il tema storefront predefinito in 7.0 CE è `default`, etichettato «Refreshing Teal», e sta in
+     `vendor/oro/customer-portal/.../FrontendBundle/Resources/views/layouts/default/theme.yml`.
+     L'ereditarietà si dichiara con `parent:` (esempio reale: tema `optimized` del CMSBundle).
+  4. Comandi di diagnosi reali: `oro:debug:layout` (anche `--type=`, `--provider=`),
+     `oro:debug:layout:block-types`, `oro:debug:layout:data-providers`,
+     `oro:debug:layout:context-configurators`, `oro:layout:theme-resource-config:dump`.
 
 ## Stato del percorso
-- Lezioni 1-12 scritte, più sei schede di riferimento e l'indice in `lessons/index.html`.
+- Lezioni 1-14 scritte, più sei schede di riferimento e l'indice in `lessons/index.html`.
+- La lezione sul layout dello storefront è stata aggiunta dopo le altre, chiudendo un buco:
+  le lezioni 5 e 6 usavano `Resources/views/layouts/` senza spiegarlo. Vedi
+  `learning-records/0006-capitolo-layout-aggiunto.md`. Con la rinumerazione successiva è la 14.
+- Import/export è stato **tolto** dal percorso e sostituito da due lezioni: workflow e process
+  (lezione 8) e Integration bundle (lezione 11). Vedi
+  `learning-records/0007-import-export-sostituito.md`.
+- **Da verificare eseguendo**: le lezioni 8 e 11 sono state scritte verificando sintassi, tag,
+  interfacce e comandi sul sorgente di `vendor/oro`, ma la loro pratica non è ancora stata eseguita
+  su un'installazione. È il primo debito da chiudere.
 - Le lezioni 3-12 sono state scritte in anticipo rispetto alle sessioni: vedi
   `learning-records/0003-curriculum-scritto-in-anticipo.md`. Sono revisionabili quando la pratica
   mostra dove si inciampa davvero.

@@ -10,7 +10,7 @@ sono versioni congelate — utili quando una pagina non esiste più, ma da legge
   Il riferimento principale per lo sviluppo Oro: setup, architettura, entità, API, integrazioni.
   Usare per: qualsiasi domanda "come si fa X in Oro".
 - [Oro Application Architecture](https://doc.oroinc.com/backend/architecture/)
-  Struttura applicativa, tech stack, bundle, entità, ACL, datagrid, workflow, message queue, import/export.
+  Struttura applicativa, tech stack, bundle, entità, ACL, datagrid, workflow, message queue, integrazioni.
   Usare per: capire *dove* vive un concetto prima di cercarne la sintassi.
 - [Application Structure](https://doc.oroinc.com/backend/architecture/structure/)
   Cosa contengono `config/`, `src/`, `var/`, `public/`, `templates/`, `vendor/`.

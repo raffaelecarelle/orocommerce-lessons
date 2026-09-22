@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lezione 9 — Storefront API</title>
+<title>Lezione 10 — Storefront API</title>
 <link rel="stylesheet" href="../assets/lesson.css">
 <link rel="stylesheet" href="../assets/quiz.css">
 <link rel="stylesheet" href="../assets/compare.css">
@@ -11,12 +11,12 @@
 <body>
 
 <header>
-  <p class="kicker">Formazione OroCommerce · Lezione 09</p>
+  <p class="kicker">Formazione OroCommerce · Lezione 10</p>
   <h1>Storefront API</h1>
   <p class="subtitle">La seconda API di Oro: stesso motore, pubblico diverso, e un modello di sicurezza che non perdona distrazioni.</p>
   <p class="meta">
     <span>Durata: ~50 min</span>
-    <span>Prerequisiti: <a href="0008-api-rest-admin.html">Lezione 8</a></span>
+    <span>Prerequisiti: <a href="0009-api-rest-admin.html">Lezione 9</a></span>
     <span>Obiettivo: capire quando e come esporre dati al frontend</span>
   </p>
 </header>
@@ -61,7 +61,7 @@ che abilita e disabilita processori per il tipo <code>'frontend'</code>. Esempi 
 reali:
 <code>vendor/oro/customer-portal/src/Oro/Bundle/CustomerBundle/Resources/config/oro/api_frontend.yml</code>.</p>
 
-<p>La conseguenza pratica: la sintassi che hai imparato nella lezione 8 vale identica. Cambia il
+<p>La conseguenza pratica: la sintassi che hai imparato nella lezione 9 vale identica. Cambia il
 file, cambia il pubblico, cambia il buon senso su cosa esporre.</p>
 
 <h2>Come si restringe una risorsa storefront</h2>
@@ -96,7 +96,7 @@ esclusi.</p>
 
 <h2>Autenticazione</h2>
 
-<p>Stesso server OAuth 2.0 della lezione 8, ma i client sono <strong>di tipo storefront</strong> e
+<p>Stesso server OAuth 2.0 della lezione 9, ma i client sono <strong>di tipo storefront</strong> e
 si creano in una sezione separata del back-office: la rotta è <code>/admin/oauth2/frontend</code>
 (<code>oro_oauth2_frontend_index</code> in <code>debug:router</code>). Un client storefront è legato
 a un <code>CustomerUser</code>, non a un utente del back-office.</p>
@@ -225,7 +225,7 @@ curl -sk -i "$BASE/api/products?page[size]=1" \
 </div>
 
 <div class="recall">
-  <p class="q">Ripasso dalla lezione 8 (spaziatura): quali due cache vanno svuotate dopo una
+  <p class="q">Ripasso dalla lezione 9 (spaziatura): quali due cache vanno svuotate dopo una
   modifica alla configurazione dell'API?</p>
   <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
   <button class="reveal">Mostra risposta</button>
@@ -263,18 +263,18 @@ curl -sk -i "$BASE/api/products?page[size]=1" \
 
 <h2>Prossima lezione</h2>
 
-<p><strong>Lezione 10: import ed export.</strong> Il canale che nei progetti ERP muove i volumi
-grandi: processori, data converter, strategie, il comando <code>oro:import:file</code> e il job
-batch che ci sta sotto.</p>
+<p><strong>Lezione 11: l'Integration bundle.</strong> Il framework con cui Oro parla con un sistema
+esterno quando è Oro a iniziare la conversazione: tipo di canale, trasporto, connettore, e la
+sincronizzazione schedulata con <code>oro:cron:integration:sync</code>.</p>
 
 </main>
 
 <footer>
   <p>Materiale collegato:
-    <a href="0008-api-rest-admin.html">Lezione 8</a> ·
-    <a href="0010-import-export.html">Lezione 10</a> ·
+    <a href="0009-api-rest-admin.html">Lezione 9</a> ·
+    <a href="0011-integration-bundle.html">Lezione 11</a> ·
     <a href="index.html">Indice del corso</a> ·
-    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+    <a href="../reference/integrazioni.html">Reference: API, code, integrazioni</a>
   </p>
   <p>Prima di esporre qualcosa sullo storefront, chiedimelo. È l'unica lezione di questo percorso in
   cui un errore si paga fuori dall'ambiente di sviluppo.</p>

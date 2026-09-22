@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lezione 11 — Message queue</title>
+<title>Lezione 12 — Message queue</title>
 <link rel="stylesheet" href="../assets/lesson.css">
 <link rel="stylesheet" href="../assets/quiz.css">
 <link rel="stylesheet" href="../assets/compare.css">
@@ -11,12 +11,12 @@
 <body>
 
 <header>
-  <p class="kicker">Formazione OroCommerce · Lezione 11</p>
+  <p class="kicker">Formazione OroCommerce · Lezione 12</p>
   <h1>Message queue</h1>
   <p class="subtitle">Topic, producer, processor, consumer: il lavoro in background di Oro, e il motivo per cui l'integrazione ERP ci gira sopra.</p>
   <p class="meta">
     <span>Durata: ~70 min</span>
-    <span>Prerequisiti: <a href="0010-import-export.html">Lezione 10</a></span>
+    <span>Prerequisiti: <a href="0011-integration-bundle.html">Lezione 11</a></span>
     <span>Obiettivo: un tuo messaggio prodotto e consumato</span>
   </p>
 </header>
@@ -31,7 +31,7 @@ sincronizzazione notturna non può girare dentro una richiesta HTTP. La risposta
 un processo separato lo esegue.</p>
 
 <p>Non è un'infrastruttura opzionale: in Oro ci girano già l'indicizzazione della ricerca, gli
-import, il ricalcolo dei prezzi, le notifiche email. Quando aggiungi il tuo lavoro asincrono, ti
+la sincronizzazione delle integrazioni, il ricalcolo dei prezzi, le notifiche email. Quando aggiungi il tuo lavoro asincrono, ti
 inserisci in un meccanismo che è già il cuore dell'applicazione.</p>
 
 <div class="box">
@@ -351,14 +351,15 @@ orobox console oro:message-queue:topics | grep algoritma</code></pre>
 </div>
 
 <div class="recall">
-  <p class="q">Ripasso dalla lezione 10 (spaziatura): quale attributo rende un import idempotente,
-  e su quale campo lo metteresti nella tua entità?</p>
+  <p class="q">Ripasso dalla lezione 11 (spaziatura): i tre pezzi che compongono un'integrazione
+  in Oro, e quale dei tre contiene le credenziali dell'ERP.</p>
   <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
   <button class="reveal">Mostra risposta</button>
   <div class="answer" hidden>
-    <code>#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]</code>, sul campo
-    <code>erpCode</code>: è il codice con cui l'ERP identifica il record, quindi è la chiave con cui
-    la strategia decide fra creazione e aggiornamento.
+    Channel (il tipo di integrazione, tag <code>oro_integration.channel</code>), transport (come ci
+    si arriva, <code>oro_integration.transport</code>), connector (che cosa si porta a casa,
+    <code>oro_integration.connector</code>). Le credenziali stanno nel <strong>transport</strong>:
+    è l'entità di settings che l'utente compila in back-office, non una costante nel codice.
   </div>
 </div>
 
@@ -385,25 +386,25 @@ orobox console oro:message-queue:topics | grep algoritma</code></pre>
   <code>false</code>) e usalo nel processor per risincronizzare anche chi ha già
   <code>syncedAt</code>. Verifica che un payload con un tipo sbagliato venga rifiutato alla
   pubblicazione.</li>
-  <li>Leggi <code>vendor/oro/platform/src/Oro/Bundle/ImportExportBundle/Async/</code> e individua
-  come l'import della lezione 10 usa la coda. Portami la catena: chi pubblica, chi consuma, e dove
-  si vede l'avanzamento nel back-office.</li>
+  <li>Leggi <code>vendor/oro/platform/src/Oro/Bundle/IntegrationBundle/Async/</code> e individua
+  come la sincronizzazione della lezione 11 usa la coda. Portami la catena: chi pubblica, chi
+  consuma, e dove si vede l'avanzamento nel back-office.</li>
 </ol>
 
 <h2>Prossima lezione</h2>
 
-<p><strong>Lezione 12: l'integrazione ERP messa insieme.</strong> Il pattern <em>Integration</em> di
-Oro (canale, trasporto, connettore), come scegliere fra API, import e coda, la schedulazione con
+<p><strong>Lezione 13: l'integrazione ERP messa insieme.</strong> Il pattern <em>Integration</em> di
+Oro (canale, trasporto, connettore), come scegliere fra API, integrazione e coda, la schedulazione con
 cron, e una checklist di architettura per il tuo primo progetto vero.</p>
 
 </main>
 
 <footer>
   <p>Materiale collegato:
-    <a href="0010-import-export.html">Lezione 10</a> ·
-    <a href="0012-integrazione-erp.html">Lezione 12</a> ·
+    <a href="0011-integration-bundle.html">Lezione 11</a> ·
+    <a href="0013-integrazione-erp.html">Lezione 13</a> ·
     <a href="index.html">Indice del corso</a> ·
-    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+    <a href="../reference/integrazioni.html">Reference: API, code, integrazioni</a>
   </p>
   <p>Se un messaggio «sparisce», guarda prima i log del consumer: nove volte su dieci ha fatto
   <code>REJECT</code> e te lo ha scritto. Se non capisci perché, mandami la riga.</p>

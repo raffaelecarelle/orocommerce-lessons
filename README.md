@@ -16,7 +16,7 @@ A chi si rivolge
 
 Sviluppatori PHP con esperienza Magento 2 e poca o nessuna esperienza Symfony, che devono diventare
 autonomi su Oro 7.0: avviare un progetto B2B da zero e collegarlo ai sistemi del cliente (ERP, PIM)
-tramite API, import/export e code asincrone.
+tramite API, integrazioni schedulate e code asincrone.
 
 Obiettivi, vincoli e confini del percorso sono descritti in [MISSION.md](MISSION.md).
 
@@ -25,11 +25,12 @@ Struttura del repository
 
 | Percorso | Contenuto |
 | --- | --- |
-| `lessons/` | Le dodici lezioni tecniche in HTML, con pratica, esercizi e quiz. Punto di ingresso: [`lessons/index.html`](lessons/index.html). |
+| `lessons/` | Le quattordici lezioni tecniche in HTML, con pratica, esercizi e quiz. Punto di ingresso: [`lessons/index.html`](lessons/index.html). |
 | `reference/` | Schede di riferimento tecniche (comandi, mappature, sintassi). |
 | `lessons-business/` | Le lezioni del percorso funzionale. Punto di ingresso: [`lessons-business/index.html`](lessons-business/index.html). |
 | `reference-business/` | Schede di riferimento funzionali: [glossario](reference-business/glossario.html), [percorsi di back-office](reference-business/percorsi-back-office.html), [flusso di vendita](reference-business/flusso-vendita.html), [griglia di analisi](reference-business/griglia-analisi.html), [script di demo](reference-business/demo-storefront.html). |
-| `assets/` | Fogli di stile e script usati dalle pagine delle lezioni. |
+| `slides/` | Deck di presentazione per le sessioni dal vivo: [panoramica in due ore](slides/panoramica-oro-2h.html) (prodotto + architettura, con due pratiche). |
+| `assets/` | Fogli di stile e script usati dalle pagine delle lezioni e dai deck. |
 | `learning-records/` | Registro delle decisioni prese sul percorso e dello stato di avanzamento. |
 | `src/Algoritma/Bundle/TrainingBundle/` | Il bundle di training che si costruisce lezione dopo lezione. |
 | `RESOURCES.md` | Fonti ufficiali Oro per il percorso tecnico, con l'indicazione di quando usarle. |
@@ -54,17 +55,22 @@ Il programma tecnico
 5. Datagrid
 6. ACL e permessi
 7. Estendere il core senza toccarlo
+8. Workflow e process
 
 **Parte terza — Le integrazioni**
 
-8. REST API amministrativa
-9. Storefront API
-10. Import ed export
-11. Message queue
-12. L'integrazione ERP, messa insieme
+9. REST API amministrativa
+10. Storefront API
+11. Integration bundle: canali, trasporti, connettori
+12. Message queue
+13. L'integrazione ERP, messa insieme
+
+**Parte quarta — Lo storefront**
+
+14. Il layout dello storefront
 
 **Schede di riferimento:** comandi `orobox`, da Magento 2 a OroCommerce, bundle e service container,
-Doctrine e migration, estendere il core, API/code/import-export.
+Doctrine e migration, estendere il core, API/code/integrazioni.
 
 Il programma funzionale
 -----------------------
@@ -107,6 +113,14 @@ xdg-open lessons/index.html
 
 ```bash
 xdg-open lessons-business/index.html
+```
+
+Lo stesso vale per i deck: si aprono in un browser e si navigano con le frecce. `n` mostra le note
+per il relatore, `l` passa alla vista lineare (tutte le slide in colonna, ed è anche quella che
+esce in stampa o in PDF).
+
+```bash
+xdg-open slides/panoramica-oro-2h.html
 ```
 
 Il progresso individuale (quiz svolti, esercizi, dubbi ricorrenti) non va tenuto qui, ma in un file

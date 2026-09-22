@@ -95,9 +95,8 @@ use Oro\Bundle\EntityConfigBundle\Metadata\Attribute\ConfigField;
     ]
 )]</code></pre>
 
-<pre><code>#[ConfigField(defaultValues: ['importexport' =&gt; ['identity' =&gt; true]])]     // chiave per l'import
-#[ConfigField(defaultValues: ['importexport' =&gt; ['excluded' =&gt; true]])]     // fuori da import ed export
-#[ConfigField(defaultValues: ['dataaudit' =&gt; ['auditable' =&gt; true]])]       // tracciato nell'audit</code></pre>
+<pre><code>#[ConfigField(defaultValues: ['dataaudit' =&gt; ['auditable' =&gt; true]])]       // tracciato nell'audit
+#[ConfigField(defaultValues: ['attribute' =&gt; ['is_attribute' =&gt; true]])]    // usabile come attributo di prodotto</code></pre>
 
 <table>
   <thead><tr><th>Chiave</th><th>Effetto</th></tr></thead>
@@ -230,7 +229,6 @@ orobox console oro:entity-extend:update-schema</code></pre>
     <tr><td><code>Table ... does not exist</code></td><td>Migration non eseguita, o classe fuori da <code>Migrations/Schema/</code></td></tr>
     <tr><td>La migration non viene raccolta</td><td>Percorso o namespace sbagliati; serve <code>cache:clear</code></td></tr>
     <tr><td>Entità non visibile nei ruoli</td><td>Manca <code>'security' =&gt; ['type' =&gt; 'ACL']</code> nel <code>#[Config]</code></td></tr>
-    <tr><td>Import che duplica invece di aggiornare</td><td>Manca <code>importexport.identity</code> sul campo chiave</td></tr>
     <tr><td>Dopo aver cancellato un bundle: <code>cache:clear</code> dice <code>Class "…\Entity\X" does not exist</code></td><td>L'entità con <code>#[Config]</code> è ancora registrata in <code>oro_entity_config</code>. Vanno rimosse le righe di quella entità in <code>oro_entity_config_index_value</code>, <code>oro_entity_config_field</code> e <code>oro_entity_config</code> — nell'ordine</td></tr>
   </tbody>
 </table>
@@ -241,7 +239,7 @@ orobox console oro:entity-extend:update-schema</code></pre>
   <p>Collegamenti:
     <a href="../lessons/0003-entita-e-migration.html">Lezione 3</a> ·
     <a href="bundle-e-container.html">Bundle e container</a> ·
-    <a href="integrazioni.html">API, code, import/export</a> ·
+    <a href="integrazioni.html">API, code, integrazioni</a> ·
     <a href="https://www.doctrine-project.org/projects/doctrine-orm/en/current/index.html">Doctrine ORM</a> ·
     <a href="https://doc.oroinc.com/backend/entities/">Oro — Entities</a>
   </p>

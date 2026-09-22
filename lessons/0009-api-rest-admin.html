@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lezione 8 — REST API amministrativa</title>
+<title>Lezione 9 — REST API amministrativa</title>
 <link rel="stylesheet" href="../assets/lesson.css">
 <link rel="stylesheet" href="../assets/quiz.css">
 <link rel="stylesheet" href="../assets/compare.css">
@@ -11,12 +11,12 @@
 <body>
 
 <header>
-  <p class="kicker">Formazione OroCommerce · Lezione 08</p>
+  <p class="kicker">Formazione OroCommerce · Lezione 09</p>
   <h1>REST API amministrativa</h1>
   <p class="subtitle">JSON:API, <code>api.yml</code>, e la tua entità esposta in lettura e scrittura in venti righe di configurazione.</p>
   <p class="meta">
     <span>Durata: ~75 min</span>
-    <span>Prerequisiti: <a href="0007-estendere-il-core.html">Lezione 7</a></span>
+    <span>Prerequisiti: <a href="0008-workflow-e-process.html">Lezione 8</a></span>
     <span>Obiettivo: chiamare la tua entità via HTTP, autenticato</span>
   </p>
 </header>
@@ -50,7 +50,7 @@ paginazione, la validazione e la documentazione arrivano dalla piattaforma.</p>
   <code>/admin/api/doc</code>, ed è configurata in <code>Resources/config/oro/api.yml</code>.</p>
   <p><strong>Storefront API</strong> — i customer user, un insieme di risorse molto più ristretto.
   Sta sotto <code>/api/</code>, sandbox su <code>/api/doc</code>, configurata in
-  <code>Resources/config/oro/api_frontend.yml</code>. È la lezione 9.</p>
+  <code>Resources/config/oro/api_frontend.yml</code>. È la lezione 10.</p>
   <p>I prefissi dipendono dalla configurazione del progetto: verificali sempre invece di fidarti di
   questa pagina — <code>orobox console debug:router | grep rest_api</code>.</p>
 </div>
@@ -315,7 +315,7 @@ curl -sk "$BASE/admin/api/erpmappings" \
 </div>
 
 <div class="recall">
-  <p class="q">Ripasso dalla lezione 7 (spaziatura): quali comandi usi per scoprire se il core
+  <p class="q">Ripasso dalla lezione 8 (spaziatura): quali comandi usi per scoprire se il core
   pubblica un evento nel punto che ti interessa?</p>
   <textarea placeholder="Scrivi qui prima di guardare..."></textarea>
   <button class="reveal">Mostra risposta</button>
@@ -355,7 +355,7 @@ curl -sk "$BASE/admin/api/erpmappings" \
 
 <h2>Prossima lezione</h2>
 
-<p><strong>Lezione 9: Storefront API.</strong> <code>api_frontend.yml</code>, il <em>request type</em>
+<p><strong>Lezione 10: Storefront API.</strong> <code>api_frontend.yml</code>, il <em>request type</em>
 <code>frontend</code>, le differenze di autenticazione (customer user, visitatori ospiti) e perché
 esporre la stessa entità sulle due API non è la stessa cosa.</p>
 
@@ -363,10 +363,10 @@ esporre la stessa entità sulle due API non è la stessa cosa.</p>
 
 <footer>
   <p>Materiale collegato:
-    <a href="0007-estendere-il-core.html">Lezione 7</a> ·
-    <a href="0009-storefront-api.html">Lezione 9</a> ·
+    <a href="0008-workflow-e-process.html">Lezione 8</a> ·
+    <a href="0010-storefront-api.html">Lezione 10</a> ·
     <a href="index.html">Indice del corso</a> ·
-    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a>
+    <a href="../reference/integrazioni.html">Reference: API, code, integrazioni</a>
   </p>
   <p>Se una chiamata risponde 403 e non capisci perché, mandami utente, ruolo e URL: nove volte su
   dieci è ownership, ed è un ottimo momento per consolidarla.</p>

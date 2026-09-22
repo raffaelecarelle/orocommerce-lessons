@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lezione 12 — L'integrazione ERP, messa insieme</title>
+<title>Lezione 13 — L'integrazione ERP, messa insieme</title>
 <link rel="stylesheet" href="../assets/lesson.css">
 <link rel="stylesheet" href="../assets/quiz.css">
 <link rel="stylesheet" href="../assets/compare.css">
@@ -11,12 +11,12 @@
 <body>
 
 <header>
-  <p class="kicker">Formazione OroCommerce · Lezione 12</p>
+  <p class="kicker">Formazione OroCommerce · Lezione 13</p>
   <h1>L'integrazione ERP, messa insieme</h1>
   <p class="subtitle">Il pattern Integration di Oro, come scegliere il canale giusto, e la checklist con cui affronterai il primo progetto vero.</p>
   <p class="meta">
     <span>Durata: ~70 min</span>
-    <span>Prerequisiti: <a href="0011-message-queue.html">Lezione 11</a></span>
+    <span>Prerequisiti: <a href="0012-message-queue.html">Lezione 12</a></span>
     <span>Obiettivo: progettare l'integrazione, non solo scriverla</span>
   </p>
 </header>
@@ -25,8 +25,8 @@
 
 <h2>Dove sei arrivato</h2>
 
-<p>Hai tutti i pezzi: entità e migration, back-office, permessi, punti di estensione, due API,
-import/export, code asincrone. Questa lezione non aggiunge un meccanismo nuovo: insegna a
+<p>Hai tutti i pezzi: entità e migration, back-office, permessi, punti di estensione, workflow, due
+API, integrazioni schedulate, code asincrone. Questa lezione non aggiunge un meccanismo nuovo: insegna a
 <strong>metterli insieme</strong>, che è esattamente l'obiettivo finale del percorso: consegnare
 un progetto Oro senza dipendere da altri sulle scelte di architettura.</p>
 
@@ -36,57 +36,26 @@ un progetto Oro senza dipendere da altri sulle scelte di architettura.</p>
   <thead><tr><th>Situazione</th><th>Canale</th><th>Perché</th></tr></thead>
   <tbody>
     <tr><td>L'ERP chiama Oro, pochi record per volta, in tempo reale</td><td>Admin API (JSON:API)</td><td>Zero codice, permessi e validazione inclusi</td></tr>
-    <tr><td>L'ERP deposita file, volumi grandi, finestra notturna</td><td>Import/export</td><td>Lotti, validazione separata, report degli errori</td></tr>
     <tr><td>Oro deve reagire a un evento senza far attendere il chiamante</td><td>Message queue</td><td>Risposta immediata, lavoro in background, ritentabile</td></tr>
-    <tr><td>Oro deve andare a prendere i dati dall'ERP, periodicamente</td><td>Integration + cron</td><td>Configurabile dall'utente, con storico delle esecuzioni</td></tr>
+    <tr><td>Oro deve andare a prendere i dati dall'ERP, periodicamente o a volumi grandi</td><td>Integration + cron</td><td>Configurabile dall'utente, a lotti, con storico delle esecuzioni</td></tr>
   </tbody>
 </table>
 
-<p>Nella maggior parte dei progetti la risposta è «tre di questi quattro», non uno. Il criterio non
+<p>Nella maggior parte dei progetti la risposta è «due di questi tre», non uno. Il criterio non
 è tecnico ma di responsabilità: <em>chi inizia la conversazione?</em></p>
 
-<h2>Il pattern Integration di Oro</h2>
+<h2>Il pattern Integration di Oro, in una riga</h2>
 
-<p>Quando è Oro a dover andare a prendere i dati, esiste un'infrastruttura dedicata:
-l'<code>IntegrationBundle</code>. Ti dà gratis quello che altrimenti riscriveresti: una schermata
-di configurazione, credenziali salvate e cifrate, storico delle sincronizzazioni, esecuzione
-schedulata, sincronizzazione parziale o completa.</p>
-
-<table>
-  <thead><tr><th>Pezzo</th><th>Cos'è</th><th>Tag del servizio</th></tr></thead>
-  <tbody>
-    <tr><td><strong>Channel type</strong></td><td>Il tipo di integrazione: etichetta e icona</td><td><code>oro_integration.channel</code></td></tr>
-    <tr><td><strong>Transport</strong></td><td>Come si parla con il sistema esterno (REST, file, SOAP) e i suoi parametri</td><td><code>oro_integration.transport</code></td></tr>
-    <tr><td><strong>Connector</strong></td><td>Cosa si sincronizza: uno per tipo di dato</td><td><code>oro_integration.connector</code></td></tr>
-  </tbody>
-</table>
-
-<pre><code>    oro_zendesk.provider.channel_type:
-        class: Oro\Bundle\ZendeskBundle\Provider\ChannelType
-        tags:
-            - { name: oro_integration.channel, type: zendesk }
-
-    oro_zendesk.zendesk.user_connector:
-        class: Oro\Bundle\ZendeskBundle\Provider\UserConnector
-        arguments: [ '@oro_zendesk.sync_state', '@oro_importexport.context_registry',
-                     '@oro_integration.logger.strategy', '@oro_integration.provider.connector_context_mediator' ]
-        tags:
-            - { name: oro_integration.connector, type: user, channel_type: zendesk }</code></pre>
-
-<p class="sidenote">Sorgente completa e leggibile: <code>vendor/oro/crm-zendesk/</code> —
-<code>Provider/ChannelType.php</code> (poche righe: implementa <code>ChannelInterface</code>) e
-<code>Resources/config/importexport.yml</code> per canale, trasporto e connettori. È l'integrazione
-più semplice presente nell'installazione: se devi scriverne una, parti copiandone la struttura.</p>
-
-<p>Una volta registrata, l'integrazione compare nel back-office in <em>Sistema → Integrazioni</em>:
-l'utente la configura, la attiva, la lancia a mano, e vede lo storico. La schedulazione periodica
-la dà il core con <code>oro:cron:integration:sync</code>, già registrato fra i job cron.</p>
+<p>Quando è Oro a dover andare a prendere i dati, l'infrastruttura è quella che hai costruito nella
+<a href="0011-integration-bundle.html">lezione 11</a>: channel type, transport, connector, e la
+sincronizzazione schedulata da <code>oro:cron:integration:sync</code>. Qui non si ripete: qui si
+decide <em>se</em> è lo strumento giusto.</p>
 
 <div class="box">
   <p class="box-title">Quando <em>non</em> usare Integration</p>
-  <p>Se il flusso è «l'ERP chiama Oro», l'IntegrationBundle non serve: lì il canale è l'API o
-  l'import. Integration è per il flusso opposto — Oro che va a prendere. Usarlo al contrario è
-  l'errore architetturale più comune nei primi progetti.</p>
+  <p>Se il flusso è «l'ERP chiama Oro», l'IntegrationBundle non serve: lì il canale è l'API, con
+  la coda dietro se il lavoro è lungo. Integration è per il flusso opposto — Oro che va a prendere.
+  Usarlo al contrario è l'errore architetturale più comune nei primi progetti.</p>
 </div>
 
 <h2>Le quattro scelte da fare in ogni progetto</h2>
@@ -94,7 +63,7 @@ la dà il core con <code>oro:cron:integration:sync</code>, già registrato fra i
 <h3>1. Identità: come riconosco lo stesso record nei due sistemi</h3>
 
 <p>È il problema che hai già risolto due volte in questo percorso: l'entità di mappatura della
-lezione 3 e il campo <code>identity</code> della lezione 10. Decidilo per primo, perché tutto il
+lezione 3 e la chiave di riconciliazione del connettore della lezione 11. Decidilo per primo, perché tutto il
 resto ne dipende. Tre opzioni, in ordine di solidità: un campo dedicato sull'entità Oro (per
 esempio <code>erpId</code>), una tabella di mappatura separata, o un campo naturale già condiviso
 (SKU, partita IVA) — quest'ultimo è il più fragile, perché cambia.</p>
@@ -109,11 +78,11 @@ anagrafiche clienti… da entrambi? Se la risposta è «entrambi», serve una re
 
 <p>Tempo reale per gli ordini, orario per le giacenze, notturno per il catalogo: sono tre canali
 diversi. Stima il volume per finestra: sotto le poche centinaia di record, l'API basta; sopra,
-serve l'import.</p>
+serve un connettore che lavori a lotti.</p>
 
 <h3>4. Errori: cosa succede quando l'ERP non risponde</h3>
 
-<p>Qui riusi la lezione 11: <code>REQUEUE</code> per i problemi temporanei, <code>REJECT</code> per
+<p>Qui riusi la lezione 12: <code>REQUEUE</code> per i problemi temporanei, <code>REJECT</code> per
 i dati non validi, e un posto dove l'operatore veda cosa è fallito. Un'integrazione senza una
 schermata degli errori è un'integrazione che qualcuno controllerà leggendo i log — cioè mai.</p>
 
@@ -133,23 +102,26 @@ catalogo prodotti arriva dall'ERP, gli ordini vanno verso l'ERP — e scrivi le 
 <pre><code># le risorse API disponibili per i dati che ti servono
 orobox console oro:api:dump | grep -i product | head
 
-# i processori di import disponibili
-orobox console debug:container --tag=oro_importexport.processor | head -20
+# i tipi di integrazione registrati, e i connettori che portano con sé
+orobox console debug:container --tag=oro_integration.channel
+orobox console debug:container --tag=oro_integration.connector | head -20
 
 # i topic già presenti, per capire cosa la piattaforma fa già in asincrono
 orobox console oro:message-queue:topics | head -20</code></pre>
   </li>
   <li>
-    <p><strong>Cerca il lavoro già fatto dal core.</strong> Prima di progettare un connettore per i
-    prodotti, guarda cosa esiste: l'import prodotti di OroCommerce è completo e molto usato.</p>
-<pre><code>ls vendor/oro/commerce/src/Oro/Bundle/ProductBundle/ImportExport/
-grep -rn "oro_importexport.processor" vendor/oro/commerce/src/Oro/Bundle/ProductBundle/Resources/config/importexport.yml | head</code></pre>
+    <p><strong>Cerca il lavoro già fatto dal core.</strong> Prima di progettare un connettore,
+    guarda quali integrazioni la piattaforma porta già con sé: sono il modello da copiare, e a
+    volte coprono il caso senza scrivere niente.</p>
+<pre><code>grep -rn "oro_integration.channel" vendor/oro/*/src/Oro/Bundle/*/Resources/config/services.yml | head
+grep -rn "oro_integration.connector" vendor/oro/crm-zendesk/Resources/config/services.yml</code></pre>
     <p>La domanda giusta non è «come lo scrivo» ma «cosa devo ancora scrivere».</p>
   </li>
   <li>
     <p><strong>Leggi un'integrazione vera, per intero.</strong> Trenta minuti su
     <code>vendor/oro/crm-zendesk/</code>: parti da <code>Provider/ChannelType.php</code>, poi
-    <code>Resources/config/importexport.yml</code>, poi un connettore. Non per imparare Zendesk: per
+    <code>Resources/config/services.yml</code> (canale, trasporto e connettori), poi un connettore.
+    Non per imparare Zendesk: per
     vedere come si tengono insieme i pezzi che hai studiato separatamente.</p>
   </li>
   <li>
@@ -177,7 +149,7 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
   <tbody>
     <tr><td>Identità</td><td>Come riconosco lo stesso record nei due sistemi? Il campo è stabile?</td></tr>
     <tr><td>Autorità</td><td>Per ogni tipo di dato, chi è la fonte di verità?</td></tr>
-    <tr><td>Canale</td><td>API, import, coda o integration? E perché non gli altri tre?</td></tr>
+    <tr><td>Canale</td><td>API, coda o integration? E perché non gli altri due?</td></tr>
     <tr><td>Cadenza</td><td>Tempo reale, orario, notturno? Quanti record per finestra?</td></tr>
     <tr><td>Errori</td><td>Cosa si ritenta, cosa si scarta, e chi se ne accorge?</td></tr>
     <tr><td>Permessi</td><td>Con quale utente gira l'integrazione? Quali ACL ha davvero?</td></tr>
@@ -193,7 +165,7 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
   <div class="options">
     <button class="opt" data-correct>La REST API amministrativa, in JSON:API</button>
     <button class="opt">Un connettore dell'IntegrationBundle schedulato</button>
-    <button class="opt">Un import da file con il processore generico</button>
+    <button class="opt">Un processo che reagisce all'evento in back-office</button>
     <button class="opt">Un topic della coda pubblicato dal cron</button>
   </div>
   <p class="explain" hidden>Chi inizia la conversazione è l'ERP, i volumi sono piccoli, serve
@@ -205,24 +177,25 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
   <div class="options">
     <button class="opt" data-correct>Configurazione, credenziali, storico e schedulazione</button>
     <button class="opt">La serializzazione dei dati nel formato JSON:API</button>
-    <button class="opt">La validazione delle righe importate da un file</button>
+    <button class="opt">La trasformazione dei dati fra i due modelli</button>
     <button class="opt">La gestione dei permessi sulle entità sincronizzate</button>
   </div>
   <p class="explain" hidden>Schermata di configurazione, credenziali salvate, storico delle
-  sincronizzazioni, esecuzione manuale e schedulata. La serializzazione è dell'API, la validazione
-  dell'import, i permessi degli ACL.</p>
+  sincronizzazioni, esecuzione manuale e schedulata. La serializzazione è dell'API, la
+  trasformazione dei dati la scrivi tu nel connettore, i permessi sono degli ACL.</p>
 </div>
 
 <div class="quiz">
   <p class="q">Qual è la prima decisione di un'integrazione?</p>
   <div class="options">
     <button class="opt" data-correct>Come si riconosce lo stesso record nei due sistemi</button>
-    <button class="opt">Quale formato di file si userà per lo scambio</button>
+    <button class="opt">Quale protocollo userà il trasporto del canale</button>
     <button class="opt">Con quale frequenza girerà la sincronizzazione</button>
     <button class="opt">Quale libreria HTTP userà il connettore scritto</button>
   </div>
-  <p class="explain" hidden>L'identità. Tutto il resto — idempotenza dell'import, aggiornamenti via
-  API, riconciliazione degli errori — dipende da quella scelta, ed è la più costosa da cambiare dopo.</p>
+  <p class="explain" hidden>L'identità. Tutto il resto — idempotenza della sincronizzazione,
+  aggiornamenti via API, riconciliazione degli errori — dipende da quella scelta, ed è la più
+  costosa da cambiare dopo.</p>
 </div>
 
 <div class="quiz">
@@ -231,7 +204,7 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
     <button class="opt" data-correct>Il tag oro_integration.channel con il tipo</button>
     <button class="opt">Il tag oro_integration.connector con il tipo</button>
     <button class="opt">Il tag oro_integration.transport con il tipo</button>
-    <button class="opt">Il tag oro_importexport.processor con il tipo</button>
+    <button class="opt">Il tag oro_integration.api con il tipo</button>
   </div>
   <p class="explain" hidden><code>oro_integration.channel</code> per il tipo di integrazione,
   <code>oro_integration.transport</code> per il modo di comunicare,
@@ -257,7 +230,7 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
   <div class="answer" hidden>
     Admin API → <code>Resources/config/oro/api.yml</code> ·
     Storefront API → <code>Resources/config/oro/api_frontend.yml</code> ·
-    Import/export → <code>Resources/config/importexport.yml</code> ·
+    Integration → <code>Resources/config/services.yml</code> (tag <code>oro_integration.*</code>) ·
     Message queue → <code>Resources/config/mq_topics.yml</code> e <code>mq_processors.yml</code> ·
     Integration → servizi con i tag <code>oro_integration.*</code>.
   </div>
@@ -292,14 +265,14 @@ orobox console debug:event-dispatcher | grep -i order | head -20</code></pre>
 
 <h2>E poi?</h2>
 
-<p>Il percorso copre il backend fino a qui. Fuori scope, per ora, e in ordine di probabile utilità
-per te:</p>
+<p>Il percorso copre il backend fino a qui. Manca un pezzo che serve appena il progetto tocca la
+vetrina, e che ha una lezione sua: <a href="0014-layout-storefront.html">la lezione 14, sul layout
+dello storefront</a>. Restano fuori scope, in ordine di probabile utilità per te:</p>
 
 <ul>
-  <li><strong>Frontend Oro</strong>: layout XML, temi, componenti JS. Necessario appena il progetto
-  tocca lo storefront.</li>
-  <li><strong>Workflow e Operations</strong>: processi di business configurabili, molto usati nei
-  progetti B2B reali.</li>
+  <li><strong>Temi Oro, la parte grafica</strong>: SCSS, componenti JS, build degli asset. Il
+  sistema di layout lo vedi nella lezione 14; qui si parla di come si veste, non di come si
+  compone.</li>
   <li><strong>Test</strong>: PHPUnit e Behat con l'infrastruttura Oro, più
   <code>orobox test</code> e <code>orobox qa</code>.</li>
   <li><strong>Deploy e CI</strong>: <code>orobox deploy</code>, <code>orobox ci-init</code>,
@@ -313,9 +286,10 @@ obiettivi si aggiornano man mano, ed è il segnale che sta funzionando.</p>
 
 <footer>
   <p>Materiale collegato:
-    <a href="0011-message-queue.html">Lezione 11</a> ·
+    <a href="0012-message-queue.html">Lezione 12</a> ·
+    <a href="0014-layout-storefront.html">Lezione 14</a> ·
     <a href="index.html">Indice del corso</a> ·
-    <a href="../reference/integrazioni.html">Reference: API, code, import/export</a> ·
+    <a href="../reference/integrazioni.html">Reference: API, code, integrazioni</a> ·
     <a href="../RESOURCES.md">Risorse</a>
   </p>
   <p>Da qui in avanti le domande migliori non sono «come si fa X» ma «è giusto fare X così».
