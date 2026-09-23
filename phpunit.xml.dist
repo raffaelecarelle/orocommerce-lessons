@@ -35,18 +35,10 @@
     </groups>
     <testsuites>
         <testsuite name="unit">
-            <directory>vendor/oro/*/Tests/Unit</directory>
-            <directory>vendor/oro/*/*/Tests/Unit</directory>
-            <directory>vendor/oro/*/*/*/Tests/Unit</directory>
-            <directory>vendor/oro/*/*/*/*/Tests/Unit</directory>
-            <directory>vendor/oro/*/*/*/*/*/Tests/Unit</directory>
+            <directory>src/Algoritma/Bundle/*/Tests/Unit</directory>
         </testsuite>
         <testsuite name="functional">
-            <directory>vendor/oro/*/Tests/Functional</directory>
-            <directory>vendor/oro/*/*/Tests/Functional</directory>
-            <directory>vendor/oro/*/*/*/Tests/Functional</directory>
-            <directory>vendor/oro/*/*/*/*/Tests/Functional</directory>
-            <directory>vendor/oro/*/*/*/*/*/Tests/Functional</directory>
+            <directory>src/Algoritma/Bundle/*/Tests/Functional</directory>
         </testsuite>
     </testsuites>
     <php>
@@ -62,40 +54,4 @@
         <listener class="Symfony\Bridge\PhpUnit\SymfonyTestsListener"/>
         <listener class="Oro\Component\TestUtils\Listener\TestListener"/>
     </listeners>
-    <coverage>
-        <include>
-            <directory>vendor/oro</directory>
-        </include>
-        <exclude>
-            <directory>vendor/oro/*/Command</directory>
-            <directory>vendor/oro/*/*/Command</directory>
-            <directory>vendor/oro/*/*/*/Command</directory>
-            <directory>vendor/oro/*/*/*/*/Command</directory>
-            <directory>vendor/oro/*/*/*/*/*/Command</directory>
-
-            <directory>vendor/oro/*/Controller</directory>
-            <directory>vendor/oro/*/*/Controller</directory>
-            <directory>vendor/oro/*/*/*/Controller</directory>
-            <directory>vendor/oro/*/*/*/*/Controller</directory>
-            <directory>vendor/oro/*/*/*/*/*/Controller</directory>
-
-            <directory>vendor/oro/*/Entity/Repository</directory>
-            <directory>vendor/oro/*/*/Entity/Repository</directory>
-            <directory>vendor/oro/*/*/*/Entity/Repository</directory>
-            <directory>vendor/oro/*/*/*/*/Entity/Repository</directory>
-            <directory>vendor/oro/*/*/*/*/*/Entity/Repository</directory>
-
-            <directory>vendor/oro/*/Migrations</directory>
-            <directory>vendor/oro/*/*/Migrations</directory>
-            <directory>vendor/oro/*/*/*/Migrations</directory>
-            <directory>vendor/oro/*/*/*/*/Migrations</directory>
-            <directory>vendor/oro/*/*/*/*/*/Migrations</directory>
-
-            <directory>vendor/oro/*/Tests</directory>
-            <directory>vendor/oro/*/*/Tests</directory>
-            <directory>vendor/oro/*/*/*/Tests</directory>
-            <directory>vendor/oro/*/*/*/*/Tests</directory>
-            <directory>vendor/oro/*/*/*/*/*/Tests</directory>
-        </exclude>
-    </coverage>
 </phpunit>
