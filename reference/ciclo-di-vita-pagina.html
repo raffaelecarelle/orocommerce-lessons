@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ciclo di vita di una pagina Oro</title>
+
+<style>
+  /* Formazione OroCommerce — foglio di stile condiviso per lezioni e reference.
+   Ispirazione: Tufte CSS. Ottimizzato per lettura a schermo e per la stampa. */
+
+  :root {
+    --ink: #111111;
+    --ink-soft: #4a4a4a;
+    --paper: #fffef9;
+    --rule: #d9d5c8;
+    --accent: #8a3324;      /* rosso mattone, per richiami e link */
+    --accent-soft: #f3e9e6;
+    --code-bg: #f4f2ec;
+    --ok: #1f6f43;
+    --warn: #8a5a00;
+    --font-text: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+    --font-code: "SFMono-Regular", Menlo, Consolas, "Liberation Mono", monospace;
+    --measure: 42rem;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ink: #eae6dc;
+      --ink-soft: #b3aea1;
+      --paper: #17171a;
+      --rule: #3a3a40;
+      --accent: #e28b7a;
+      --accent-soft: #2a2022;
+      --code-bg: #212127;
+      --ok: #6fbf8e;
+      --warn: #d9a441;
+    }
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    padding: 3rem 1rem 6rem;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: var(--font-text);
+    font-size: 1.0625rem;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  main, header, footer { max-width: var(--measure); margin: 0 auto; }
+
+  /* --- Intestazione della lezione --- */
+  .kicker {
+    font-family: var(--font-code);
+    font-size: 0.72rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 0.6rem;
+  }
+  h1 {
+    font-size: 2.1rem;
+    line-height: 1.15;
+    font-weight: 400;
+    margin: 0 0 0.4rem;
+  }
+  .subtitle {
+    font-style: italic;
+    color: var(--ink-soft);
+    margin: 0 0 1.4rem;
+  }
+  .meta {
+    font-family: var(--font-code);
+    font-size: 0.78rem;
+    color: var(--ink-soft);
+    border-top: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule);
+    padding: 0.55rem 0;
+    margin-bottom: 2.5rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.2rem;
+  }
+
+  h2 {
+    font-size: 1.32rem;
+    font-weight: 600;
+    margin: 3rem 0 0.8rem;
+    line-height: 1.25;
+  }
+  h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin: 2rem 0 0.5rem;
+  }
+  p { margin: 0 0 1.1rem; }
+
+  a { color: var(--accent); text-decoration: none; border-bottom: 1px solid var(--rule); }
+  a:hover { border-bottom-color: var(--accent); }
+
+  /* --- Codice --- */
+  code {
+    font-family: var(--font-code);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    padding: 0.1em 0.32em;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: var(--font-code);
+    font-size: 0.82rem;
+    line-height: 1.55;
+    background: var(--code-bg);
+    border-left: 3px solid var(--accent);
+    padding: 0.9rem 1rem;
+    overflow-x: auto;
+    margin: 0 0 1.2rem;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+
+  /* --- Note a margine (stile Tufte, in linea su schermi stretti) --- */
+  .sidenote {
+    font-size: 0.85rem;
+    line-height: 1.5;
+    color: var(--ink-soft);
+    border-left: 2px solid var(--rule);
+    padding-left: 0.9rem;
+    margin: 1.2rem 0;
+  }
+
+  /* --- Riquadri --- */
+  .box {
+    border: 1px solid var(--rule);
+    padding: 1rem 1.15rem;
+    margin: 1.6rem 0;
+    background: color-mix(in srgb, var(--paper) 90%, var(--rule));
+  }
+  .box > :last-child { margin-bottom: 0; }
+  .box-title {
+    font-family: var(--font-code);
+    font-size: 0.72rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    margin: 0 0 0.6rem;
+  }
+  .box.warn { border-left: 3px solid var(--warn); }
+  .box.win  { border-left: 3px solid var(--ok); }
+  .box.source { border-left: 3px solid var(--accent); background: var(--accent-soft); }
+
+  /* --- Tabelle --- */
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.92rem;
+    margin: 0 0 1.4rem;
+  }
+  th, td {
+    text-align: left;
+    padding: 0.45rem 0.6rem 0.45rem 0;
+    border-bottom: 1px solid var(--rule);
+    vertical-align: top;
+  }
+  th {
+    font-family: var(--font-code);
+    font-size: 0.72rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--ink-soft);
+    font-weight: 400;
+  }
+
+  ul, ol { margin: 0 0 1.1rem; padding-left: 1.3rem; }
+  li { margin-bottom: 0.35rem; }
+
+  /* --- Checklist pratica --- */
+  .checklist { list-style: none; padding-left: 0; }
+  .checklist li {
+    padding-left: 1.9rem;
+    position: relative;
+    margin-bottom: 0.7rem;
+  }
+  .checklist li::before {
+    content: "";
+    position: absolute;
+    left: 0; top: 0.35em;
+    width: 1rem; height: 1rem;
+    border: 1px solid var(--ink-soft);
+    border-radius: 2px;
+  }
+
+  /* --- Piè di pagina / navigazione --- */
+  footer {
+    margin-top: 4rem;
+    border-top: 1px solid var(--rule);
+    padding-top: 1.2rem;
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+  }
+  footer a { color: var(--accent); }
+
+  @media print {
+    body { padding: 0; font-size: 11pt; background: #fff; color: #000; }
+    .quiz { break-inside: avoid; }
+    pre, .box { break-inside: avoid; }
+    a { border-bottom: none; }
+    a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 0.75em; color: #555; }
+  }
+
+</style>
+
+
+
+  <style>
+  :root {
+    --k-core: #56607a;
+    --k-php: var(--accent);
+    --k-yaml: var(--warn);
+    --k-twig: var(--ok);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) { --k-core: #9aa3b8; }
+  }
+  :root[data-theme="dark"] {
+    --ink: #eae6dc; --ink-soft: #b3aea1; --paper: #17171a; --rule: #3a3a40;
+    --accent: #e28b7a; --accent-soft: #2a2022; --code-bg: #212127;
+    --ok: #6fbf8e; --warn: #d9a441; --k-core: #9aa3b8;
+    color-scheme: dark;
+  }
+
+  figure.diagram { margin: 1.8rem 0 2.2rem; }
+  figure.diagram .scroll { overflow-x: auto; }
+  figure.diagram svg { display: block; width: 100%; min-width: 34rem; height: auto; }
+  figure.diagram figcaption {
+    font-size: 0.88rem; line-height: 1.5; color: var(--ink-soft);
+    border-left: 2px solid var(--rule); padding-left: 0.9rem; margin-top: 0.8rem;
+  }
+
+  .dg { font-family: var(--font-code); }
+  .dg text { fill: var(--ink); font-size: 12px; }
+  .dg .t { font-size: 13px; font-weight: 600; }
+  .dg .s { fill: var(--ink-soft); font-size: 11px; }
+  .dg .lbl { fill: var(--ink-soft); font-size: 10px; }
+  .dg .lbl.hot { fill: var(--accent); }
+  .dg .hd { fill: var(--ink-soft); font-size: 10px; letter-spacing: 0.14em; }
+  .dg .box { fill: var(--paper); stroke: var(--rule); stroke-width: 1; }
+  .dg .ar { fill: none; stroke: var(--ink-soft); stroke-width: 1.3; }
+  .dg .ar.hot { stroke: var(--accent); }
+  .dg .ah { fill: var(--ink-soft); }
+  .dg .ah.hot { fill: var(--accent); }
+  .dg .chip { font-size: 10px; letter-spacing: 0.1em; }
+  .dg .k-core { fill: var(--k-core); }
+  .dg .k-php { fill: var(--k-php); }
+  .dg .k-yaml { fill: var(--k-yaml); }
+  .dg .k-twig { fill: var(--k-twig); }
+
+  .legend {
+    display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem;
+    font-family: var(--font-code); font-size: 0.74rem; color: var(--ink-soft);
+    margin: 0 0 1.4rem;
+  }
+  .legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+  .legend i { display: inline-block; width: 4px; height: 1rem; }
+  .legend .k-core { background: var(--k-core); }
+  .legend .k-php { background: var(--k-php); }
+  .legend .k-yaml { background: var(--k-yaml); }
+  .legend .k-twig { background: var(--k-twig); }
+
+  .table-scroll { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<header>
+  <p class="kicker">Formazione OroCommerce · Reference</p>
+  <h1>Ciclo di vita di una pagina</h1>
+  <p class="subtitle">Dalla richiesta HTTP all'HTML, nel back-office e nello storefront: quale classe, quale servizio e quale template entra in gioco a ogni passo.</p>
+  <p class="meta">
+    <span>Oro 7.0 · Symfony 7.4</span>
+    <span>Verificato sul vendor di Oro 7.0 CE</span>
+    <span>Nasce dalla <a href="../lessons/0004-crud-backoffice.html">Lezione 4</a> e dalla <a href="../lessons/0014-layout-storefront.html">Lezione 14</a></span>
+  </p>
+</header>
+
+<main>
+
+<p>Negli schemi ogni riquadro ha una striscia colorata che dice che cosa è:</p>
+
+<div class="legend">
+  <span><i class="k-core"></i>servizio del core (vendor)</span>
+  <span><i class="k-php"></i>classe PHP che scrivi tu</span>
+  <span><i class="k-yaml"></i>configurazione YAML</span>
+  <span><i class="k-twig"></i>template Twig</span>
+</div>
+
+<h2>Il tronco comune</h2>
+
+<p>Back-office e storefront girano sullo stesso kernel Symfony. Fino a quando l'action restituisce
+i suoi dati, il percorso è identico. Solo dopo si divide, e a scegliere la strada è l'attributo
+sull'action.</p>
+
+<figure class="diagram">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 720 356" role="img" aria-label="Router, security, controller e action sono comuni; a kernel.view l'attributo Template porta a Twig, l'attributo Layout porta al sistema Layout di Oro.">
+  <defs>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <text class="hd" x="172" y="26" text-anchor="middle">KERNEL.REQUEST</text>
+  <text class="hd" x="556" y="26" text-anchor="middle">KERNEL.CONTROLLER</text>
+
+  <g transform="translate(10,40)"><rect class="box" width="132" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">Router</text><text class="s" x="14" y="50">#[Route]</text></g>
+  <g transform="translate(202,40)"><rect class="box" width="132" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">Security</text><text class="s" x="14" y="50">firewall + ACL</text></g>
+  <g transform="translate(394,40)"><rect class="box" width="132" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP</text><text class="t" x="14" y="34">Controller</text><text class="s" x="14" y="50">dal container</text></g>
+  <g transform="translate(586,40)"><rect class="box" width="132" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP</text><text class="t" x="14" y="34">Action</text><text class="s" x="14" y="50">return [...]</text></g>
+
+  <line class="ar" x1="142" y1="69" x2="200" y2="69" marker-end="url(#a1)"/>
+  <text class="lbl" x="172" y="62" text-anchor="middle">match</text>
+  <line class="ar" x1="334" y1="69" x2="392" y2="69" marker-end="url(#a1)"/>
+  <text class="lbl" x="364" y="62" text-anchor="middle">accesso ok</text>
+  <line class="ar" x1="526" y1="69" x2="584" y2="69" marker-end="url(#a1)"/>
+  <text class="lbl" x="556" y="62" text-anchor="middle">argomenti</text>
+
+  <line class="ar" x1="652" y1="98" x2="652" y2="158" marker-end="url(#a1)"/>
+  <text class="lbl" x="660" y="132">array</text>
+
+  <g transform="translate(10,160)"><rect class="box" width="708" height="50" rx="3"/><rect class="k-core" width="4" height="50"/><text class="t" x="14" y="22">kernel.view</text><text class="s" x="14" y="39">l'action non ha restituito una Response: un listener deve trasformare l'array in HTML</text></g>
+
+  <line class="ar" x1="182" y1="210" x2="182" y2="268" marker-end="url(#a1)"/>
+  <text class="lbl" x="190" y="244">#[Template]</text>
+  <line class="ar" x1="546" y1="210" x2="546" y2="268" marker-end="url(#a1)"/>
+  <text class="lbl" x="554" y="244">#[Layout]</text>
+
+  <g transform="translate(10,270)"><rect class="box" width="344" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">TemplateAttributeListener</text><text class="s" x="14" y="50">Symfony: rende un template Twig</text></g>
+  <g transform="translate(374,270)"><rect class="box" width="344" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">LayoutListener</text><text class="s" x="14" y="50">Oro: costruisce un albero di blocchi</text></g>
+
+  <text class="hd" x="182" y="348" text-anchor="middle">BACK-OFFICE</text>
+  <text class="hd" x="546" y="348" text-anchor="middle">STOREFRONT</text>
+</svg>
+</div>
+<figcaption>Il punto in cui i due mondi si separano è <code>kernel.view</code>. Se l'action ha
+<code>#[Template]</code> risponde il listener di Symfony; se ha <code>#[Layout]</code> risponde
+<code>Oro\Bundle\LayoutBundle\EventListener\LayoutListener</code>. Metterli entrambi sulla stessa
+action dà <code>LogicException</code>.</figcaption>
+</figure>
+
+<h2>Back-office: la pagina di modifica della lezione 4</h2>
+
+<p>L'esempio è <code>/admin/algoritma/erp-mapping/update/{id}</code>. La colonna di sinistra è la
+richiesta GET che apre la pagina. La colonna di destra è quello che succede in più quando
+l'utente preme «Salva».</p>
+
+<figure class="diagram">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 720 548" role="img" aria-label="Una GET passa per router, controller, form type, UpdateHandlerFacade, listener del template e Twig. Una POST valida passa per FormHandler, validazione e flush, poi torna al browser con un redirect.">
+  <defs>
+    <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+    <marker id="a2h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah hot" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <g transform="translate(10,20)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">Router</text><text class="s" x="14" y="50">oro/routing.yml → #[Route] del controller</text></g>
+  <g transform="translate(10,112)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP</text><text class="t" x="14" y="34">ErpMappingController</text><text class="s" x="14" y="50">servizio in controllers.yml, subscriber</text></g>
+  <g transform="translate(10,204)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP</text><text class="t" x="14" y="34">ErpMappingType</text><text class="s" x="14" y="50">tag form.type · data_class ErpMapping</text></g>
+  <g transform="translate(10,296)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">UpdateHandlerFacade::update()</text><text class="s" x="14" y="50">preso da getSubscribedServices()</text></g>
+  <g transform="translate(10,388)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">TemplateAttributeListener</text><text class="s" x="14" y="50">legge #[Template('@AlgoritmaTraining/…')]</text></g>
+  <g transform="translate(10,480)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG</text><text class="t" x="14" y="34">ErpMapping/update.html.twig</text><text class="s" x="14" y="50">estende @OroUI → Response 200</text></g>
+
+  <line class="ar" x1="175" y1="78" x2="175" y2="110" marker-end="url(#a2)"/>
+  <text class="lbl" x="183" y="98">entità da {id}</text>
+  <line class="ar" x1="175" y1="170" x2="175" y2="202" marker-end="url(#a2)"/>
+  <text class="lbl" x="183" y="190">createForm()</text>
+  <line class="ar" x1="175" y1="262" x2="175" y2="294" marker-end="url(#a2)"/>
+  <text class="lbl" x="183" y="282">entità + form</text>
+  <line class="ar" x1="175" y1="354" x2="175" y2="386" marker-end="url(#a2)"/>
+  <text class="lbl" x="183" y="374">GET: array</text>
+  <line class="ar" x1="175" y1="446" x2="175" y2="478" marker-end="url(#a2)"/>
+  <text class="lbl" x="183" y="466">render()</text>
+
+  <text class="hd" x="555" y="286" text-anchor="middle">SOLO SU POST</text>
+  <g transform="translate(400,296)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">FormHandler::process()</text><text class="s" x="14" y="50">evento before_form_submit</text></g>
+  <g transform="translate(400,388)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">submit + validazione</text><text class="s" x="14" y="50">vincoli #[Assert] dell'entità</text></g>
+  <g transform="translate(400,480)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">flush + messaggio flash</text><text class="s" x="14" y="50">before/after_entity_flush</text></g>
+
+  <line class="ar" x1="340" y1="325" x2="398" y2="325" marker-end="url(#a2)"/>
+  <text class="lbl" x="370" y="318" text-anchor="middle">POST</text>
+  <line class="ar" x1="555" y1="354" x2="555" y2="386" marker-end="url(#a2)"/>
+  <text class="lbl" x="563" y="374">submit()</text>
+  <line class="ar" x1="400" y1="417" x2="342" y2="417" marker-end="url(#a2)"/>
+  <text class="lbl" x="370" y="410" text-anchor="middle">errori</text>
+  <line class="ar" x1="555" y1="446" x2="555" y2="478" marker-end="url(#a2)"/>
+  <text class="lbl" x="563" y="466">valido</text>
+
+  <path class="ar hot" d="M700,509 H712 V49 H342" marker-end="url(#a2h)"/>
+  <text class="lbl hot" x="526" y="41" text-anchor="middle">302 → il browser rifà una GET</text>
+</svg>
+</div>
+<figcaption>Una POST valida non rende mai il template. Salva, aggiunge il messaggio flash e risponde
+con un redirect, quindi la pagina che vedi dopo «Salva» è una nuova GET. Una POST non valida
+rientra nella colonna di sinistra: il template riceve lo stesso form, con gli errori attaccati. I
+quattro eventi del <code>FormHandler</code> (<code>oro.form.update_handler.*</code>) sono il punto
+dove un tuo listener può intervenire sul salvataggio senza toccare il controller.</figcaption>
+</figure>
+
+<h3>La catena dei template</h3>
+
+<p>Il tuo template è l'ultimo anello di una catena di <code>extends</code>. Dentro l'anello di
+mezzo c'è anche un evento che permette di aggiungere sezioni alla pagina senza sovrascrivere nulla.</p>
+
+<figure class="diagram">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 720 290" role="img" aria-label="Il template del bundle estende @OroUI/actions/update.html.twig, che estende base.html.twig. Il template di mezzo lancia un evento a cui un listener PHP risponde aggiungendo sezioni.">
+  <defs>
+    <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <g transform="translate(10,20)"><rect class="box" width="440" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG · CORE</text><text class="t" x="14" y="34">base.html.twig</text><text class="s" x="14" y="50">bap.layout in config.yml: menu, header, JS</text></g>
+  <g transform="translate(10,116)"><rect class="box" width="440" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG · CORE</text><text class="t" x="14" y="34">@OroUI/actions/update.html.twig</text><text class="s" x="14" y="50">pulsanti di salvataggio, form, UI.scrollData()</text></g>
+  <g transform="translate(10,212)"><rect class="box" width="440" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG · TUO</text><text class="t" x="14" y="34">@AlgoritmaTraining/ErpMapping/update.html.twig</text><text class="s" x="14" y="50">ridefinisce solo {% block pageHeader %}</text></g>
+
+  <line class="ar" x1="230" y1="212" x2="230" y2="176" marker-end="url(#a3)"/>
+  <text class="lbl" x="238" y="198">extends</text>
+  <line class="ar" x1="230" y1="116" x2="230" y2="80" marker-end="url(#a3)"/>
+  <text class="lbl" x="238" y="102">extends</text>
+
+  <g transform="translate(510,116)"><rect class="box" width="200" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP · TUO</text><text class="t" x="14" y="34">Listener</text><text class="s" x="14" y="50">aggiunge sezioni</text></g>
+
+  <line class="ar" x1="450" y1="134" x2="508" y2="134" marker-end="url(#a3)"/>
+  <text class="lbl" x="480" y="127" text-anchor="middle">evento</text>
+  <line class="ar" x1="510" y1="158" x2="452" y2="158" marker-end="url(#a3)"/>
+  <text class="lbl" x="480" y="171" text-anchor="middle">sezioni</text>
+</svg>
+</div>
+<figcaption>Ogni anello ridefinisce i blocchi del padre. <code>bap.layout</code> è una variabile
+globale Twig definita in <code>config/config.yml</code> che vale <code>base.html.twig</code>.
+L'evento è <code>oro_ui.scroll_data.before.&lt;pageId&gt;</code>, lanciato da
+<code>UiExtension</code>. Se proprio devi cambiare l'anello di mezzo, lo sovrascrivi in
+<code>templates/bundles/OroUIBundle/actions/update.html.twig</code>, estendendo
+<code>@!OroUI/actions/update.html.twig</code>.</figcaption>
+</figure>
+
+<h2>Storefront: la pagina prodotto</h2>
+
+<p>L'esempio è <code>/product/view/{id}</code>, rotta <code>oro_product_frontend_product_view</code>.
+Il controller non nomina nessun template. Restituisce dati, e la forma della pagina la decide
+l'insieme dei file di layout del tema attivo.</p>
+
+<figure class="diagram">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 720 596" role="img" aria-label="LayoutListener crea il contesto, i configurator aggiungono tema e rotta, ThemePathProvider sceglie le cartelle, i layout update costruiscono l'albero, i block type creano le BlockView, i block theme Twig producono l'HTML.">
+  <defs>
+    <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+
+  <g transform="translate(10,20)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">LayoutListener</text><text class="s" x="14" y="50">legge #[Layout(vars: [...])]</text></g>
+  <g transform="translate(10,112)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">LayoutContext + configurator</text><text class="s" x="14" y="50">tag layout.context_configurator</text></g>
+  <g transform="translate(10,204)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">ThemePathProvider</text><text class="s" x="14" y="50">tema padre → figlio, cartella = rotta</text></g>
+  <g transform="translate(10,296)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-yaml" width="4" height="58"/><text class="chip k-yaml" x="14" y="16">YAML · CORE + TUO</text><text class="t" x="14" y="34">layout update</text><text class="s" x="14" y="50">@addTree · @remove · @move · @setBlockTheme</text></g>
+  <g transform="translate(10,388)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">CORE</text><text class="t" x="14" y="34">LayoutBuilder → BlockView</text><text class="s" x="14" y="50">block type: tag layout.block_type</text></g>
+  <g transform="translate(10,480)"><rect class="box" width="330" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG · CORE + TUO</text><text class="t" x="14" y="34">block theme</text><text class="s" x="14" y="50">{% block _&lt;id&gt;_widget %}</text></g>
+
+  <line class="ar" x1="175" y1="78" x2="175" y2="110" marker-end="url(#a4)"/>
+  <text class="lbl" x="183" y="98">array + vars</text>
+  <line class="ar" x1="175" y1="170" x2="175" y2="202" marker-end="url(#a4)"/>
+  <text class="lbl" x="183" y="190">theme, route_name</text>
+  <line class="ar" x1="175" y1="262" x2="175" y2="294" marker-end="url(#a4)"/>
+  <text class="lbl" x="183" y="282">cartelle da leggere</text>
+  <line class="ar" x1="175" y1="354" x2="175" y2="386" marker-end="url(#a4)"/>
+  <text class="lbl" x="183" y="374">azioni sull'albero</text>
+  <line class="ar" x1="175" y1="446" x2="175" y2="478" marker-end="url(#a4)"/>
+  <text class="lbl" x="183" y="466">render()</text>
+  <line class="ar" x1="175" y1="538" x2="175" y2="566" marker-end="url(#a4)"/>
+  <text class="t" x="175" y="588" text-anchor="middle">Response 200</text>
+
+  <g transform="translate(410,20)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-php" width="4" height="58"/><text class="chip k-php" x="14" y="16">PHP</text><text class="t" x="14" y="34">ProductController::viewAction</text><text class="s" x="14" y="50">return ['data' =&gt; [...], ...vars]</text></g>
+  <g transform="translate(410,204)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-yaml" width="4" height="58"/><text class="chip k-yaml" x="14" y="16">YAML · TUO</text><text class="t" x="14" y="34">theme.yml</text><text class="s" x="14" y="50">parent: default</text></g>
+  <g transform="translate(410,388)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-core" width="4" height="58"/><text class="chip k-core" x="14" y="16">SERVIZIO · CORE O TUO</text><text class="t" x="14" y="34">layout data provider</text><text class="s" x="14" y="50">tag layout.data_provider</text></g>
+  <g transform="translate(410,480)"><rect class="box" width="300" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">TWIG · CORE</text><text class="t" x="14" y="34">div_layout.html.twig</text><text class="s" x="14" y="50">block_widget, container_widget</text></g>
+
+  <line class="ar" x1="410" y1="49" x2="342" y2="49" marker-end="url(#a4)"/>
+  <text class="lbl" x="376" y="42" text-anchor="middle">array</text>
+  <line class="ar" x1="410" y1="233" x2="342" y2="233" marker-end="url(#a4)"/>
+  <text class="lbl" x="376" y="226" text-anchor="middle">gerarchia</text>
+  <line class="ar" x1="410" y1="417" x2="342" y2="417" marker-end="url(#a4)"/>
+  <text class="lbl" x="376" y="410" text-anchor="middle">=data[…]</text>
+  <line class="ar" x1="410" y1="509" x2="342" y2="509" marker-end="url(#a4)"/>
+  <text class="lbl" x="376" y="502" text-anchor="middle">fallback</text>
+</svg>
+</div>
+<figcaption>A sinistra il motore, a destra ciò che lo alimenta. I configurator mettono nel contesto
+il tema attivo (<code>theme</code>) e il nome della rotta (<code>route_name</code>), e spostano la
+chiave <code>data</code> del controller fra i dati del layout. Le espressioni come
+<code>=data["product"]</code> nei layout update leggono da lì oppure da un servizio con tag
+<code>layout.data_provider</code>, chiamato per alias. Se la richiesta contiene
+<code>layout_block_ids</code>, lo stesso motore risponde con un JSON che contiene solo quei
+blocchi: è così che lo storefront aggiorna pezzi di pagina via AJAX.</figcaption>
+</figure>
+
+<h3>Quali cartelle legge, e in che ordine</h3>
+
+<p><code>ThemePathProvider</code> costruisce la lista delle cartelle partendo dal tema padre e
+arrivando al figlio. Con un tema <code>algoritma</code> che ha <code>parent: default</code>, per la
+pagina prodotto la lista è questa:</p>
+
+<pre><code>1  layouts/default/
+2  layouts/algoritma/
+3  layouts/default/oro_product_frontend_product_view/
+4  layouts/algoritma/oro_product_frontend_product_view/
+5  layouts/default/oro_product_frontend_product_view/page_template/&lt;chiave&gt;/
+6  layouts/algoritma/oro_product_frontend_product_view/page_template/&lt;chiave&gt;/</code></pre>
+
+<p>Ogni riga non è una sola cartella. Oro raccoglie quella cartella da <strong>tutti</strong> i
+bundle (<code>Resources/views/layouts/…</code>) e da <code>templates/layouts/…</code>
+dell'applicazione. I file vengono applicati nell'ordine della lista, quindi un tuo
+<code>@remove</code> nel tema figlio arriva dopo l'<code>@addTree</code> del core. Le righe 5 e 6
+esistono solo se la pagina ha un page template scelto dal back-office.</p>
+
+<h3>Come un blocco diventa HTML</h3>
+
+<figure class="diagram">
+<div class="scroll">
+<svg class="dg" viewBox="0 0 720 110" role="img" aria-label="Il renderer cerca prima il blocco Twig per id, poi per block type e tipi padre, infine block_widget in div_layout.html.twig.">
+  <defs>
+    <marker id="a5" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="ah" d="M0,0 L10,5 L0,10 z"/></marker>
+  </defs>
+  <g transform="translate(10,30)"><rect class="box" width="200" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">1 · PER ID</text><text class="t" x="14" y="34">_&lt;id&gt;_widget</text><text class="s" x="14" y="50">vince l'ultimo tema</text></g>
+  <g transform="translate(260,30)"><rect class="box" width="200" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">2 · PER TIPO</text><text class="t" x="14" y="34">&lt;tipo&gt;_widget</text><text class="s" x="14" y="50">poi i tipi padre</text></g>
+  <g transform="translate(510,30)"><rect class="box" width="200" height="58" rx="3"/><rect class="k-twig" width="4" height="58"/><text class="chip k-twig" x="14" y="16">3 · BASE</text><text class="t" x="14" y="34">block_widget</text><text class="s" x="14" y="50">div_layout.html.twig</text></g>
+  <line class="ar" x1="210" y1="59" x2="258" y2="59" marker-end="url(#a5)"/>
+  <text class="lbl" x="234" y="52" text-anchor="middle">manca</text>
+  <line class="ar" x1="460" y1="59" x2="508" y2="59" marker-end="url(#a5)"/>
+  <text class="lbl" x="484" y="52" text-anchor="middle">manca</text>
+</svg>
+</div>
+<figcaption>Per cambiare l'HTML di un solo blocco ridefinisci <code>_&lt;id&gt;_widget</code> in un
+block theme del tuo tema, registrato con <code>@setBlockTheme</code>. Per cambiare tutti i blocchi
+di un tipo ridefinisci <code>&lt;tipo&gt;_widget</code>. Esempio reale:
+<code>_product_view_headline_widget</code> in
+<code>ProductBundle/Resources/views/layouts/default/oro_product_frontend_product_view/layout.html.twig</code>.</figcaption>
+</figure>
+
+<h2>I due cicli a confronto</h2>
+
+<div class="table-scroll">
+<table>
+  <thead><tr><th>Passo</th><th>Back-office</th><th>Storefront</th></tr></thead>
+  <tbody>
+    <tr><td>Rotta</td><td><code>oro/routing.yml</code> + <code>#[Route]</code></td><td>uguale</td></tr>
+    <tr><td>Controller</td><td>servizio in <code>controllers.yml</code></td><td>uguale</td></tr>
+    <tr><td>Attributo sull'action</td><td><code>#[Template]</code></td><td><code>#[Layout(vars: [...])]</code></td></tr>
+    <tr><td>Dati per la vista</td><td>array dell'action (<code>entity</code>, <code>form</code>)</td><td>chiave <code>data</code> + layout data provider</td></tr>
+    <tr><td>Struttura della pagina</td><td>catena di <code>extends</code> Twig</td><td>albero di blocchi dai layout update YAML</td></tr>
+    <tr><td>HTML</td><td>blocchi del template</td><td>block theme: <code>_&lt;id&gt;_widget</code></td></tr>
+    <tr><td>Aggiungere senza sovrascrivere</td><td>evento <code>oro_ui.scroll_data.before.&lt;pageId&gt;</code>, placeholder</td><td>layout update nel tema figlio</td></tr>
+    <tr><td>Sovrascrivere</td><td><code>templates/bundles/OroUIBundle/…</code> con <code>@!OroUI</code></td><td>stesso id di blocco nel block theme del tema figlio</td></tr>
+    <tr><td>Dove guardare nel vendor</td><td><code>UIBundle/Resources/views/actions/</code></td><td><code>*/Resources/views/layouts/default/&lt;rotta&gt;/</code></td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="box source">
+  <p class="box-title">Per verificare nel vendor</p>
+  <ul>
+    <li><code>vendor/oro/platform/src/Oro/Bundle/LayoutBundle/EventListener/LayoutListener.php</code>: il bivio di <code>kernel.view</code> per lo storefront</li>
+    <li><code>vendor/oro/platform/src/Oro/Bundle/FormBundle/Model/UpdateHandlerFacade.php</code> e <code>Form/Handler/FormHandler.php</code>: GET, POST, redirect</li>
+    <li><code>vendor/oro/platform/src/Oro/Component/Layout/Extension/Theme/PathProvider/ThemePathProvider.php</code>: l'ordine delle cartelle</li>
+    <li><code>vendor/oro/commerce/src/Oro/Bundle/ProductBundle/Controller/Frontend/ProductController.php</code>: un controller storefront reale</li>
+  </ul>
+</div>
+
+</main>
+
+<footer>
+  <p>Collegamenti:
+    <a href="../lessons/0004-crud-backoffice.html">Lezione 4</a> ·
+    <a href="../lessons/0014-layout-storefront.html">Lezione 14</a> ·
+    <a href="estendere-il-core.html">Estendere il core</a> ·
+    <a href="magento-oro.html">Da Magento a Oro</a> ·
+    <a href="https://doc.oroinc.com/frontend/storefront/layouts/">Oro — Layouts</a>
+  </p>
+</footer>
+
+</body>
+</html>
