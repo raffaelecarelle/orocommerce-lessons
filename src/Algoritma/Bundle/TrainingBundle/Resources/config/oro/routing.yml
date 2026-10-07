@@ -1,0 +1,4 @@
+oro_calendar:
+  resource:     "@AlgoritmaTrainingBundle/Controller"
+  type:         attribute
+  prefix:       /test-training

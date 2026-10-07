@@ -1,5 +1,19 @@
 services:
     _defaults:
-        autowire: false
-        autoconfigure: false
+        autowire: true
+        autoconfigure: true
         public: false
+
+    Algoritma\Bundle\TrainingBundle\Command\HelloCommand:
+        arguments:
+            - '@Algoritma\Bundle\TrainingBundle\Service\HelloService'
+        tags:
+            - { name: console.command }
+
+    Algoritma\Bundle\TrainingBundle\Service\HelloService: ~
+
+    Algoritma\Bundle\TrainingBundle\Controller\TestController:
+        calls:
+            - [ 'setContainer', [ '@Psr\Container\ContainerInterface' ] ]
+        tags:
+            - { name: container.service_subscriber }
