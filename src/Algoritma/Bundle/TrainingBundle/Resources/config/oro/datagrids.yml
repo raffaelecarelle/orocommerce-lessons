@@ -1,0 +1,53 @@
+datagrids:
+
+  my-awesome-grid:
+    extended_entity_name: 'Algoritma\Bundle\TrainingBundle\Entity\MyAwesomeEntity'
+    source:
+      type: orm
+      query:
+        select:
+          - t.id
+          - t.name
+        from:
+          - { table: Algoritma\Bundle\TrainingBundle\Entity\MyAwesomeEntity, alias: t }
+    columns:
+      id:
+        label: ID
+      name:
+        label: Name
+    filters:
+      columns:
+        id:
+          type: string
+          data_name: id
+        name:
+          type: string
+          data_name: name
+    options:
+      entityHint: My Awesome Entities
+      entity_pagination: true
+      export:
+        enabled: true
+    properties:
+      edit_link:
+        type: url
+        route: my_awesome_edit
+        params:
+          - id
+      delete_link:
+        type: url
+        route: my_awesome_delete
+        params:
+          - id
+    actions:
+      edit:
+        type: navigate
+        label: oro.grid.action.edit
+        link: edit_link
+        icon: edit
+        rowAction: true
+      delete:
+        type: delete
+        label: oro.grid.action.delete
+        icon: trash
+        link: delete_link

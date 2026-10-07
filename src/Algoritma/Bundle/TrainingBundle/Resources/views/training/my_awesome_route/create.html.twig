@@ -1,0 +1,41 @@
+{% extends '@OroUI/actions/update.html.twig' %}
+{% import '@OroDataGrid/macros.html.twig' as dataGrid %}
+
+{% block navButtons %}
+    {% import '@OroUI/macros.html.twig' as UI %}
+
+    {{ UI.cancelButton(path('my_awesome_route')) }}
+
+    {% set html = '' %}
+    {% set html = html ~ UI.saveAndCloseButton({
+        'route' : 'my_awesome_route'
+    }) %}
+    {% set html = html ~ UI.saveAndStayButton({
+        'route' : 'my_awesome_edit',
+        'params': {'id': '$id'}
+    }) %}
+
+    {{ UI.dropdownSaveButton({'html': html}) }}
+{% endblock navButtons %}
+
+{% block content_data %}
+    {% set id = 'my-awesome-create' %}
+
+    {% set subBlockData = [form_row(form.name), form_row(form.description)] %}
+    {% set dataBlocks = [{
+        'title': 'General'|trans,
+        'subblocks': [
+            {
+                'title': 'Basic Information'|trans,
+                'data': subBlockData
+            }
+        ]
+    }] %}
+
+
+    {% set data = {
+        'formErrors': form_errors(form),
+        'dataBlocks': dataBlocks
+    } %}
+    {{ parent() }}
+{% endblock content_data %}

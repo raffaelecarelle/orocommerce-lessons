@@ -1,0 +1,17 @@
+{% extends '@OroUI/actions/index.html.twig' %}
+
+{% set gridName = 'my-awesome-grid' %}
+
+{% block navButtons %}
+    {% import '@OroUI/macros.html.twig' as UI %}
+
+    {% if is_granted('oro_call_create') %}
+        <div class="btn-group">
+            {{ UI.addButton({
+                'path' : path('my_awesome_create'),
+                'title' : 'Crea'|trans,
+                'label' : 'Crea'|trans
+            }) }}
+        </div>
+    {% endif %}
+{% endblock %}

@@ -17,3 +17,13 @@ services:
             - [ 'setContainer', [ '@Psr\Container\ContainerInterface' ] ]
         tags:
             - { name: container.service_subscriber }
+
+    Algoritma\Bundle\TrainingBundle\Controller\MyAwesomeController:
+        calls:
+            - [ 'setContainer', [ '@Psr\Container\ContainerInterface' ] ]
+        tags:
+            - { name: container.service_subscriber }
+
+    Algoritma\Bundle\TrainingBundle\Form\Type\MyAwesomeFormType:
+        tags:
+            - { name: form.type }

@@ -1,0 +1,7 @@
+algoritma:
+    training:
+      myawesomeentity:
+        name:
+          label: Name
+        description:
+          label: Description
