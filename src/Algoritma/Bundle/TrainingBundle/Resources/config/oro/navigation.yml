@@ -1,0 +1,19 @@
+navigation:
+  menu_config:
+    items:
+      my_awesome_list:
+        label: 'My Awesome List'
+        route: 'my_awesome_route'
+        position: 20
+        extras:
+          icon: 'fa-list'
+
+    tree:
+      application_menu:
+        children:
+          my_awesome_list: ~
+
+  titles:
+    my_awesome_route: ~
+    my_awesome_update: '%subject% - Edit'
+    my_awesome_create: 'My Awesome List'
