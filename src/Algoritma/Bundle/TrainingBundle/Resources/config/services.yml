@@ -27,3 +27,17 @@ services:
     Algoritma\Bundle\TrainingBundle\Form\Type\MyAwesomeFormType:
         tags:
             - { name: form.type }
+
+    Algoritma\Bundle\TrainingBundle\EventListener\Customer\CustomerFieldsViewListener:
+        arguments:
+            - '@oro_sales.customer.account_config_provider'
+        tags:
+            - { name: kernel.event_listener, event: oro_ui.scroll_data.before.customer-edit, method: addFields }
+
+    Algoritma\Bundle\TrainingBundle\Form\Extension\CustomerTypeExtension:
+        tags:
+            - { name: form.type_extension, extended_type: Oro\Bundle\CustomerBundle\Form\Type\CustomerType }
+
+    Algoritma\Bundle\TrainingBundle\Layout\DataProvider\CustomBlockTestProvider:
+        tags:
+            - { name: layout.data_provider, alias: custom_block_test }

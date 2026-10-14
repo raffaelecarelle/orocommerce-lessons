@@ -1,0 +1,28 @@
+layout:
+  actions:
+    - '@setBlockTheme':
+        themes: 'middle_bar.html.twig'
+
+    - '@add':
+        id: 'custom_block_test'
+        blockType: container
+        parentId: 'middle_bar'
+        options:
+          vars:
+            title: 'Custom Block Test'
+            subtitle: '=data["custom_block_test"].getSubTitle()'
+
+    - '@add':
+        id: 'custom_block_test_2'
+        blockType: container
+        parentId: 'custom_block_test'
+        options:
+          attr:
+            class: 'custom-block-test-2'
+          visible: '=data["custom_block_test"].isBlocKTest2Visible()'
+
+    - '@setOption':
+        id: middle_bar_search
+        optionName: 'visible'
+        optionValue: false
+  conditions: 'context["is_mobile"]'

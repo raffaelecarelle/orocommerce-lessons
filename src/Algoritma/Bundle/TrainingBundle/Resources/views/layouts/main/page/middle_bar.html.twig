@@ -1,0 +1,20 @@
+{% block _custom_block_test_widget %}
+    {{ title }}
+    {{ subtitle }}
+
+    {% set attr = layout_attr_defaults(attr, {
+        '~class': ' custom-block-test-2'
+    }) %}
+
+    <div {{ block('block_attributes') }}>
+        {{ block_widget(block) }}
+    </div>
+{% endblock %}
+
+{% block _custom_block_test_2_widget %}
+   aaaaaaaaaaaaaaaaaaaa
+{% endblock %}
+
+{#{% block _page_sidebar_widget %}#}
+{#    sadsdsadsadsadsadsa#}
+{#{% endblock %}#}

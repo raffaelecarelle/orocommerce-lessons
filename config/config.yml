@@ -132,7 +132,9 @@ oro_theme:
     active_theme: oro
 
 oro_layout:
+    active_theme: main
     enabled_themes:
+        - main
         - default
 
 oro_locale:

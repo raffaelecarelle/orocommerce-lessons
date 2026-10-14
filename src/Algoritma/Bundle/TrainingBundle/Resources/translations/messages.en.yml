@@ -1,3 +1,13 @@
+oro:
+  customer:
+    fiscal_code:
+      label: Fiscal Code
+    vat:
+      label: VAT
+    pec:
+      label: PEC
+    sdi:
+      label: SDI
 algoritma:
     training:
       myawesomeentity:
